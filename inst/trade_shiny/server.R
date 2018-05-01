@@ -40,7 +40,8 @@ shinyServer(function(input, output, session) {
        'Prices \n($/unit)'    = rep(10,4),
        'Quantities'   =c(0.4,.3,.2,.1)*100,
        'Margins\n(p-c)/p' =c(0.5,NA,NA,NA),
-       'Tariff \n(proportion)' = c(.1,.1,0,0),
+       'Current \nTariff \n(proportion)' = c(.05,.05,0,0),
+       'New \nTariff \n(proportion)' = c(.25,.25,0,0),
        stringsAsFactors = FALSE,
        check.names=FALSE
      )
@@ -60,7 +61,7 @@ shinyServer(function(input, output, session) {
 
    }
 
-   gensum <- function(res){
+   gensum <- function(res, indata){
      #a function to generate summary stats for results tab
 
 
@@ -75,6 +76,7 @@ shinyServer(function(input, output, session) {
 
      if(isAuction && missPrices){inLevels = TRUE}
 
+     indata <- indata[!is.na(indata$Name),]
 
 
 
@@ -95,25 +97,29 @@ shinyServer(function(input, output, session) {
 
        theseshares <- theseshares/sum(theseshares)
 
-       }
+     }
 
-     tariff <- s$mcDelta/100
-     istaxed <- tariff > 0
+     tariffPre <- indata[,grepl("Cur.*Tariff",colnames(indata)),drop=TRUE]
+     tariffPost <- indata[,grepl("New.*Tariff",colnames(indata)),drop=TRUE]
+
+
+     istaxed <- tariffPre > 0 | tariffPost > 0
 
      thisgovrev <- thispsdelta <- thiscv <- NA
 
      try(thiscv <- CV(res),silent = TRUE)
 
-     try(thisgovrev <- sum(tariff * calcRevenues(res, preMerger = FALSE), na.rm=TRUE))
+     try(thisgovrev <- sum(tariffPost * calcRevenues(res, preMerger = FALSE) - tariffPre * calcRevenues(res, preMerger = TRUE), na.rm=TRUE))
 
-     try(thispsdelta  <- tapply(calcProducerSurplus(res,preMerger=FALSE) - calcProducerSurplus(res,preMerger=TRUE), istaxed,sum),silent=TRUE)
+     try(thispsdelta  <- tapply(drop(calcProducerSurplus(res,preMerger=FALSE)/(1 + tariffPost)) - drop(calcProducerSurplus(res,preMerger=TRUE)/(1 + tariffPre)), istaxed,sum),silent=TRUE)
 
 
      foreignshare <- s$sharesPost[istaxed]
      domesticshare <- s$sharesPost[!istaxed]
 
+
      res <- with(s, data.frame(
-           'Pre-Tariff HHI' = as.integer(round(hhi(res,preMerger=TRUE))),
+           'Current Tariff HHI' = as.integer(round(hhi(res,preMerger=TRUE))),
            'HHI Change' = as.integer(round(hhi(res,preMerger=FALSE) -  hhi(res,preMerger=TRUE))),
            'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
            'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
@@ -204,7 +210,8 @@ shinyServer(function(input, output, session) {
 
      prices <- indata[,"Prices \n($/unit)"]
      margins <- indata$Margins
-     tariff <- indata$Tariff
+     tariffPre <- indata[,grepl("Cur.*Tariff",colnames(indata)),drop=TRUE]
+     tariffPost <- indata[,grepl("New.*Tariff",colnames(indata)),drop=TRUE]
 
      missPrices <- any(is.na(prices))
 
@@ -226,7 +233,8 @@ shinyServer(function(input, output, session) {
 
      ownerPre = model.matrix(~-1+indata$Owner)
      ownerPre = tcrossprod(ownerPre)
-     ownerPost =ownerPre/(1+tariff)
+     ownerPost =ownerPre/(1+tariffPost)
+     ownerPre =ownerPre/(1+tariffPre)
 
 
 
@@ -412,8 +420,8 @@ shinyServer(function(input, output, session) {
 
       missPrices <- isTRUE(any(is.na(prices[ !is.na(output) ] ) ))
 
-      if(input$supply == "2nd Score Auction"){colnames(inputData)[grepl("Tariff",colnames(inputData))] <-'Tariff \n($/unit)'}
-      else{colnames(inputData)[grepl("Tariff",colnames(inputData))] <-'Tariff \n(proportion)'}
+      if(input$supply == "2nd Score Auction"){ colnames(inputData) <- gsub("Tariff \n(proportion)","Tariff \n($/unit)", colnames(inputData))}
+      else{colnames(inputData) <- gsub("Tariff \n($/unit)","Tariff \n(proportion)", colnames(inputData))}
 
       if(missPrices && input$supply =="2nd Score Auction"){colnames(inputData)[grepl("Margins",colnames(inputData))] <- "Margins\n ($/unit)"}
       else{colnames(inputData)[grepl("Margins",colnames(inputData))] <- "Margins\n (p-c)/p"}
@@ -448,9 +456,14 @@ shinyServer(function(input, output, session) {
       indata <- indata[!is.na(indata[,"Output"]),]
 
 
+      newTariff <- indata[,grep('New.*Tariff',colnames(indata)), drop = TRUE]
+      newTariff[is.na(newTariff)] <- 0
 
-      indata$mcDelta <- indata[,grep('Tariff',colnames(indata))]
-      indata$mcDelta[is.na(indata$mcDelta)] <- 0
+      oldTariff <- indata[,grep('Cur.*Tariff',colnames(indata)), drop= TRUE]
+      oldTariff[is.na(oldTariff)] <- 0
+
+      indata$mcDelta <-  (newTariff - oldTariff)/(1 + oldTariff)
+
 
       indata$Owner <- factor(indata$Owner,levels=unique(indata$Owner) )
 
@@ -529,9 +542,9 @@ shinyServer(function(input, output, session) {
 
             if(input$inTabset != "respanel" || input$simulate == 0|| is.null(values[["sim"]])){return()}
 
-            inputData <- values[["inputData"]]
+            isolate(inputData <- values[["inputData"]])
 
-            gensum(values[["sim"]])
+            gensum(values[["sim"]],inputData)
           })
 
 
@@ -549,7 +562,7 @@ shinyServer(function(input, output, session) {
 
           res$product <- res$mcDelta <- NULL
 
-          try(colnames(res) <- c("Foreign Firm","Name","Pre-Tariff Price","Post-Tariff Price", "Price Change (%)","Pre-Tariff Quantity","Post-Tariff Quantity", "Output Change (%)"),silent=TRUE)
+          try(colnames(res) <- c("Foreign Firm","Name","Current Tariff Price","New Tariff Price", "Price Change (%)","Current Tariff Quantity","New Tariff Quantity", "Output Change (%)"),silent=TRUE)
 
           }
 
@@ -568,7 +581,7 @@ shinyServer(function(input, output, session) {
           res$mcDelta <- NULL
           res <- res[,c(1, ncol(res), 2 : (ncol(res)  - 1))]
 
-          thesenames <-  c("Foreign Firm","Name","Pre-Tariff Price","Post-Tariff Price", "Price Change (%)","Pre-Tariff Share (%)","Post-Tariff Share (%)", "Share Change (%)")
+          thesenames <-  c("Foreign Firm","Name","Current Tariff Price","New Tariff Price", "Price Change (%)","Current Tariff Share (%)","New Tariff Share (%)", "Share Change (%)")
 
 
           colnames(res) <- thesenames
@@ -606,7 +619,7 @@ shinyServer(function(input, output, session) {
                               )))
 
 
-      rownames(res) <- c("Pre-Tariff","Post-Tariff")
+      rownames(res) <- c("Current Tariff","New Tariff")
 
       if( grepl("aids",class(values[["sim"]]),ignore.case = TRUE)) res$'No-purchase\n Share (%)' <- NULL
 
@@ -660,7 +673,7 @@ shinyServer(function(input, output, session) {
 
       isCournot <- grepl("Cournot",class(values[["sim"]]))
 
-       if(input$pre_elast == "Pre-Tariff"){ preMerger = TRUE}
+       if(input$pre_elast == "Current Tariff"){ preMerger = TRUE}
         else{preMerger =FALSE}
 
       if(!isCournot && input$diversions){
@@ -679,7 +692,7 @@ shinyServer(function(input, output, session) {
 
       if(input$inTabset!= "elastpanel" || input$simulate == 0 || is.null(values[["sim"]])){return()}
 
-      if(input$pre_elast == "Pre-Tariff"){ preTariff = TRUE}
+      if(input$pre_elast == "Current Tariff"){ preTariff = TRUE}
       else{preTariff =FALSE}
 
       res <- as.matrix(elast(values[["sim"]], preMerger=preTariff, market = TRUE))
@@ -707,7 +720,8 @@ shinyServer(function(input, output, session) {
                     "prices",
                     "quantities",
                     "margins",
-                    "tariff"
+                    "tariffPre",
+                    "tariffPost"
 
                     )
 

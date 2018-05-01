@@ -14,7 +14,8 @@ shinyUI(fluidPage(
 
        h5(tags$b("Directions:")),
         helpText(tags$ul(
-                 tags$li("Copy and paste (or enter) information into Inputs table (right) to simulate a 10%", tags$em("ad valorem"),"tariff on products produced by 'Firm1' and 'Firm2' "),
+                 tags$li("Copy and paste (or enter) information into Inputs table (right) to simulate an", tags$em("ad valorem"),"tariff."),
+                 tags$li("Default example simulates an increase in the ", tags$em("ad valorem"),"tariff from 5% to 25% on products produced by 'Firm1' and 'Firm2'."),
                  tags$li(helpText("See the",tags$a(href="https://CRAN.R-project.org/package=antitrust", "antitrust"),"R package vignette for more details about the models used here." ))
                  #tags$li("Shares must be between 0 and 1."),
                  #tags$li("Margins should exclude fixed costs.")
@@ -70,7 +71,7 @@ shinyUI(fluidPage(
         br(), br(),br(),
         tabsetPanel(id = "inTabset",
           tabPanel("Summary", value = "respanel", br(),br(),tableOutput("results"), br(),
-                   helpText(tags$b("Note:"), "all price changes as well as compensating marginal cost reduction are (post-tariff) share-weighted averages.
+                   helpText(tags$b("Note:"), "all price changes are (new tariff) share-weighted averages.
                             Negative Consumer Harm or Net Harm numbers denotes benefit.")
           ),
           tabPanel("Details", value = "detpanel", br(),br(), tableOutput("results_shareOut"),br(), tableOutput("results_detailed")
@@ -81,8 +82,8 @@ shinyUI(fluidPage(
                    ),
           tabPanel("Elasticities", value = "elastpanel",  br(),br(),
                    radioButtons("pre_elast", "",
-                                                choices = c("Pre-Tariff",
-                                                            "Post-Tariff"
+                                                choices = c("Current Tariff",
+                                                            "New Tariff"
                                                 ), inline = TRUE),
                     br(),
                    tableOutput("results_mktelast"),br(),
