@@ -1,13 +1,33 @@
+#'@title Summary Methods
+#'@description Summary methods for the \code{TariffBertrand} and \code{TariffCournot} classes
+#' @name summary-methods
+#' @param revenue When TRUE, returns revenues, when FALSE returns quantitities. Default is FALSE.
+#' @param levels When TRUE returns changes in levels rather than percents and quantities rather than shares, when FALSE, returns
+#' changes as a parcent and shares rather than quantities. Default is FALSE.
+#' @param parameters When TRUE, displays demand and cost parameters. Default is FALSE.
+#' @param market When TRUE, displays aggregate information about the effect of a tariff.
+#' When FALSE displays product-specific (or in the case of Cournot, plant-specific) effects.
+#' Default is FALSE
+#' @param insideOnly When TRUE, rescales shares on inside goods to sum to 1. Default is FALSE.
+#' @param digits Number of digits to report. Default is 2.
+#' @return Prints either market or product/plant-level summary and invisibly returns a data frame containing the same information.
+#' @export
+NULL
+#' @rdname summary-methods
+
 setMethod(
   f= "summary",
   signature= "TariffBertrand",
-  definition=function(object,revenue=FALSE,shares=TRUE,levels=FALSE, parameters = TRUE, market=FALSE,insideOnly = TRUE,digits=2,...){
+  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2,...){
 
     curWidth <-  getOption("width")
 
 
     pricePre   <-  object@pricePre
     pricePost  <-  object@pricePost
+
+    tariffPre <- object@tariffPre *100
+    tariffPost <- object@tariffPost *100
 
     if(grepl("aids",class(object),ignore.case=TRUE)){
 
@@ -17,7 +37,7 @@ setMethod(
 
     if(!levels) priceDelta <- priceDelta *100
 
-    if(!shares && !missPrices){
+    if(levels && !missPrices){
       outPre  <-  calcQuantities(object,preMerger=TRUE)
       outPost <-  calcQuantities(object,preMerger=FALSE)
 
@@ -30,7 +50,6 @@ setMethod(
     }
 
     else{
-      if(!shares){warning("'shares' equals FALSE but 'calcQuantities' not defined. Reporting shares instead of quantities")}
 
       outPre  <-  calcShares(object,preMerger=TRUE,revenue=revenue) * 100
       outPost <-  calcShares(object,preMerger=FALSE,revenue=revenue) * 100
@@ -54,11 +73,10 @@ setMethod(
 
     results <- data.frame(pricePre=pricePre,pricePost=pricePost,
                           priceDelta=priceDelta,outputPre=outPre,
-                          outputPost=outPost,outputDelta=outDelta)
+                          outputPost=outPost,outputDelta=outDelta,
+                          tariffPre=tariffPre,tariffPost=tariffPost)
 
 
-
-    results <- cbind(results,tariff=mcDelta)
 
 
     rownames(results) <- paste(isForeign,object@labels)
@@ -67,8 +85,8 @@ setMethod(
 
     if(market){
 
-      tariff <- mcDelta/100
-      istaxed <- tariff > 0
+
+      istaxed <- tariffPre > 0 | tariffPost>0
 
       thisgovrev <- thispsdelta <- thiscv <- NA_real_
 
@@ -77,7 +95,7 @@ setMethod(
 
       thispsdelta  <- NA_real_
 
-      try(thisgovrev <- sum(tariff * calcRevenues(object, preMerger = FALSE), na.rm=TRUE))
+      try(thisgovrev <- sum(tariffPost * calcRevenues(object, preMerger = FALSE) - tariffPre * calcRevenues(object, preMerger = TRUE), na.rm=TRUE)/100)
 
       try(thispsdelta  <- tapply(calcProducerSurplus(object,preMerger=FALSE) - calcProducerSurplus(object,preMerger=TRUE), istaxed,sum),silent=TRUE)
 
@@ -98,7 +116,6 @@ setMethod(
         `Gov't Revenue ($)` = thisgovrev,
         'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
 
-        #'Estimated Market Elasticity' = thiselast,
         check.names=FALSE
       ))
 
@@ -165,12 +182,11 @@ setMethod(
   })
 
 
-
-
+#' @rdname summary-methods
 setMethod(
   f= "summary",
   signature= "TariffCournot",
-  definition=function(object,market=FALSE,revenue=FALSE,shares=FALSE,levels=FALSE,parameters=FALSE,digits=2,...){
+  definition=function(object,market=FALSE,revenue=FALSE,levels=FALSE,parameters=FALSE,digits=2,...){
 
     if(market){nplants <- 1}
     else{ nplants <- nrow(object@quantities) }
@@ -178,12 +194,15 @@ setMethod(
     curWidth <-  getOption("width")
     curSci  <-  getOption("scipen")
 
+    tariffPre <-  object@tariffPre * 100
+    tariffPost <- object@tariffPost * 100
+
     pricePre   <-  object@pricePre
     pricePost  <-  object@pricePost
     priceDelta <- calcPriceDelta(object,levels=levels)
     if(!levels) priceDelta <- priceDelta *100
 
-    if(!shares){
+    if(levels){
       outPre  <-  object@quantityPre
       outPost <-  object@quantityPost
       sumlabels=paste("quantity",c("Pre","Post"),sep="")
@@ -197,8 +216,6 @@ setMethod(
     }
 
     else{
-      if(!shares){warning("'shares' equals FALSE but 'calcQuantities' not defined. Reporting shares instead of quantities")}
-
 
       outPre  <-  calcShares(object,preMerger=TRUE,revenue=revenue) * 100
       outPost <-  calcShares(object,preMerger=FALSE,revenue=revenue) * 100
@@ -207,69 +224,81 @@ setMethod(
       sumlabels=paste("shares",c("Pre","Post"),sep="")
     }
 
-    if(market){
-
-      outPre <- colSums(outPre,na.rm=TRUE)
-      outPost <- colSums(outPost,na.rm=TRUE)
-      ids <- data.frame(plant = 1 ,product= object@labels[[2]])
-    }
 
 
+    if(market) {
+
+      istaxed <- tariffPre > 0 | tariffPost > 0
+
+      thisgovrev <- thispsdelta <- thiscv <- NA
+
+      try(thiscv <- CV(object),silent = TRUE)
+
+      try(thisgovrev <- sum(tariffPost * calcRevenues(object, preMerger = FALSE) - tariffPre * calcRevenues(object, preMerger = TRUE), na.rm=TRUE)/100)
+
+      try(thispsdelta  <- tapply(calcProducerSurplus(object,preMerger=FALSE) - calcProducerSurplus(object,preMerger=TRUE), istaxed,sum),silent=TRUE)
+
+
+
+      foreignshare <- outPost[istaxed]
+      domesticshare <- outPost[!istaxed]
+
+      results <- data.frame(
+        'Current Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
+        'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
+        'Industry Price Change (%)' = sum(priceDelta * outPost/sum(outPost),na.rm=TRUE),
+        'Consumer Harm ($)' = thiscv,
+        'Domestic Firm Benefit ($)' = thispsdelta[1],
+        'Foreign Firm Harm ($)' = -thispsdelta[2],
+        `Gov't Revenue ($)` = thisgovrev,
+        'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
+
+        check.names=FALSE
+      )
+
+
+      }
     else{
-
       ids <- expand.grid(plant=object@labels[[1]], product=object@labels[[2]])
-    }
 
 
-    out <- data.frame(product=ids$product,
-                      plant=ids$plant,outPre=as.vector(t(outPre)),
-                      outPost = as.vector(t(outPost)))
 
-    if(market) {out$plant <- NULL}
-    else{
+      out <- data.frame(product=ids$product,
+                        plant=ids$plant,outPre=as.vector(t(outPre)),
+                        outPost = as.vector(t(outPost)))
+
       out$isForeign <- as.numeric(rowSums( abs(object@ownerPost - object@ownerPre))>0)
       out$isForeign <- factor(out$isForeign,levels=0:1,labels=c(" ","*"))
+      out$tariffPre <- tariffPre
+      out$tariffPost <- tariffPost
+
+      if(levels){out$outDelta <- out$outPost - out$outPre}
+      else{out$outDelta <- (out$outPost/out$outPre - 1) * 100}
+      out$pricePre <- rep(pricePre,each=nplants)
+      out$pricePost <- rep(pricePost,each=nplants)
+      out$priceDelta <- rep(priceDelta, each=nplants)
+      results <- out[, c("isForeign","product","plant", "pricePre","pricePost","priceDelta","outPre","outPost","outDelta", "tariffPre","tariffPost" )]
+
+      colnames(results)[colnames(results) %in% c("outPre","outPost")] <- sumlabels
     }
 
-    tariff <- object@mcDelta * 100
 
-    if(levels){out$outDelta <- out$outPost - out$outPre}
-    else{out$outDelta <- (out$outPost/out$outPre - 1) * 100}
-
-    out$pricePre <- rep(pricePre,each=nplants)
-    out$pricePost <- rep(pricePost,each=nplants)
-    out$priceDelta <- rep(priceDelta, each=nplants)
-
-    if(market){
-      results <- out[,c("product","pricePre","pricePost","priceDelta","outPre","outPost","outDelta" )]
-    }
-
-    else{
-      results <- out[, c("isForeign","product","plant", "pricePre","pricePost","priceDelta","outPre","outPost","outDelta" )]
-    }
-
-    colnames(results)[colnames(results) %in% c("outPre","outPost")] <- sumlabels
-
-    if(!market && sum(abs(tariff))>0) results <- cbind(results,tariff=tariff)
-
-
-
-    sharesPost <- calcShares(object,FALSE,revenue)
 
     cat("\nTariff simulation results under '",class(object),"' demand:\n\n",sep="")
 
-    options("width"=100) # this width ensures that everything gets printed on the same line
+    options("width"=110) # this width ensures that everything gets printed on the same line
     options("scipen"=999) # this width ensures that everything gets printed on the same line
     print(format(results,digits=digits),row.names = FALSE)
     options("width"=curWidth) #restore to current width
     options("scipen"=curSci) #restore to current scientific notation
 
+    if(!market){
     cat("\n\tNotes: '*' indicates foreign plants.\n ")
     if(levels){cat("\tDeltas are level changes.\n")}
     else{cat("\tDeltas are percent changes.\n")}
     if(revenue){cat("\tOutput is based on revenues.\n")}
     else{cat("\tOutput is based on units sold.\n")}
-
+}
 
     cat("\n\n")
 
