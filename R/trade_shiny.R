@@ -23,7 +23,7 @@
 #'
 #' \code{trade_shiny} launches a shiny interface for the antitrust package. The shiny interface provides users with the
 #' ability to calibrate model parameters and simulate tariff effects using many of the supply and demand models
-#'  included in the \code{\link{trade}} package.
+#'  included in the \code{trade} package.
 #'
 #'
 #' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{LogitALM}}, \code{\linkS4class{CESALM}}, or \code{\linkS4class{AIDS}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
