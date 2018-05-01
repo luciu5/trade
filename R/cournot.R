@@ -18,9 +18,25 @@
 #' @param mktElast A length k vector of product elasticities. Default is a length k vector of NAs
 #' @param insideSize Size of all units included in the market. For logit, this defaults to total quantity, while for aids
 #'  and ces this defaults to total revenues.
-#' @param tariff  A length k vector where each element equals the \emph{ad valorem} tariff (expressed as a proportion) imposed
+#' @param tariffPre  A length k vector where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion) imposed
 #'  on each product. Default is 0, which assumes no tariff.
-#' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer
+#' @param tariffPost  A length k vector where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion) imposed
+#'  on each product. Default is 0, which assumes no tariff.
+#'@param mcfunPre a length n list of functions that calculate a plant's  marginal cost under the current tariff structure.
+#'If empty (the default), assumes quadratic costs.
+#'@param mcfunPost a length n list of functions that calculate a plant's marginal cost under the new tariff structure.
+#'If empty (the default), assumes quadratic costs.
+#'@param vcfunPre a length n list of functions that calculate a plant's  variable cost under the current tariff structure.
+#'If empty (the default), assumes quadratic costs.
+#'@param vcfunPost a length n list of functions that calculate a plant's variable cost under the new tariff structure.
+#'If empty (the default), assumes quadratic costs.
+#'@param capacitiesPre A length n numeric vector of plant capacities under the current tariff regime. Default is Inf.
+#'@param capacitiesPost A length n numeric vector of plant capacities under the new tariff regime. Default is Inf.
+#'@param productsPre An n x k matrix that equals TRUE if under the current tariff regime, a plant produces a product. Default is TRUE if 'quantities' is not NA.
+#'@param productsPost An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals ‘productsPre’.
+#'@param mktElast A length k vector of product elasticities. Default is a length k vector of NAs.
+#'@param quantityStart A length k vector of quantities used as the initial guess in the nonlinear equation solver. Default is ‘quantities’.
+#'@param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer
 #'  (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver
 #'  (typically the \code{calcPrices} method).
@@ -29,7 +45,7 @@
 #'
 #' @details
 #'
-#' Using price, and quantity, information for all products in each market, as well as
+#' Let k denote the number of products and n denote the number of plants. Using price, and quantity, information for all products in each market, as well as
 #' margin information for at least one products in each market, \code{cournot_tariff} is able to recover the
 #' slopes and intercepts of either a Linear or Log-linear demand system. These parameters are then used
 #' to simulate the price effects of a merger between two firms under the assumption that the firms are playing a
@@ -37,8 +53,11 @@
 #'
 #'
 #'
-#' @return \code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
-#'
+#'@return \code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
+#'@references Simon P. Anderson, Andre de Palma, Brent Kreider,
+#'The efficiency of indirect taxes under imperfect competition,
+#'Journal of Public Economics,
+#'Volume 81, Issue 2, 2001,Pages 231-251.
 #' @examples
 #' ## Simulate the effect of a 75% ad valorem tariff in a
 #' ## 5-firm, single-product market with linear demand and quadratic costs
@@ -68,7 +87,7 @@
 #' result.c <- cournot_tariff(prices = price.pre.c,quantities = as.matrix(quantity.pre.c),
 #'                     margins=as.matrix(margin.pre.c),
 #'                     owner=owner.pre,
-#'                     tariff = tariff)
+#'                     tariffPost = tariff)
 #'
 #' summary(result.c, market = TRUE)         # summarize merger simulation (high-level)
 #' summary(result.c, market = FALSE)         # summarize merger simulation (detailed)
@@ -82,7 +101,8 @@ cournot_tariff <- function(
   margins = matrix(NA_real_ , nrow(quantities),ncol(quantities)),
   demand = rep("linear",length(prices)),
   cost   =   rep("linear",nrow(quantities)),
-  tariff =rep(0,nrow(quantities)),
+  tariffPre =rep(0,nrow(quantities)),
+  tariffPost =rep(0,nrow(quantities)),
   mcfunPre=list(),
   mcfunPost=mcfunPre,
   vcfunPre=list(),
@@ -101,7 +121,13 @@ cournot_tariff <- function(
 
   shares <- as.vector(quantities/sum(quantities))
 
+  nprods <- ncol(quantities)
+  nplants <- nrow(quantities)
 
+  if(length(tariffPre) != nplants || length(tariffPost) != nplants){stop("'tarrifPre' and 'tarrifPost' lengths must equal the number of plants. ")}
+
+  tariffPre[is.na(tariffPre)] <- 0
+  tariffPost[is.na(tariffPost)] <- 0
 
   if(missing(labels)){
     if(is.null(dimnames(quantities))){
@@ -116,9 +142,11 @@ cournot_tariff <- function(
   }
 
 
-  nprods <- length(quantities)
 
-  subset= rep(TRUE,nprods)
+
+
+
+
 
   if(missing(owner)){
 
@@ -139,14 +167,16 @@ cournot_tariff <- function(
   }
 
 
-  ownerPost <- owner/(1+tariff)
-
+  ownerPre <- owner/(1+tariffPre)
+  ownerPost <- owner/(1+tariffPost)
+  mcDelta <- (tariffPost - tariffPre)/(1+tariffPre)
 
   result <- new("TariffCournot",prices=prices, quantities=quantities,margins=margins,
-                shares=shares,mcDelta=tariff, subset= rep(TRUE,length(shares)), demand = demand, cost=cost,
+                shares=shares,mcDelta=mcDelta, subset= rep(TRUE,length(shares)), demand = demand, cost=cost,
                 mcfunPre=mcfunPre, mcfunPost=mcfunPost,vcfunPre=vcfunPre, vcfunPost=vcfunPost,
                 capacitiesPre=capacitiesPre,capacitiesPost=capacitiesPost,
-                ownerPre=owner, mktElast = mktElast,productsPre=productsPre,productsPost=productsPost,
+                tariffPre=tariffPre,tariffPost=tariffPost,
+                ownerPre=ownerPre, mktElast = mktElast,productsPre=productsPre,productsPost=productsPost,
                 ownerPost=ownerPost, quantityStart=quantityStart,labels=labels)
 
 

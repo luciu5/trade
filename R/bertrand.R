@@ -10,7 +10,8 @@
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
 #' @param insideSize Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.
-#' @param tariff  A vector of length k where each element equals the \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.
+#' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.
+#' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.
 #' @param parmStart \code{aids} only. A vector of length 2 who elements equal to an initial guess for "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceOutside A vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger. For aids, the default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
 #' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
@@ -32,8 +33,9 @@
 #'
 #'
 #'
-#' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{LogitALM}}, \code{\linkS4class{CESALM}}, or \code{\linkS4class{AIDS}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
-#'
+#' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{TariffLogit}}, \code{\linkS4class{TariffCES}}, or \code{\linkS4class{TariffAIDS}}, depending upon the value of the ``demand'' argument.
+#' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
+#' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
 #' ## Calibration and simulation results from a 10% tariff on non-US beers "OTHER-LITE"
 #' ## and "OTHER-REG"
@@ -52,7 +54,8 @@
 #'  prodNames
 #'
 #'
-#' result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantities,margins = margins,owner=owner, tariff = tariff, labels=prodNames)
+#' result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantities,
+#'                                 margins = margins,owner=owner, tariffPost = tariff, labels=prodNames)
 #'
 #' print(result.logit)           # return predicted price change
 #' summary(result.logit)         # summarize merger simulation
@@ -67,14 +70,15 @@ bertrand_tariff <- function(
   mktElast = NA_real_,
   insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE)),
   diversions,
-  tariff=rep(0,length(prices)),
+  tariffPre=rep(0,length(quantities)),
+  tariffPost=rep(0,length(quantities)),
   priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
   isMax=FALSE,
   parmStart,
   control.slopes,
   control.equ,
-  labels=paste("Prod",1:length(prices),sep=""),
+  labels=paste("Prod",1:length(quantities),sep=""),
   ...){
 
 
@@ -85,10 +89,15 @@ nprods <- length(quantities)
 
 subset= rep(TRUE,nprods)
 
+if(length(tariffPre) != nprods || length(tariffPost) != nprods){stop("'tarrifPre' and 'tarrifPost' lengths must eqaull the number of products. ")}
+
+tariffPre[is.na(tariffPre)] <- 0
+tariffPost[is.na(tariffPost)] <- 0
+
 if(missing(owner)){
 
     warning("'owner' is missing. Assuming each product is owned by a single firm.")
-  owner <-  diag(nprods)
+  ownerPre <-  diag(nprods)
 
 }
 
@@ -104,7 +113,10 @@ if(!is.matrix(owner)){
 }
 
 
-ownerPost <- owner/(1+tariff)
+ownerPost <- owner/(1+tariffPost)
+ownerPre <- owner/(1+tariffPre)
+
+mcDelta <- (tariffPost - tariffPre)/(1+tariffPre)
 
 shares_revenue <- shares_quantity <- quantities/sum(quantities)
 
@@ -148,45 +160,46 @@ else if (demand %in% c("logit","ces")){
 
 
 result <-   switch(demand,
-         aids=new("AIDS",shares=shares_revenue,mcDelta=tariff,subset=subset,
+         aids=new("TariffAIDS",shares=shares_revenue,mcDelta=mcDelta,subset=subset,
                   margins=margins, prices=prices, quantities=shares_revenue,  mktElast = mktElast,
                   insideSize = insideSize,
                   ownerPre=ownerPre,ownerPost=ownerPost, parmStart=parmStart,
                   diversion=diversions,
+                  tariffPre=tariffPre,
+                  tariffPost=tariffPost,
                   priceStart=priceStart,labels=labels),
 
-         logit=  new("LogitALM",prices=prices, shares=shares_quantity,
+         logit=  new("TariffLogit",prices=prices, shares=shares_quantity,
                      margins=margins,
-                     ownerPre=owner,
+                     ownerPre=ownerPre,
                      ownerPost=ownerPost,
                      mktElast = mktElast,
-                     mcDelta=tariff,
+                     mcDelta=mcDelta,
                      subset=subset,
                      priceOutside=priceOutside,
                      priceStart=priceStart,
                      shareInside= sum(shares_quantity),
                      parmsStart=parmStart,
+                     tariffPre=tariffPre,
+                     tariffPost=tariffPost,
                      insideSize = insideSize,
                      labels=labels),
 
-         ces = new("CESALM",prices=prices, shares=shares_revenue,
+         ces = new("TariffCES",prices=prices, shares=shares_revenue,
                    margins=margins,
-                   ownerPre=owner,
+                   ownerPre=ownerPre,
                    ownerPost=ownerPost,
                    mktElast = mktElast,
-                   mcDelta=tariff,
+                   mcDelta=mcDelta,
                    subset=subset,
                    priceOutside=priceOutside,
                    priceStart=priceStart,
                    shareInside=sum(shares_revenue),
                    parmsStart=parmStart,
                    insideSize =insideSize,
-                   labels=labels),
-
-         linear=new("Linear",prices=prices, quantities=shares_quantity,margins=margins,
-                    shares=shares_quantity,mcDelta=tariff, subset=subset,
-                    ownerPre=owner,diversion=diversions, symmetry=TRUE,
-                    ownerPost=ownerPost, priceStart=priceStart,labels=labels)
+                   tariffPre=tariffPre,
+                   tariffPost=tariffPost,
+                   labels=labels)
   )
 
 

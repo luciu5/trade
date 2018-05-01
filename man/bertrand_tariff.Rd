@@ -7,10 +7,10 @@
 bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
   margins, owner, mktElast = NA_real_, insideSize = ifelse(demand ==
   "logit", sum(quantities, na.rm = TRUE), sum(prices * quantities, na.rm =
-  TRUE)), diversions, tariff = rep(0, length(prices)),
-  priceOutside = ifelse(demand == "logit", 0, 1), priceStart, isMax = FALSE,
-  parmStart, control.slopes, control.equ, labels = paste("Prod",
-  1:length(prices), sep = ""), ...)
+  TRUE)), diversions, tariffPre = rep(0, length(quantities)),
+  tariffPost = rep(0, length(quantities)), priceOutside = ifelse(demand ==
+  "logit", 0, 1), priceStart, isMax = FALSE, parmStart, control.slopes,
+  control.equ, labels = paste("Prod", 1:length(quantities), sep = ""), ...)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
@@ -29,7 +29,9 @@ bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
 
 \item{diversions}{A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.}
 
-\item{tariff}{A vector of length k where each element equals the \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.}
+\item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.}
+
+\item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.}
 
 \item{priceOutside}{A vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger. For aids, the default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
 
@@ -46,7 +48,7 @@ bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
 }
 \value{
-\code{bertrand_tariff} returns an instance of class \code{\linkS4class{LogitALM}}, \code{\linkS4class{CESALM}}, or \code{\linkS4class{AIDS}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
+\code{bertrand_tariff} returns an instance of class \code{\linkS4class{TariffLogit}}, \code{\linkS4class{TariffCES}}, or \code{\linkS4class{TariffAIDS}}, depending upon the value of the ``demand'' argument.
 }
 \description{
 Simulate the effect of tariffs when firms play a Bertrand pricing game and consumer demand is either Logit, CES, or AIDS
@@ -79,9 +81,14 @@ names(price) <-
  prodNames
 
 
-result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantities,margins = margins,owner=owner, tariff = tariff, labels=prodNames)
+result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantities,
+                                margins = margins,owner=owner, tariffPost = tariff, labels=prodNames)
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
 
+}
+\references{
+Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
+Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 }
