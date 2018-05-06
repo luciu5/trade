@@ -12,3 +12,11 @@ Description: A collection of tools for trade practitioners, including the abilit
 License: Unlimited
 LazyLoad: yes
 RoxygenNote: 6.0.1
+Collate: 
+    'TariffClasses.R'
+    'TariffCournot-methods.R'
+    'summary-methods.R'
+    'ps-methods.R'
+    'bertrand.R'
+    'cournot.R'
+    'trade_shiny.R'
