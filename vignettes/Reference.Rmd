@@ -11,7 +11,7 @@ output:
     toc: true
 header-includes:
    - \usepackage{amsmath}
-bibliography: ["antitrustbib.bib"]
+bibliography: ["tradebib.bib"]
 biblio-style: "apalike"
 link-citations: true
 ---
@@ -43,7 +43,7 @@ wish, but they can also modify and extend the software as they see
 fit.  We hope that having this collection of tools on a common, open
 source platform will facilitate discussion and collaboration among practitioners.
 
-Third, `trade` includes a web interface built using `shiny`. While this interface does not give users acess to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `trade_shiny` function.   
+Third, `trade` includes a web interface built using `shiny`. While this interface does not give users access to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `trade_shiny` function.   
 
 
 
@@ -81,8 +81,11 @@ package `antitrust` from which much of `trade` was generated.
 
 # The Bertrand Pricing Game
 
+
+
+
 Much of `trade`'s functionality is built around the Bertrand pricing
-game. This version of the game assumes that firms producing multiple
+game.^[`trade`'s version of the Bertrand pricing game extends [@Werden1994] and [@Anderson2001] to accomodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
 differentiated products with distinct, constant, marginal costs
 simultaneously set their products' prices to maximize their
 profits. In this model, prices are *strategic complements* in the sense that increasing the price of
@@ -99,7 +102,7 @@ causes foreign firms to raise the price of their products, which in turn causes 
 either switch to other products in the market or to forgo purchasing any product in the market entirely.
 
 The Bertrand model predicts that tariffs will harm customers and foreign firms, but benefit 
-domestic firms and raise governmetn revenues. The **magnitude** of these effects, however, will depend 
+domestic firms and raise government revenues. The **magnitude** of these effects, however, will depend 
 on demand specification as well as the set of inputs used.^[Specifically, the curvature of the demand curve
 greatly influences the results.]
 
@@ -107,7 +110,7 @@ Currently, this version of the Bertrand model does not allow firms to add or
 reposition products, or allow firms to engage in some forms of price
 discrimination.
 
-The primary `trade` function responsible for modeling tariffs in a Bertrand game is `bertrand_tarrif`.
+The primary `trade` function responsible for modeling tariffs in a Bertrand game is `bertrand_tariff`.
 
 ## The Game
 
@@ -115,7 +118,7 @@ The primary `trade` function responsible for modeling tariffs in a Bertrand game
 Suppose that there are $K$ firms in a
 market, and that each of the $k \in K$ firms produces $n_k$
 products, some of which may be produced domestically and some of which may be produced abroad .^[Throughout, we abuse the notation slightly by treating variables like $K$ as both the set of firms as well as the
-  number of firms.] Further, suppose that the government imposes a possibly distinct  *ad valorem* tariff $t_i$ on a subset of products produced abroad.
+  number of firms.] Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price received by the firm is  $1-t_i$ the price faced by consumers.  
   
 Let  $n=\sum\limits_{k\in K}n_k$ denote the number of products sold
 by all $K$ firms. The Bertrand model assumes that firms
@@ -133,7 +136,7 @@ Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
 products so as to maximize profits. Mathematically, firm $k$ solves:
 
 \begin{align*}
-\max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n_k}\frac{1}{1+t_i}(p_i - c_i(1+t_i))q_i,
+\max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n_k}(1-t_i)(p_i - \frac{c_i}{(1-t_i)})q_i,
 \end{align*}
 
 where  $t_i$ equals 0 if the product is not subject to a tariff .  $q_i$, the quantity sold of product $i$,  is assumed to
@@ -142,18 +145,18 @@ be a twice differentiable function of \\*all* product prices.
 Differentiating profits with respect to each $p_i$  yields the following first order conditions (FOCs):
 
 \begin{align*}
-  \partial p_i&\equiv \frac{q_i}{1+t_i} +\sum_{j=1}^{n_k}\frac{1}{1+t_j}( p_j - c_j(1+t_j))\frac{\partial q_j}{\partial
+  \partial p_i&\equiv q_i(1-t_i) +\sum_{j=1}^{n_k}(1-t_j)( p_j - \frac{c_j}{1-t_j})\frac{\partial q_j}{\partial
     p_i}=0& \mbox{ for all $i\in n_k$}
 \end{align*}
 
 which may be rewritten as
 
 \begin{align*}
-  \partial p_i&\equiv \frac{r_i}{1+t_i} + \sum_{j=1}^{n_k} \frac{1}{1+t_j}r_jm_j\epsilon_{ji}=0& \mbox{ for all $i\in n_k$},
+  \partial p_i&\equiv r_i(1-t_i) + \sum_{j=1}^{n_k} (1-t_j)r_jm_j\epsilon_{ji}=0& \mbox{ for all $i\in n_k$},
 \end{align*}
 
 where $r_i\equiv\frac{p_iq_i}{\sum\limits_{j=1}^np_jq_j}$ is
-product $i$'s revenue share, $\hat{c}_i\equiv c_i(1+t_i)$ is product $i$'s *effective* marginal cost, $m_i\equiv\frac{p_i-\hat{c}_i}{p_i}$ is product
+product $i$'s revenue share, $\hat{c}_i\equiv \frac{c_i}{(1-t_i)}$ is product $i$'s *effective* marginal cost, $m_i\equiv\frac{p_i-\hat{c}_i}{p_i}$ is product
 $i$'s gross margin, and $\epsilon_{ij}\equiv\frac{\partial q_i}{\partial
   p_j}\frac{p_j}{q_i}$  is the elasticity of product $i$ with
 respect to the price of product $j$.
@@ -177,14 +180,11 @@ and margins, $E = \left(\begin{smallmatrix}
     &\ddots&\vdots\\\epsilon_{n1}&\ldots&\epsilon_{nn} \end{smallmatrix}\right)$
 is a $n \times n$ matrix of own- and cross-price elasticities, and
 $\Omega=\left(\begin{smallmatrix}
-    \frac{\omega_{11}}{1+t_1}&\ldots&\frac{\omega_{1n}}{1+t_1}\\\vdots
-    &\ddots&\vdots\\\frac{\omega_{n1}}{1+t_n}&\ldots&\frac{\omega_{nn}}{1+t_n}\end{smallmatrix}\right)$
+    \omega_{11}(1-t_1)&\ldots&\omega_{1n}(1-t_1)\\\vdots
+    &\ddots&\vdots\\\omega_{n1}(1-t_n)&\ldots&\omega_{nn}(1-t_n)\end{smallmatrix}\right)$
 is an $n \times n$ matrix whose $i,j$th element equals $\omega_{ij}$,
 the share of product $j$'s profits owned by the firm setting product $i$'s
-price, divided by $1+t_i$, product $i$'s tariff rate ^[The Bertrand model assumes that while any firm can
-  receive a portion of another firm's profits (e.g. through owning a
-  share of that firms' assets), only one firm can set a product's
-  price.].  In many cases,
+price, multiplied by $1-t_i$, product $i$'s tariff rate.  In many cases,
 product $i$ and $j$ are wholly owned by a single firm, in which cases $\omega_{ij}$ equals 1 if $i$ and $j$ are owned by the same firm
 and 0 otherwise.
 '$diag$' returns the diagonal of a square matrix and '$\circ$' is the Hadamard (entry-wise) product operator.
@@ -321,7 +321,7 @@ $\alpha$, and $s_0$) and up to $2|I| +1 $ equations with which to estimate them 
 $|I|$ complete FOCs, $|I|$ choice probabilities and the market elasticity equation). `calcSlopes` exploits this over-identification
 by employing a minimum distance algorithm to find the
 values for $\alpha$ and $s_0$ that best satisfy all the equations for which there
- are data, subject to the contraints that $\alpha$ is negative and $s_0$ is between 0 and 1. The $\delta$s are then recovered from the choice probabilities, while **constant** marginal costs are recovered from fitted pre-merger margins and observed prices.
+ are data, subject to the constraints that $\alpha$ is negative and $s_0$ is between 0 and 1. The $\delta$s are then recovered from the choice probabilities, while **constant** marginal costs are recovered from fitted pre-merger margins and observed prices.
 
 
 
@@ -360,8 +360,8 @@ where  $r_{i|I}$ is product $i$'s *revenue* share, conditional on a product bein
 The CES demand system yields the following own- and cross-price elasticities:
 \begin{align*}
   \epsilon_{ii}=& -\gamma + (\gamma-1)r_i, \\
-  \epsilon_{ij}=& (\gamma-1)r_j,
-   \epsilon=&\alpha\overline{p}r_0,
+  \epsilon_{ij}=& (\gamma-1)r_j,\\
+   \epsilon=&(1 -\gamma)\overline{p}r_0,
 \end{align*}
 
 
@@ -378,7 +378,7 @@ $|I|$ complete FOCs, $|I|$
 choice probabilities, and the market elasticity equation). `ces` exploits this over-identification
 by employing a minimum distance algorithm to find the
 values for $\gamma$ and $r_0$ that best satisfy all the equations for which there
- are data, subject to the contraints that $\gamma$ is greaterr than 1  and $r_0$ is between 0 and 1. 
+ are data, subject to the constraints that $\gamma$ is greater than 1  and $r_0$ is between 0 and 1. 
  The $\delta$s are then recovered from the choice probabilities, 
  while **constant** marginal costs are recovered from fitted pre-merger margins and observed prices.
 
@@ -387,7 +387,7 @@ values for $\gamma$ and $r_0$ that best satisfy all the equations for which ther
 
 ### LA-AIDS Demand
 The Bertrand model with the linear approximate Almost Ideal Demand System (LA-AIDS)  may be implemented 
-ising the `bertrand_tariff` function with 'demand' equal to "aids".
+using the `bertrand_tariff` function with 'demand' equal to "aids".
 
 The LA-AIDS without income effects assumes that the demand for each product $i
 \in n$ in the market is given by
@@ -450,12 +450,12 @@ price levels and welfare measures may be calculated.
 
 Another model included in `trade` is the Cournot quantity game.  This version of the game assumes that multi-plant firms with distinct, increasing marginal costs producing multiple products 
 simultaneously set plant output for each product to maximize their
-profits. All firms producing a particular product are assumed to be undifferentiated. In this model, quantities are *strategic substitutes* in the sense that decreasing the quantity of
+profits.^[`trade`'s version of the Cournot quantity game extends [@Anderson2001a] to accomodate tariffs under Cournot quantity competition.] All firms producing a particular product are assumed to be undifferentiated. In this model, quantities are *strategic substitutes* in the sense that decreasing the quantity of
 one product causes some customers to switch to competing manufacturers, raising
 their quantities and profits. Ultimately, it is the magnitude of these lost sales that, at
 the margin, dissuades firms from reducing their output further .
 
-Similar to the Bertrand model, rariffs are modeled by effectively assuming that the marginal costs 
+Similar to the Bertrand model, tariffs are modeled by effectively assuming that the marginal costs 
 of certain products produced by
 foreign firms increase by the amount of the tariff. Because all plants included in `trade` models are assumed 
 to be producing substitutes, this marginal cost increase
@@ -474,7 +474,7 @@ market, each producing a subset $J_k$ of $J$ products. Further, suppose that  th
 plants.  Let $n = \sum_{k\in K} n_k$ denote the total number of plants producing any of the $J$ products. The Cournot model assumes that firms
 simultaneously set the amount of each product produced at each plant in order to maximize
 their profits. This model also assumes that all firms can perfectly observe each
-others' quantities, and costs, as well as the demand for each product.
+others' quantities, and costs, as well as the demand for each product. Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced at plants located abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price recieved by the firm is  $1-t_i$ the price faced by consumers.
 
 Functions in `trade`'s Cournot model  also adopt the additional assumption that each firm's plant has its own  distinct marginal cost
 technology.
@@ -484,7 +484,7 @@ technology.
 Firm $k \in K$ chooses product output at each plant $\{q_j^r\}_{\substack{j\in j_k,\\ r\in n_k}}$, $ so as to maximize profits. Mathematically, firm $k$ solves:
 
 \begin{align*}
-\max_{{\{q_j^r\}}_{\substack{j\in J_k,\\ r\in n_k}}} & \sum_{\substack{j\in J_k,\\ r\in n_k}}\frac{p_jq_j^r}{1+t_j^r} - \sum_{r\in n_k}c^r(q^r)
+\max_{{\{q_j^r\}}_{\substack{j\in J_k,\\ r\in n_k}}} & \sum_{\substack{j\in J_k,\\ r\in n_k}}p_jq_j^r(1-t_j^r) - \sum_{r\in n_k}c^r(q^r)
 \end{align*}
 subject to 
 \begin{align*}
@@ -492,13 +492,13 @@ subject to
   & q^r = \sum_{j \in J_k} q_j^r &\\
 \end{align*}
 
-where $p_j$, the price sold of product $i$,  is assumed to
-be a twice differentiable function of *all* firm quantities with $\frac{\partial p_j}{\partial q_j^r}< 0$ for all plants and firms . Likewise, additively separable plant variable costs $c^r$   assumed to be twice differentiable with $\frac{\partial c^r}{\partial q_j^r}> 0$ . Finally, $t_j^r$ is the tariff imposed on plant $r$ producing product $j$.
+where $p_j$, the price sold of product $j$,  is assumed to
+be a twice differentiable function of *all* firm quantities with $\frac{\partial p_j}{\partial q_j^r}< 0$ for all plants $r$ and products $j$. Likewise, additively separable plant variable costs $c^r$   assumed to be twice differentiable with $\frac{\partial c^r}{\partial q_j^r}> 0$ . Finally, $t_j^r$ is the tariff imposed on plant $r$ producing product $j$.
 
 Differentiating profits with respect to each $q_j^r$  yields the following first order conditions (FOCs):
 
 \begin{align}
-  \partial q_j^r&\equiv p_j + q_j^r\frac{\partial p_j}{\partial q_j^r} - \frac{\partial c^r}{\partial q_j^r}(1+t_j^r)=0& \mbox{ for all $j\in J_k$, $r\in n_k$}\label{eqn:cournotFOC} 
+  \partial q_j^r&\equiv p_j + \sum_{l\in n_k}q_j^l\frac{\partial p_j}{\partial q_j^r} - \frac{\partial c^r}{\partial q_j^r}\frac{1}{1-t_j^r}=0& \mbox{ for all $j\in J_k$, $r\in n_k$}\label{eqn:cournotFOC} 
 \end{align}
 
 
