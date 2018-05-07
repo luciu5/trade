@@ -6,8 +6,8 @@
 \usage{
 cournot_tariff(prices, quantities, margins = matrix(NA_real_,
   nrow(quantities), ncol(quantities)), demand = rep("linear", length(prices)),
-  cost = rep("linear", nrow(quantities)), tariffPre = rep(0,
-  nrow(quantities)), tariffPost = rep(0, nrow(quantities)),
+  cost = rep("linear", nrow(quantities)), tariffPre = matrix(0, nrow =
+  nrow(quantities), ncol = ncol(quantities)), tariffPost = tariffPre,
   mcfunPre = list(), mcfunPost = mcfunPre, vcfunPre = list(),
   vcfunPost = vcfunPre, capacitiesPre = rep(Inf, nrow(quantities)),
   capacitiesPost = capacitiesPre, productsPre = !is.na(quantities),
@@ -30,10 +30,10 @@ if a product's demand curve is assumed to be log-linear.}
 "constant" if a plant's marginal curve is assumed to be constant. Returns an error if a multi-plant firm with constant
  marginal costs does not have capacity constraints.}
 
-\item{tariffPre}{A length k vector where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion) imposed
+\item{tariffPre}{An n x k matrix  where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
 on each product. Default is 0, which assumes no tariff.}
 
-\item{tariffPost}{A length k vector where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion) imposed
+\item{tariffPost}{An n x k matrix  where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
 on each product. Default is 0, which assumes no tariff.}
 
 \item{mcfunPre}{a length n list of functions that calculate a plant's  marginal cost under the current tariff structure.
@@ -103,8 +103,8 @@ n <- 5 #number of firms in market
 cap <- rnorm(n,mean = .5, sd = .1)
 int <- 10
 slope <- -.25
-tariff <- rep(0, n)
-tariff[1] <- .75
+tariffPre <- tariffPost <- rep(0, n)
+tariffPost[1] <- .75
 
 B.pre.c = matrix(slope,nrow=n,ncol=n)
 diag(B.pre.c) = 2* diag(B.pre.c) - 1/cap
@@ -122,11 +122,11 @@ owner.pre <- diag(n)
 result.c <- cournot_tariff(prices = price.pre.c,quantities = as.matrix(quantity.pre.c),
                     margins=as.matrix(margin.pre.c),
                     owner=owner.pre,
-                    tariffPost = tariff)
+                    tariffPre =  as.matrix(tariffPre),
+                    tariffPost = as.matrix(tariffPost))
 
 summary(result.c, market = TRUE)         # summarize merger simulation (high-level)
 summary(result.c, market = FALSE)         # summarize merger simulation (detailed)
-
 
 }
 \references{

@@ -29,11 +29,14 @@ bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
 
 \item{diversions}{A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.}
 
-\item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.}
+\item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
+(expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
 
-\item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion) imposed on each product. Default is 0, which assumes no tariff.}
+\item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
+(expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
 
-\item{priceOutside}{A vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger. For aids, the default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
+\item{priceOutside}{A vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
+For aids, the default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
 
 \item{isMax}{If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.}
 
@@ -86,7 +89,6 @@ result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantit
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
-
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,

@@ -11,6 +11,7 @@
 #' @param insideOnly When TRUE, rescales shares on inside goods to sum to 1. Default is FALSE.
 #' @param digits Number of digits to report. Default is 2.
 #' @return Prints either market or product/plant-level summary and invisibly returns a data frame containing the same information.
+#'@include TariffClasses.R
 #' @export
 NULL
 #' @rdname summary-methods
@@ -267,7 +268,7 @@ setMethod(
                         plant=ids$plant,outPre=as.vector(t(outPre)),
                         outPost = as.vector(t(outPost)))
 
-      out$isForeign <- as.numeric(rowSums( abs(object@ownerPost - object@ownerPre))>0)
+      out$isForeign <- as.numeric( tariffPre >0 | tariffPost >0 )
       out$isForeign <- factor(out$isForeign,levels=0:1,labels=c(" ","*"))
       out$tariffPre <- tariffPre
       out$tariffPost <- tariffPost
@@ -277,6 +278,7 @@ setMethod(
       out$pricePre <- rep(pricePre,each=nplants)
       out$pricePost <- rep(pricePost,each=nplants)
       out$priceDelta <- rep(priceDelta, each=nplants)
+
       results <- out[, c("isForeign","product","plant", "pricePre","pricePost","priceDelta","outPre","outPost","outDelta", "tariffPre","tariffPost" )]
 
       colnames(results)[colnames(results) %in% c("outPre","outPost")] <- sumlabels

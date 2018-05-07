@@ -15,10 +15,14 @@ Extend classes from the \code{\link{antitrust}} package to accomodate tariffs.
 \section{Slots}{
 
 \describe{
-\item{\code{tariffPre}}{a numeric vector containing  \strong{current} product-level (or in the case of Cournot, plant-level) tariffs.
+\item{\code{tariffPre}}{For TariffCournot, a matrix containing  \strong{current} plant-level (rows) AND product-level (columns) tariffs.
+Default is a matrix of 0s.  For all other classes,  a vector containg \strong{current} product-level  tariffs.
+\emph{ad valorem} taxes are expressed as a proportion of the consumer price.
 Default is a vector of 0s.}
 
-\item{\code{tariffPost}}{a numeric vector containing \strong{new} product-level (or in the case of Cournot, plant-level) tariffs.
+\item{\code{tariffPost}}{a For TariffCournot, a matrix containing  \strong{new} plant-level (rows) AND product-level (columns) tariffs.
+Default is a matrix of 0s.  For all other classes,   a vector containing \strong{new} product-level  tariffs.
+\emph{ad valorem} taxes are expressed as a proportion of the consumer price.
 Default is a vector of 0s.}
 }}
 
