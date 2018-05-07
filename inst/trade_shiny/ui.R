@@ -15,7 +15,7 @@ shinyUI(fluidPage(
        h5(tags$b("Directions:")),
         helpText(tags$ul(
                  tags$li("Copy and paste (or enter) information into Inputs table (right) to simulate an", tags$em("ad valorem"),"tariff."),
-                 tags$li("Default example simulates an increase in the ", tags$em("ad valorem"),"tariff from 5% to 25% on products produced by 'Firm1' and 'Firm2'."),
+                 tags$li("Default example simulates an increase in the ", tags$em("ad valorem"),"tariff (expressed as a proportion of consumer price) from 5% to 25% on products produced by 'Firm1' and 'Firm2'."),
                  tags$li(helpText("See the",tags$a(href="https://CRAN.R-project.org/package=antitrust", "antitrust"),"R package vignette for more details about the models used here." ))
                  #tags$li("Shares must be between 0 and 1."),
                  #tags$li("Margins should exclude fixed costs.")
