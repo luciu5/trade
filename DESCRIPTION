@@ -19,4 +19,5 @@ Collate:
     'ps-methods.R'
     'bertrand.R'
     'cournot.R'
+    'initialize-methods.R'
     'trade_shiny.R'
