@@ -18,9 +18,9 @@
 #' @param mktElast A length k vector of product elasticities. Default is a length k vector of NAs
 #' @param insideSize Size of all units included in the market. For logit, this defaults to total quantity, while for aids
 #'  and ces this defaults to total revenues.
-#' @param tariffPre  A length k vector where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion) imposed
+#' @param tariffPre  An n x k matrix  where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
 #'  on each product. Default is 0, which assumes no tariff.
-#' @param tariffPost  A length k vector where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion) imposed
+#' @param tariffPost  An n x k matrix  where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
 #'  on each product. Default is 0, which assumes no tariff.
 #'@param mcfunPre a length n list of functions that calculate a plant's  marginal cost under the current tariff structure.
 #'If empty (the default), assumes quadratic costs.
@@ -68,8 +68,8 @@
 #' cap <- rnorm(n,mean = .5, sd = .1)
 #' int <- 10
 #' slope <- -.25
-#' tariff <- rep(0, n)
-#' tariff[1] <- .75
+#' tariffPre <- tariffPost <- rep(0, n)
+#' tariffPost[1] <- .75
 #'
 #' B.pre.c = matrix(slope,nrow=n,ncol=n)
 #' diag(B.pre.c) = 2* diag(B.pre.c) - 1/cap
@@ -87,12 +87,13 @@
 #' result.c <- cournot_tariff(prices = price.pre.c,quantities = as.matrix(quantity.pre.c),
 #'                     margins=as.matrix(margin.pre.c),
 #'                     owner=owner.pre,
-#'                     tariffPost = tariff)
+#'                     tariffPre =  as.matrix(tariffPre),
+#'                     tariffPost = as.matrix(tariffPost))
 #'
 #' summary(result.c, market = TRUE)         # summarize merger simulation (high-level)
 #' summary(result.c, market = FALSE)         # summarize merger simulation (detailed)
 #'
-#'
+#' @include ps-methods.R summary-methods.R TariffCournot-methods.R
 #' @export
 
 
@@ -101,8 +102,8 @@ cournot_tariff <- function(
   margins = matrix(NA_real_ , nrow(quantities),ncol(quantities)),
   demand = rep("linear",length(prices)),
   cost   =   rep("linear",nrow(quantities)),
-  tariffPre =rep(0,nrow(quantities)),
-  tariffPost =rep(0,nrow(quantities)),
+  tariffPre =matrix(0,nrow=nrow(quantities), ncol= ncol(quantities)),
+  tariffPost =tariffPre,
   mcfunPre=list(),
   mcfunPost=mcfunPre,
   vcfunPre=list(),
@@ -121,13 +122,10 @@ cournot_tariff <- function(
 
   shares <- as.vector(quantities/sum(quantities))
 
-  nprods <- ncol(quantities)
-  nplants <- nrow(quantities)
-
-  if(length(tariffPre) != nplants || length(tariffPost) != nplants){stop("'tarrifPre' and 'tarrifPost' lengths must equal the number of plants. ")}
-
   tariffPre[is.na(tariffPre)] <- 0
   tariffPost[is.na(tariffPost)] <- 0
+
+  mcDelta <- rep(0, nrow(quantities))
 
   if(missing(labels)){
     if(is.null(dimnames(quantities))){
@@ -140,12 +138,6 @@ cournot_tariff <- function(
     labels <- list(rname,cname)
 
   }
-
-
-
-
-
-
 
 
   if(missing(owner)){
@@ -167,9 +159,8 @@ cournot_tariff <- function(
   }
 
 
-  ownerPre <- owner/(1+tariffPre)
-  ownerPost <- owner/(1+tariffPost)
-  mcDelta <- (tariffPost - tariffPre)/(1+tariffPre)
+  ownerPre <- owner
+  ownerPost <- owner
 
   result <- new("TariffCournot",prices=prices, quantities=quantities,margins=margins,
                 shares=shares,mcDelta=mcDelta, subset= rep(TRUE,length(shares)), demand = demand, cost=cost,

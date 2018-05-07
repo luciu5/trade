@@ -4,6 +4,7 @@
 #' @param preMerger when TRUE, calculates producer surplus under the existing tariff regime. When FALSE, calculates
 #' tariffs under the new tariff regime. Default is TRUE.
 #' @return product-level (or in the case of Cournot, plant-level) producer surplus
+#'@include TariffClasses.R
 #' @export
 NULL
 #' @rdname ps-methods
@@ -35,7 +36,7 @@ setMethod(
 
     ps <- (prices - mc) * output
 
-    if(!preMerger) ps <- ps / (1 + tariff)
+    if(!preMerger) ps <- ps * (1 - tariff)
 
     names(ps) <- object@labels
 
@@ -53,23 +54,23 @@ setMethod(
 
 
     if( preMerger) {
-      prices <- object@pricePre
-      quantities <- object@quantityPre
-      tariff <-  object@tariffPre
+
+      tariff <-    object@tariffPre
 
     }
-    else{prices <- object@pricePost
-    quantities <- object@quantityPost
-    tariff <-  object@tariffPost
+    else{
+      tariff <-   object@tariffPost
 
     }
 
 
+    rev <- calcRevenues(object, preMerger= preMerger)
+    rev <- rev * (1 - tariff)
 
     vc <- calcVC(object, preMerger= preMerger)
 
-    ps <- colSums(prices*t(quantities), na.rm=TRUE) - vc
-    ps <- ps / (1 + tariff)
+    ps <- rowSums(rev, na.rm=TRUE) - vc
+
 
     names(ps) <- object@labels[[1]]
 
