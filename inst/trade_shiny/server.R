@@ -32,8 +32,40 @@ shinyServer(function(input, output, session) {
 
 
 
-   genInputData <- function(){
+   isOverID <-  function(supply, calcElast, inputData =values[["inputData"]]){
+
+
+
+
+   provElast <- grepl('elasticity',calcElast)
+
+
+
+   nMargins <- inputData[,grepl("Margins",colnames(inputData))]
+   nMargins <- length(nMargins[!is.na(nMargins)])
+
+
+   if(supply == "Cournot" &&
+      ((provElast && nMargins > 0)  || (!provElast && nMargins >1) )){
+     res <- paste(helpText(tags$b("Note:"), "some model parameters are over-identified. The tables above may be helpful in assessing model fit."))
+   }
+
+   else if(supply != "Cournot" &&
+           ((provElast && nMargins > 1)  || (!provElast && nMargins >2) )){
+     res <- paste(helpText(tags$b("Note:"),"some model parameters are over-identified. The tables above may be helpful in assessing model fit."))
+   }
+   else{
+     res <- paste(helpText(tags$b("Note:"),"model parameters are just-identified. Inputted and fitted values should match."))
+
+   }
+   res
+}
+
+
+   genInputData <- function(type = c("Tariffs","Quotas")){
     # a function to generate default input data set for simulations
+
+     type=match.arg(type)
 
      inputData <- data.frame(
        Name = c("Prod1","Prod2","Prod3","Prod4"),
@@ -47,6 +79,7 @@ shinyServer(function(input, output, session) {
        check.names=FALSE
      )
 
+     if(type == "Quotas"){colnames(inputData) <- gsub("Tariff","Quota",colnames(inputData))}
 
 
      nDefProd <- nrow(inputData)
@@ -62,9 +95,36 @@ shinyServer(function(input, output, session) {
 
    }
 
-   gensum <- function(res, indata){
+
+   genShareOut <- function(sim){
+   if( grepl("cournot",class(sim),ignore.case = TRUE)){return()}
+
+   isCES <- grepl("ces",class(sim),ignore.case = TRUE)
+
+   res <- data.frame('No-purchase\n Share (%)'= c(
+     1 - sum(calcShares(sim, preMerger=TRUE,revenue=isCES)),
+     1 - sum(calcShares(sim, preMerger=FALSE,revenue=isCES))
+   )
+   ,check.names = FALSE
+   )*100
+
+   res$'Revenues ($)' <- as.integer(round(c(calcRevenues(sim, preMerger=TRUE, market = TRUE ),
+                                            calcRevenues(sim, preMerger=FALSE, market = TRUE )
+   )))
+
+
+   rownames(res) <- c("Current Tariff","New Tariff")
+
+   if( grepl("aids",class(sim),ignore.case = TRUE)) res$'No-purchase\n Share (%)' <- NULL
+
+   return(res)
+   }
+
+   gensum <- function(res, indata,type = c("Tariffs","Quotas")){
      #a function to generate summary stats for results tab
 
+
+     type=match.arg(type)
 
      isCournot <- grepl("Cournot",class(res))
      isAuction <- grepl("Auction",class(res))
@@ -81,9 +141,10 @@ shinyServer(function(input, output, session) {
 
 
 
-     tariffPre <- indata[,grepl("Cur.*Tariff",colnames(indata)),drop=TRUE]
-     tariffPost <- indata[,grepl("New.*Tariff",colnames(indata)),drop=TRUE]
-
+     tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata), perl= TRUE),drop=TRUE]
+     tariffPre[is.na(tariffPre)] <- 0
+     tariffPost <- indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata), perl=TRUE),drop=TRUE]
+     tariffPost[is.na(tariffPost)] <- 0
 
      if(isCournot){
 
@@ -113,6 +174,11 @@ shinyServer(function(input, output, session) {
 
      try(thiscv <- CV(res),silent = TRUE)
 
+     if(type == "Quotas"){
+       tariffPre[] <- 0
+       tariffPost[] <- 0
+     }
+
      try(thisgovrev <- sum(tariffPost * calcRevenues(res, preMerger = FALSE) - tariffPre * calcRevenues(res, preMerger = TRUE), na.rm=TRUE))
 
 
@@ -124,8 +190,8 @@ shinyServer(function(input, output, session) {
 
 
      res <- with(s, data.frame(
-           'Current Tariff HHI' = as.integer(round(hhi(res,preMerger=TRUE))),
-           'HHI Change' = as.integer(round(hhi(res,preMerger=FALSE) -  hhi(res,preMerger=TRUE))),
+           #'Current Tariff HHI' = as.integer(round(hhi(res,preMerger=TRUE))),
+           #'HHI Change' = as.integer(round(hhi(res,preMerger=FALSE) -  hhi(res,preMerger=TRUE))),
            'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
            'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
            'Industry Price Change (%)' = sum(priceDelta * sharesPost/100,na.rm=TRUE),
@@ -133,7 +199,8 @@ shinyServer(function(input, output, session) {
            'Domestic Firm Benefit ($)' = thispsdelta[1],
            'Foreign Firm Harm ($)' = -thispsdelta[2],
            `Gov't Revenue ($)` = thisgovrev,
-           'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
+           'Net Domestic Harm ($)'= thiscv - thispsdelta[1]  - thisgovrev,
+           'Net Total Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
 
            #'Estimated Market Elasticity' = thiselast,
            check.names=FALSE
@@ -210,13 +277,18 @@ shinyServer(function(input, output, session) {
     return(res)
    }
 
-   runSims <- function(supply, demand, indata, mktElast){
+   runSims <- function(supply, demand, indata, mktElast, type = c("Tariffs","Quotas")){
      # a function to execute code from antitrust package based on ui inputs
+
+     type <- match.arg(type)
 
      prices <- indata[,"Prices \n($/unit)"]
      margins <- indata$Margins
-     tariffPre <- indata[,grepl("Cur.*Tariff",colnames(indata)),drop=TRUE]
-     tariffPost <- indata[,grepl("New.*Tariff",colnames(indata)),drop=TRUE]
+     tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE]
+
+     tariffPre[is.na(tariffPre)] <- 0
+     tariffPost <- as.vector(indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE])
+     tariffPost[is.na(tariffPost)] <- 0
 
      missPrices <- any(is.na(prices))
 
@@ -240,13 +312,14 @@ shinyServer(function(input, output, session) {
      ownerPre = tcrossprod(ownerPre)
      ownerPost = ownerPre
 
-     if(supply != "Cournot"){
+
+     if(supply != "Cournot" && type == "Tariffs" ){
         ownerPost =ownerPost*(1-tariffPost)
         ownerPre =ownerPre*(1-tariffPre)
         }
 
 
-
+if( type == "Tariffs"){
      switch(supply,
             Bertrand =
               switch(demand,
@@ -346,6 +419,45 @@ shinyServer(function(input, output, session) {
 
             )
      )
+}
+
+else if ( type == "Quotas"){
+
+  switch(supply,
+         Bertrand =
+           switch(demand,
+                  `logit (unknown elasticity)`= logit.alm(prices= prices,
+                                                          shares= shares_quantity,
+                                                          margins= margins,
+                                                          ownerPre= ownerPre,
+                                                          ownerPost= ownerPost,
+                                                          insideSize = insideSize ,
+                                                          mcDelta = indata$mcDelta, labels=indata$Name),
+                  logit= logit.alm(prices= prices,
+                                   shares= shares_quantity,
+                                   margins= margins,
+                                   ownerPre= ownerPre,
+                                   ownerPost= ownerPost,
+                                   insideSize = insideSize ,
+                                   mcDelta = indata$mcDelta, labels=indata$Name,  mktElast = mktElast )
+           ),
+         Cournot =
+
+           cournot(prices= prices[firstPrice],
+                   demand = gsub("\\s+\\(.*","",demand,perl=TRUE),
+                   cost= rep("linear", nrow(indata)),
+                   quantities = as.matrix(indata[,"Output"]),
+                   margins= as.matrix(margins),
+                   ownerPre= ownerPre,
+                   ownerPost= ownerPost,
+                   mktElast = ifelse( grepl("unknown elasticity", demand),
+                                      NA_real_, mktElast),
+                   mcDelta = indata$mcDelta,
+                   labels=list(as.character(indata$Name),indata$Name[firstPrice]))
+  )
+
+
+}
    }
 
 
@@ -362,8 +474,13 @@ shinyServer(function(input, output, session) {
    #
 
    ## create a reactive list of objects
-   values <- reactiveValues(inputData = genInputData(), sim = NULL, msg = NULL)
+   values <- reactiveValues(inputData = NULL,
+                            sim = NULL, msg = NULL)
 
+   ## initialize  inputData
+ observeEvent(input$simulate == 0 |
+                input$simulateQuota == 0,{
+                  values[["inputData"]] <- genInputData(type = input$menu )})
 
 
    ## update reactive list whenever changes are made to input
@@ -419,7 +536,7 @@ shinyServer(function(input, output, session) {
 
 
     ## display inputs
-    output$hot <- renderRHandsontable({
+    output$hotQuota <-output$hot <- renderRHandsontable({
 
       inputData <- values[["inputData"]]
 
@@ -437,15 +554,20 @@ shinyServer(function(input, output, session) {
       if (missPrices && any(grepl("ces|aids",input$demand, perl=TRUE), na.rm=TRUE)){colnames(inputData)[grepl("Quantities",colnames(inputData))] <- "Revenues"}
       else{{colnames(inputData)[grepl("Revenues",colnames(inputData))] <- "Quantities"}}
 
+
+      if(input$menu == "Tariffs"){colnames(inputData) <- gsub("Quota","Tariff", colnames(inputData))}
+      else if(input$menu == "Quotas"){colnames(inputData) <- gsub("Tariff","Quota", colnames(inputData))}
+
       if (!is.null(inputData))
         rhandsontable(inputData, stretchH = "all", contextMenu = FALSE ) %>% hot_col(col = 1:ncol(inputData), valign = "htMiddle") %>%
         hot_col(col = which (sapply(inputData,is.numeric)),halign = "htCenter" ) %>% hot_cols(columnSorting = TRUE)
+
     })
 
 
 
   ## simulate merger when the "simulate" button is clicked
-   observeEvent(input$simulate,{
+   observeEvent(input$simulate | input$simulateQuota,{
 
 
      values[["sim"]] <- values[["msg"]] <-  NULL
@@ -464,25 +586,35 @@ shinyServer(function(input, output, session) {
       indata <- indata[!is.na(indata[,"Output"]),]
 
 
-      tariffPost <- indata[,grep('New.*Tariff',colnames(indata)), drop = TRUE]
+      tariffPost <- indata[,grep('New.*\\n(Tariff|Quota)',colnames(indata)), drop = TRUE]
       tariffPost[is.na(tariffPost)] <- 0
 
-      tariffPre <- indata[,grep('Cur.*Tariff',colnames(indata)), drop= TRUE]
+      tariffPre <- indata[,grep('Cur.*\\n(Tariff|Quota)',colnames(indata)), drop= TRUE]
       tariffPre[is.na(tariffPre)] <- 0
 
+
       indata$mcDelta <-  (tariffPost - tariffPre)
+      indata$mcDelta <-  indata$mcDelta/(1 - tariffPost)
 
-
-        indata$mcDelta <-  indata$mcDelta/(1 - tariffPost)
-
+      if(input$menu == "Quotas"){ indata$mcDelta[] <- 0}
 
       indata$Owner <- factor(indata$Owner,levels=unique(indata$Owner) )
 
 
 
+      if(input$menu == "Tariffs"){
       thisSim <- msgCatcher(
-                          runSims(supply = input$supply,demand = input$demand, indata = indata, mktElast = input$enterElast )
+                          runSims(supply = input$supply,demand = input$demand,
+                                  indata = indata, mktElast = input$enterElast,
+                                  type = input$menu)
       )
+      }
+      else if(input$menu == "Quotas"){
+        thisSim <- msgCatcher(
+        runSims(supply = input$supplyQuota,demand = input$demandQuota,
+                indata = indata, mktElast = input$enterElastQuota,
+                type = input$menu)
+      )}
 
 
      thisSim$warning <- grep("are the same|INCREASE in marginal costs", thisSim$warning, value= TRUE, invert=TRUE, perl=TRUE)
@@ -497,38 +629,24 @@ shinyServer(function(input, output, session) {
     })
 
 
-   ## identify interface as Public Site or not
+   ## identify whether model is over-identified
    output$overIDText <-   renderText({
 
      if(is.null(values[["inputData"]])){return()}
 
-     provElast <- grepl('elasticity',input$calcElast)
-
-     inputData <- values[["inputData"]]
-
-     nMargins <- inputData[,grepl("Margins",colnames(inputData))]
-     nMargins <- length(nMargins[!is.na(nMargins)])
-
-
-     if(input$supply == "Cournot" &&
-        ((provElast && nMargins > 0)  || (!provElast && nMargins >1) )){
-       res <- paste(helpText(tags$b("Note:"), "some model parameters are over-identified. The tables above may be helpful in assessing model fit."))
-     }
-
-     else if(input$supply != "Cournot" &&
-             ((provElast && nMargins > 1)  || (!provElast && nMargins >2) )){
-       res <- paste(helpText(tags$b("Note:"),"some model parameters are over-identified. The tables above may be helpful in assessing model fit."))
-     }
-     else{
-       res <- paste(helpText(tags$b("Note:"),"model parameters are just-identified. Inputted and fitted values should match."))
-
-     }
-     res
-
+     isOverID(input$supply, input$calcElast)
    })
 
+   output$overIDTextQuota <-  renderText({
+
+     if(is.null(values[["inputData"]])){return()}
+
+     isOverID(input$supplyQuota, input$calcElastQuota)
+   })
+
+
    ## identify interface as Public Site or not
-   output$urlText <-   renderText({
+   output$urlTextQuota <-   output$urlText <-   renderText({
 
      thisurl <- session$clientData$url_hostname
 
@@ -555,8 +673,19 @@ shinyServer(function(input, output, session) {
 
             isolate(inputData <- values[["inputData"]])
 
-            gensum(values[["sim"]],inputData)
+            gensum(values[["sim"]],inputData,type = input$menu)
           })
+
+    output$resultsQuota <-
+
+      renderTable({
+
+        if(input$inTabsetQuota != "respanelQuota" || input$simulateQuota == 0|| is.null(values[["sim"]])){return()}
+
+        isolate(inputData <- values[["inputData"]])
+
+        gensum(values[["sim"]],inputData,type = input$menu)
+      })
 
 
   ## display summary values to details tab
@@ -611,32 +740,77 @@ shinyServer(function(input, output, session) {
       }, digits = 2)
 
 
+    ## display summary values to details tab
+    output$results_detailedQuota <- renderTable({
+
+      if(input$inTabsetQuota != "detpanelQuota" || input$simulateQuota == 0  || is.null(values[["sim"]])){return()}
+
+      if(input$supplyQuota == "Cournot"){
+
+        res <- NULL
+        capture.output(try(res <- summary(values[["sim"]], revenue= FALSE,market=FALSE),silent=TRUE))
+
+        res$isParty <- factor(res$mcDelta >0, labels=c("","*"))
+
+        res$product <- res$mcDelta <- NULL
+
+        try(colnames(res) <- c("Foreign Firm","Name","Current Quota Price","New Quota Price", "Price Change (%)","Current Quota Quantity","New Quota Quantity", "Output Change (%)"),silent=TRUE)
+
+      }
+
+      else{
+
+        isAuction <- grepl("Auction",class(values[["sim"]]))
+        isRevDemand <- grepl("ces|aids",class(values[["sim"]]),ignore.case = TRUE)
+        inLevels <- FALSE
+        #isAIDS <- grepl("aids",class(values[["sim"]]),ignore.case = TRUE)
+        missPrice <- any(is.na(values[["sim"]]@prices))
+        if(isAuction && missPrice){inLevels = TRUE}
+
+        capture.output(res <- summary(values[["sim"]], revenue=isRevDemand & missPrice, insideOnly=TRUE, levels=inLevels))
+        res$Name <- rownames(res)
+        #res$isParty <- factor(res$mcDelta >0, labels=c("","*")) # fix once new code is ready
+        res$mcDelta <- NULL
+        res <- res[,c(1, ncol(res), 2 : (ncol(res)  - 1))]
+
+        thesenames <-  c("Foreign Firm","Name","Current Quota Price","New Quota Price", "Price Change (%)","Current Quota Share (%)","New Quota Share (%)", "Share Change (%)")
+
+
+        colnames(res) <- thesenames
+
+
+
+
+        if(inLevels){ colnames(res)[ colnames(res) == "Price Change (%)"] = "Price Change ($/unit)"}
+
+      }
+
+
+      res
+
+
+    }, digits = 2)
+
+
+
+
     output$results_shareOut <- renderTable({
 
       if(input$inTabset!= "detpanel" || input$simulate == 0  || is.null(values[["sim"]])){return()}
-      if( grepl("cournot",class(values[["sim"]]),ignore.case = TRUE)){return()}
 
-      isCES <- grepl("ces",class(values[["sim"]]),ignore.case = TRUE)
-
-      res <- data.frame('No-purchase\n Share (%)'= c(
-                         1 - sum(calcShares(values[["sim"]], preMerger=TRUE,revenue=isCES)),
-                         1 - sum(calcShares(values[["sim"]], preMerger=FALSE,revenue=isCES))
-                         )
-                        ,check.names = FALSE
-                        )*100
-
-      res$'Revenues ($)' <- as.integer(round(c(calcRevenues(values[["sim"]], preMerger=TRUE, market = TRUE ),
-                              calcRevenues(values[["sim"]], preMerger=FALSE, market = TRUE )
-                              )))
-
-
-      rownames(res) <- c("Current Tariff","New Tariff")
-
-      if( grepl("aids",class(values[["sim"]]),ignore.case = TRUE)) res$'No-purchase\n Share (%)' <- NULL
-
-      return(res)
+      genShareOut(values[["sim"]])
 
       }, rownames = TRUE, digits=1,align="c")
+
+
+    output$results_shareOutQuota <- renderTable({
+
+      if(input$inTabsetQuota != "detpanelQuota" || input$simulateQuota == 0  || is.null(values[["sim"]])){return()}
+
+      genShareOut(values[["sim"]])
+
+    }, rownames = TRUE, digits=1,align="c")
+
 
     ## display results to diagnostics tab
     output$results_diagnostics <- renderTable({
@@ -647,9 +821,18 @@ shinyServer(function(input, output, session) {
 
       res
 
+    }, digits = 0 ,rownames = TRUE,align="c")
 
+    output$results_diagnosticsQuota <- renderTable({
+
+      if(input$inTabsetQuota != "diagpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+
+      res <- gendiag(values[["sim"]])
+
+      res
 
     }, digits = 0 ,rownames = TRUE,align="c")
+
 
     ## display market elasticity gap to diagnostics tab
     output$results_diag_elast <- renderTable({
@@ -660,9 +843,18 @@ shinyServer(function(input, output, session) {
 
       res
 
+    }, digits =2,rownames = FALSE,align="c")
 
+    output$results_diag_elastQuota <- renderTable({
+
+      if(input$inTabsetQuota!= "diagpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+
+      res <- gendiag(values[["sim"]], mktElast=TRUE)
+
+      res
 
     }, digits =2,rownames = FALSE,align="c")
+
 
 
 
@@ -698,6 +890,26 @@ shinyServer(function(input, output, session) {
 
     }, rownames = TRUE)
 
+    output$results_elastQuota <- renderTable({
+
+      if(input$inTabsetQuota != "elastpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+
+      isCournot <- grepl("Cournot",class(values[["sim"]]))
+
+      if(input$pre_elastQuota == "Current Quota"){ preMerger = TRUE}
+      else{preMerger =FALSE}
+
+      if(!isCournot && input$diversionsQuota){
+        res <- diversion(values[["sim"]], preMerger=preMerger)
+      }
+      else{  res <- elast(values[["sim"]], preMerger=preMerger)}
+      if(isCournot){colnames(res) <- "Elasticity"}
+
+      res
+
+
+    }, rownames = TRUE)
+
 
     output$results_mktelast <- renderTable({
 
@@ -712,11 +924,24 @@ shinyServer(function(input, output, session) {
 
     }, rownames = FALSE)
 
+    output$results_mktelastQuota <- renderTable({
+
+      if(input$inTabsetQuota!= "elastpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+
+      if(input$pre_elast == "Current Quota"){ preQuota = TRUE}
+      else{preQuota =FALSE}
+
+      res <- as.matrix(elast(values[["sim"]], preMerger=preQuota, market = TRUE))
+      colnames(res)= "Market"
+      res
+
+    }, rownames = FALSE)
+
 
     ## display R code to code tab
-    output$results_code <- renderPrint({
+    output$results_codeQuota <- output$results_code <- renderPrint({
 
-      if(input$inTabset!= "codepanel"){return()}
+      if(input$inTabset!= "codepanel" &&  input$inTabsetQuota!= "codepanelQuota"){return()}
 
       indata <- values[["inputData"]]
       indata <- indata[!is.na(indata$Name) & indata$Name != '',]
@@ -839,5 +1064,8 @@ shinyServer(function(input, output, session) {
 
    })
 
+   output$reference <- renderText({
+   includeHTML(system.file('doc','Reference.html', package='trade'))
+})
   })
 
