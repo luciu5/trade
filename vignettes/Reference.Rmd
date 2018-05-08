@@ -85,7 +85,7 @@ package `antitrust` from which much of `trade` was generated.
 
 
 Much of `trade`'s functionality is built around the Bertrand pricing
-game.^[`trade`'s version of the Bertrand pricing game extends [@Werden1994] and [@Anderson2001] to accomodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
+game.^[`trade`'s version of the Bertrand pricing game extends [@Werden1994] and [@Anderson2001] to accommodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
 differentiated products with distinct, constant, marginal costs
 simultaneously set their products' prices to maximize their
 profits. In this model, prices are *strategic complements* in the sense that increasing the price of
@@ -321,7 +321,7 @@ $\alpha$, and $s_0$) and up to $2|I| +1 $ equations with which to estimate them 
 $|I|$ complete FOCs, $|I|$ choice probabilities and the market elasticity equation). `calcSlopes` exploits this over-identification
 by employing a minimum distance algorithm to find the
 values for $\alpha$ and $s_0$ that best satisfy all the equations for which there
- are data, subject to the constraints that $\alpha$ is negative and $s_0$ is between 0 and 1. The $\delta$s are then recovered from the choice probabilities, while **constant** marginal costs are recovered from fitted pre-merger margins and observed prices.
+ are data, subject to the constraints that $\alpha$ is negative and $s_0$ is between 0 and 1. The $\delta$s are then recovered from the choice probabilities, while **constant** marginal costs are recovered from fitted current tariff margins and observed prices.
 
 
 
@@ -380,7 +380,7 @@ by employing a minimum distance algorithm to find the
 values for $\gamma$ and $r_0$ that best satisfy all the equations for which there
  are data, subject to the constraints that $\gamma$ is greater than 1  and $r_0$ is between 0 and 1. 
  The $\delta$s are then recovered from the choice probabilities, 
- while **constant** marginal costs are recovered from fitted pre-merger margins and observed prices.
+ while **constant** marginal costs are recovered from fitted current tariff margins and observed prices.
 
 
 
@@ -429,16 +429,16 @@ outside good. Instead, these equations are a function of the market elasticity o
 Roughly speaking, $\epsilon$ controls
 the extent to which consumers substitute to products outside
 the $n$ products included in the simulation
-given a small change in market-wide product prices. Here, we assume that $\epsilon$ is a parameter whose value is not a function of product prices.^[This assumption implies that customers substitute to  products outside of the simulation in response to price increases by all products in the simulation at the same rate pre- and post-merger. ].
+given a small change in market-wide product prices. Here, we assume that $\epsilon$ is a parameter whose value is not a function of product prices.^[This assumption implies that customers substitute to  products outside of the simulation in response to price increases by all products in the simulation at the same rate before and after the change in tariffs. ].
 
 The `calcSlopes` method, called by the `aids`
 function to calibrate the AIDS parameters uses a minimum distance algorithm to find the $\epsilon$  (if not supplied using the 'mktElast' argument) and a single diagonal element of $B$ that best satisfy i) all the FOCs for which there is sufficient information and ii) the diversion equations $d_{ij}=-\frac{\beta_{ji}}{\beta_{ii}}$, and iii) the market elasticity (if supplied using the 'mktElast' argument). The $\beta_{ii}$s are recovered from the fact that $\sum_{j}d_{ij}=0$; customers must switch to a product included in the model.
 
 Another distinguishing feature of the LA-AIDS model is that it does not require any information on product
-prices in order to simulate merger price effects. The LA-AIDS accomplishes this by
+prices in order to simulate tariff price effects. The LA-AIDS accomplishes this by
 using the supplied margin and revenue information to estimate $B$, but not $\alpha$. There are
 however, a few drawbacks to not using pricing information.  First, while
-merger-specific price *changes* may be calculated, pre- and post-merger
+tariff-specific price *changes* may be calculated, pre- and post-tariff
 price *levels* cannot. Second, welfare measures like
 compensating variation cannot be calculated.  Prices are an optional
 input to `aids` and `pcaids`, and when they are supplied both
@@ -450,7 +450,7 @@ price levels and welfare measures may be calculated.
 
 Another model included in `trade` is the Cournot quantity game.  This version of the game assumes that multi-plant firms with distinct, increasing marginal costs producing multiple products 
 simultaneously set plant output for each product to maximize their
-profits.^[`trade`'s version of the Cournot quantity game extends [@Anderson2001a] to accomodate tariffs under Cournot quantity competition.] All firms producing a particular product are assumed to be undifferentiated. In this model, quantities are *strategic substitutes* in the sense that decreasing the quantity of
+profits.^[`trade`'s version of the Cournot quantity game extends [@Anderson2001a] to accommodate tariffs under Cournot quantity competition.] All firms producing a particular product are assumed to be undifferentiated. In this model, quantities are *strategic substitutes* in the sense that decreasing the quantity of
 one product causes some customers to switch to competing manufacturers, raising
 their quantities and profits. Ultimately, it is the magnitude of these lost sales that, at
 the margin, dissuades firms from reducing their output further .
@@ -474,7 +474,7 @@ market, each producing a subset $J_k$ of $J$ products. Further, suppose that  th
 plants.  Let $n = \sum_{k\in K} n_k$ denote the total number of plants producing any of the $J$ products. The Cournot model assumes that firms
 simultaneously set the amount of each product produced at each plant in order to maximize
 their profits. This model also assumes that all firms can perfectly observe each
-others' quantities, and costs, as well as the demand for each product. Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced at plants located abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price recieved by the firm is  $1-t_i$ the price faced by consumers.
+others' quantities, and costs, as well as the demand for each product. Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced at plants located abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price received by the firm is  $1-t_i$ the price faced by consumers.
 
 Functions in `trade`'s Cournot model  also adopt the additional assumption that each firm's plant has its own  distinct marginal cost
 technology.
