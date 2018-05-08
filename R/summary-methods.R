@@ -245,14 +245,15 @@ setMethod(
       domesticshare <- outPost[!istaxed]
 
       results <- data.frame(
-        'Current Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
-        'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
+        #'Current Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
+        #'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
         'Industry Price Change (%)' = sum(priceDelta * outPost/sum(outPost),na.rm=TRUE),
         'Consumer Harm ($)' = thiscv,
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
         `Gov't Revenue ($)` = thisgovrev,
-        'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
+        'Net Domestic Harm ($)'= thiscv - thispsdelta[1]  - thisgovrev,
+        'Net Total Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
 
         check.names=FALSE
       )
