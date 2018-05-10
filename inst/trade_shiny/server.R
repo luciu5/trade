@@ -62,33 +62,60 @@ shinyServer(function(input, output, session) {
 }
 
 
-   genInputData <- function(type = c("Tariffs","Quotas")){
+   genInputData <- function(nrows,type = c("Tariffs","Quotas")){
     # a function to generate default input data set for simulations
 
      type=match.arg(type)
 
-     inputData <- data.frame(
+
+
+
+
+    #if(missing(data) || is.null(data)){
+      exampleData <- data.frame(
        Name = c("Prod1","Prod2","Prod3","Prod4"),
        Owner  = c("Firm1","Firm2","Firm3","Firm3"),
        'Prices \n($/unit)'    = rep(10,4),
        'Quantities'   =c(0.4,.3,.2,.1)*100,
        'Margins\n(p-c)/p' =c(0.25,NA,NA,NA),
-       'Current \nTariff \n(proportion)' = c(.05,.05,0,0),
-       'New \nTariff \n(proportion)' = c(.25,.25,0,0),
        stringsAsFactors = FALSE,
        check.names=FALSE
      )
 
-     if(type == "Quotas"){colnames(inputData) <- gsub("Tariff","Quota",colnames(inputData))}
+    #}
+     #else{
+      # exampleData <- data[!is.na(data[,1])]
+     #}
+
+      exampleData <- exampleData[order(exampleData$`Quantities`, decreasing = TRUE),]
+      rownames(exampleData) <- NULL
+
+      if(type == "Tariffs"){
+        fx <- data.frame('Current \nTariff \n(proportion)' = c(.05,.05,0,0),
+                         'New \nTariff \n(proportion)' = c(.25,.25,0,0),
+                         stringsAsFactors = FALSE,
+                         check.names=FALSE)
+      }
+      else if (type == "Quotas"){
+        fx <- data.frame('Current \nQuota \n(proportion)' = as.numeric(c(NA,NA,NA,NA)),
+                         'New \nQuota \n(proportion)' = c(.75,.75,NA,NA),
+                         stringsAsFactors = FALSE,
+                         check.names=FALSE)
+
+      }
 
 
-     nDefProd <- nrow(inputData)
-     inputData <- inputData[c(1:nDefProd,rep(1, nPossProds - nDefProd)),]
-     #if(input$incEff) inputData$mcDelta <- 0
+      exampleData <- cbind(exampleData, fx)
 
-     inputData[(nDefProd+1):nPossProds,] <- NA
-     inputData <- inputData[order(inputData$`Quantities`, decreasing = TRUE),]
-     rownames(inputData) <- NULL
+      inputData <- as.data.frame(matrix(NA,nrow=max(nrows, nrow(exampleData)),ncol= ncol(exampleData)))
+      colnames(inputData) <- colnames(exampleData)
+      inputData[1:nrow(exampleData),] <- exampleData
+
+
+
+
+
+
 
 
      return(inputData)
@@ -130,6 +157,7 @@ shinyServer(function(input, output, session) {
      isAuction <- grepl("Auction",class(res))
      isRevDemand <- grepl("ces|aids",class(res),ignore.case = TRUE)
      isLogit <- grepl("logit",class(res),ignore.case = TRUE)
+     isTariff <- grepl("tariff",class(res),ignore.case = TRUE)
 
      missPrices <- any(is.na(res@prices))
 
@@ -142,9 +170,19 @@ shinyServer(function(input, output, session) {
 
 
      tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata), perl= TRUE),drop=TRUE]
-     tariffPre[is.na(tariffPre)] <- 0
      tariffPost <- indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata), perl=TRUE),drop=TRUE]
+
+     if(isTariff){
+     tariffPre[is.na(tariffPre)] <- 0
      tariffPost[is.na(tariffPost)] <- 0
+     istaxed <- tariffPre > 0 | tariffPost > 0
+     }
+     else{
+       ## set quota for unconstrained firms to be 100 times output
+       istaxed <- !is.na(tariffPre) | !is.na(tariffPost)
+       tariffPre[is.na(tariffPre)] <- 100
+       tariffPost[is.na(tariffPost)] <- 100
+     }
 
      if(isCournot){
 
@@ -168,7 +206,7 @@ shinyServer(function(input, output, session) {
 
 
 
-     istaxed <- tariffPre > 0 | tariffPost > 0
+
 
      thisgovrev <- thispsdelta <- thiscv <- NA
 
@@ -286,10 +324,18 @@ shinyServer(function(input, output, session) {
      margins <- indata$Margins
      tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE]
 
-     tariffPre[is.na(tariffPre)] <- 0
      tariffPost <- as.vector(indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE])
-     tariffPost[is.na(tariffPost)] <- 0
 
+
+     if(type == "Tariffs"){
+       tariffPre[is.na(tariffPre)] <- 0
+       tariffPost[is.na(tariffPost)] <- 0
+     }
+     else{
+       ## set quota for unconstrained firms to be 100 times output
+       tariffPre[is.na(tariffPre)] <- 100
+       tariffPost[is.na(tariffPost)] <- 100
+     }
      missPrices <- any(is.na(prices))
 
      shares_quantity <- shares_revenue <- indata$Output/sum(indata$Output, na.rm=TRUE)
@@ -426,16 +472,20 @@ else if ( type == "Quotas"){
   switch(supply,
          Bertrand =
            switch(demand,
-                  `logit (unknown elasticity)`= logit.alm(prices= prices,
+                  `logit (unknown elasticity)`= logit.cap.alm(prices= prices,
                                                           shares= shares_quantity,
                                                           margins= margins,
+                                                          capacitiesPre = indata$Output*tariffPre,
+                                                          capacitiesPost = indata$Output*tariffPost,
                                                           ownerPre= ownerPre,
                                                           ownerPost= ownerPost,
                                                           insideSize = insideSize ,
                                                           mcDelta = indata$mcDelta, labels=indata$Name),
-                  logit= logit.alm(prices= prices,
+                  logit= logit.cap.alm(prices= prices,
                                    shares= shares_quantity,
                                    margins= margins,
+                                   capacitiesPre = indata$Output*tariffPre,
+                                   capacitiesPost = indata$Output*tariffPost,
                                    ownerPre= ownerPre,
                                    ownerPost= ownerPost,
                                    insideSize = insideSize ,
@@ -478,9 +528,16 @@ else if ( type == "Quotas"){
                             sim = NULL, msg = NULL)
 
    ## initialize  inputData
- observeEvent(input$simulate == 0 |
-                input$simulateQuota == 0,{
-                  values[["inputData"]] <- genInputData(type = input$menu )})
+ observe({
+
+   if(input$menu == "Tariffs" && (input$simulate == 0 || input$addRows)){
+                  values[["inputData"]] <- genInputData(nrow = input$addRows ,type = input$menu)}
+
+   if (input$menu == "Quotas" && (input$simulateQuota == 0 ||
+            input$addRowsQuota)){
+     values[["inputData"]] <- genInputData(nrow = input$addRowsQuota ,type = input$menu )
+   }
+   })
 
 
    ## update reactive list whenever changes are made to input
@@ -572,7 +629,10 @@ else if ( type == "Quotas"){
 
      values[["sim"]] <- values[["msg"]] <-  NULL
 
+     if(input$menu == "Tariffs"){
      updateTabsetPanel(session,inputId  = "inTabset", selected = "respanel")
+     }
+     else{ updateTabsetPanel(session,inputId  = "inTabsetQuota", selected = "respanelQuota")}
 
       indata <- values[["inputData"]]
 
@@ -625,7 +685,7 @@ else if ( type == "Quotas"){
      values[["msg"]] <-  list(error=thisSim$error,warning=thisSim$warning)
 
      if(!is.null(thisSim$error) || !is.null(thisSim$warning)) updateTabsetPanel(session,inputId  = "inTabset", selected = "msgpanel")
-
+     if(!is.null(thisSim$errorQuota) || !is.null(thisSim$warningQota)) updateTabsetPanel(session,inputId  = "inTabsetQuota", selected = "msgpanelQuota")
     })
 
 
@@ -683,7 +743,7 @@ else if ( type == "Quotas"){
         if(input$inTabsetQuota != "respanelQuota" || input$simulateQuota == 0|| is.null(values[["sim"]])){return()}
 
         isolate(inputData <- values[["inputData"]])
-
+        print(input$menu)
         gensum(values[["sim"]],inputData,type = input$menu)
       })
 
@@ -1055,6 +1115,15 @@ else if ( type == "Quotas"){
 
    })
 
+   output$warningsQuota <- renderPrint({
+
+     if(input$inTabsetQuota!= "msgpanelQuota" || input$simulateQuota == 0 || is.null(values[["msg"]]$warning)){return()}
+
+     print(values[["msg"]]$warning)
+
+
+   })
+
    output$errors <- renderPrint({
 
      if(input$inTabset!= "msgpanel" || input$simulate == 0 || is.null(values[["msg"]]$error)){cat(return())}
@@ -1064,8 +1133,18 @@ else if ( type == "Quotas"){
 
    })
 
+   output$errorsQuota <- renderPrint({
+
+     if(input$inTabsetQuota!= "msgpanelQuota" || input$simulateQuota == 0 || is.null(values[["msg"]]$error)){cat(return())}
+
+     print(values[["msg"]]$error)
+
+
+   })
+
    output$reference <- renderText({
    includeHTML(system.file('doc','Reference.html', package='trade'))
 })
+
   })
 

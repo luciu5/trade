@@ -26,6 +26,7 @@ fluidPage(
                  #tags$li("Margins should exclude fixed costs.")
                  )
                  ),hr(),
+        sliderInput("addRows", "Add rows to Inputs table:", value=10,min=5,max=50,step=5),
        radioButtons("calcElast", "Calibrate model parameters using:",
                      choices = c("market elasticity and 1 or more margins",
                                  "2 or more margins"), selected="market elasticity and 1 or more margins"
@@ -136,13 +137,14 @@ fluidPage(
                h5(tags$b("Directions:")),
                helpText(tags$ul(
                  tags$li("Copy and paste (or enter) information into Inputs table (right) to simulate a quota."),
-                 tags$li("Default example simulates an increase in the quota from 5% to 25% on products produced by 'Firm1' and 'Firm2'."),
+                 tags$li("Default example simulates an increase in the quota from 100% of current output to 75% of current output on products produced by 'Firm1' and 'Firm2'."),
                  tags$li("Products without current or new quotas are assumed to be produced domestically. Otherwise, products are assumed to be produced abroad.")
                  #,tags$li(helpText("See the",tags$a(href=system.file('trade_shiny', package='trade'), "trade"),"R package vignette for more details about the models used here." ))
                  #tags$li("Shares must be between 0 and 1."),
                  #tags$li("Margins should exclude fixed costs.")
                )
                ),hr(),
+               sliderInput("addRowsQuota", "Add rows to Inputs table:", value=10,min=5,max=50,step=5),
                radioButtons("calcElastQuota", "Calibrate model parameters using:",
                             choices = c("market elasticity and 1 or more margins",
                                         "2 or more margins"), selected="market elasticity and 1 or more margins"

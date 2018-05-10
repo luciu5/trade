@@ -13,11 +13,13 @@ License: Unlimited
 LazyLoad: yes
 RoxygenNote: 6.0.1
 Collate: 
+    'QuotaClasses.R'
     'TariffClasses.R'
     'TariffCournot-methods.R'
     'summary-methods.R'
     'ps-methods.R'
-    'bertrand.R'
-    'cournot.R'
+    'bertrand_quota.R'
+    'bertrand_tariff.R'
+    'cournot_tariff.R'
     'initialize-methods.R'
     'trade_shiny.R'
