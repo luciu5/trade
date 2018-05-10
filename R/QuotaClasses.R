@@ -36,7 +36,7 @@ setClass("QuotaCournot", contains = "Cournot",
          })
 
 #'@rdname Quota-classes
-setClass("QuotaLogit", contains = "LogitALM",
+setClass("QuotaLogit", contains = "LogitCapALM",
          representation=representation(
            quotaPre       = "numeric",
            quotaPost       = "numeric"),

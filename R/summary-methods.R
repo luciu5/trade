@@ -1,5 +1,5 @@
 #'@title Summary Methods
-#'@description Summary methods for the \code{TariffBertrand} and \code{TariffCournot} classes
+#'@description Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, and \code{TariffCournot} classes
 #' @name summary-methods
 #' @param revenue When TRUE, returns revenues, when FALSE returns quantitities. Default is FALSE.
 #' @param levels When TRUE returns changes in levels rather than percents and quantities rather than shares, when FALSE, returns
@@ -106,8 +106,8 @@ setMethod(
 
 
       results <- with(results, data.frame(
-        'Pre-Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
-        'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
+       # 'Pre-Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
+       #  'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
         'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
         'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
         'Industry Price Change (%)' = sum(priceDelta * sharesPost/100,na.rm=TRUE),
@@ -116,6 +116,171 @@ setMethod(
         'Foreign Firm Harm ($)' = -thispsdelta[2],
         `Gov't Revenue ($)` = thisgovrev,
         'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
+
+        check.names=FALSE
+      ))
+
+      if(levels){colnames(results) <- gsub("%","$/unit",colnames(results))}
+
+
+    }
+
+    colnames(results)[colnames(results) %in% c("outputPre","outputPost")] <- sumlabels
+
+    cat("\nMerger simulation results under '",class(object),"' demand:\n\n",sep="")
+
+    options("width"=ifelse(market,25,100)) # this width ensures that everything gets printed on the same line
+    print(round(results,digits),digits=digits, row.names=ifelse(market, FALSE, TRUE))
+    options("width"=curWidth) #restore to current width
+
+
+
+    if(!market){
+
+      results <- cbind(isForeign, results)
+      rownames(results) <- object@labels
+
+      cat("\n\tNotes: '*' indicates foreign products.\n ")
+      if(levels){cat("\tDeltas are level changes.\n")}
+      else{cat("\tDeltas are percent changes.\n")}
+      if(revenue){cat("\tOutput is based on revenues.\n")}
+      else{cat("\tOutput is based on units sold.\n")}
+
+    }
+
+
+
+    cat("\n\n")
+
+
+    if(parameters){
+
+      cat("\nDemand Parameter Estimates:\n\n")
+      if(is.list(object@slopes)){
+        print(lapply(object@slopes,round,digits=digits))
+      }
+      else{
+        print(round(object@slopes,digits))
+      }
+      cat("\n\n")
+
+      if(.hasSlot(object,"intercepts")){
+
+        cat("\nIntercepts:\n\n")
+        print(round(object@intercepts,digits))
+        cat("\n\n")
+
+      }
+
+      if(.hasSlot(object,"constraint") && object@constraint){cat("\nNote: (non-singleton) nesting parameters are constrained to be equal")}
+      cat("\n\n")
+
+    }
+
+
+    return(invisible(results))
+
+  })
+
+
+#' @rdname summary-methods
+setMethod(
+  f= "summary",
+  signature= "QuotaBertrand",
+  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2,...){
+
+    curWidth <-  getOption("width")
+
+
+    pricePre   <-  object@pricePre
+    pricePost  <-  object@pricePost
+
+    quotaPre <- object@quotaPre *100
+    quotaPost <- object@quotaPost *100
+
+    if(grepl("aids",class(object),ignore.case=TRUE)){
+
+      priceDelta <-  object@priceDelta
+    }
+    else{ priceDelta <- calcPriceDelta(object,levels=levels)}
+
+    if(!levels) priceDelta <- priceDelta *100
+
+    if(levels && !missPrices){
+      outPre  <-  calcQuantities(object,preMerger=TRUE)
+      outPost <-  calcQuantities(object,preMerger=FALSE)
+
+      if(revenue){
+        outPre <- pricePre*outPre
+        outPost <- pricePost*outPost
+      }
+
+      sumlabels=paste("quantity",c("Pre","Post"),sep="")
+    }
+
+    else{
+
+      outPre  <-  calcShares(object,preMerger=TRUE,revenue=revenue) * 100
+      outPost <-  calcShares(object,preMerger=FALSE,revenue=revenue) * 100
+
+      if(insideOnly){
+        outPre <- outPre/sum(outPre)* 100
+        outPost <- outPost/sum(outPost)* 100
+      }
+
+      sumlabels=paste("shares",c("Pre","Post"),sep="")
+    }
+
+    mcDelta <- object@mcDelta * 100
+
+    if(levels){outDelta <- outPost - outPre}
+    else{outDelta <- (outPost/outPre - 1) * 100}
+
+
+    isForeign <- is.finite(quotaPre) | is.finite(quotaPost)
+    isForeign <- factor(isForeign,levels=c(FALSE,TRUE),labels=c(" ","*"))
+
+    results <- data.frame(pricePre=pricePre,pricePost=pricePost,
+                          priceDelta=priceDelta,outputPre=outPre,
+                          outputPost=outPost,outputDelta=outDelta,
+                          quotaPre=quotaPre,quotaPost=quotaPost)
+
+
+
+
+    rownames(results) <- paste(isForeign,object@labels)
+
+    sharesPost <- calcShares(object,FALSE,revenue)
+
+    if(market){
+
+
+      istaxed <- is.finite(quotaPre) | is.finite(quotaPost)
+
+      thisgovrev <- thispsdelta <- thiscv <- NA_real_
+
+      try(thiscv <- CV(object),silent = TRUE)
+
+
+      thispsdelta  <- NA_real_
+      try(thispsdelta  <- tapply(calcProducerSurplus(object,preMerger=FALSE) - calcProducerSurplus(object,preMerger=TRUE), istaxed,sum),silent=TRUE)
+
+
+      foreignshare <- outPost[istaxed]
+      domesticshare <- outPost[!istaxed]
+
+
+      results <- with(results, data.frame(
+      #  'Pre-Quota HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
+      #  'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
+        'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
+        'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
+        'Industry Price Change (%)' = sum(priceDelta * sharesPost/100,na.rm=TRUE),
+        'Consumer Harm ($)' = thiscv,
+        'Domestic Firm Benefit ($)' = thispsdelta[1],
+        'Foreign Firm Harm ($)' = -thispsdelta[2],
+        `Gov't Revenue ($)` = 0,
+        'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2],
 
         check.names=FALSE
       ))

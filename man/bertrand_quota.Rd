@@ -5,8 +5,7 @@
 \title{quota Simulation With A Bertrand Pricing Game}
 \usage{
 bertrand_quota(demand = c("logit"), prices, quantities, margins, owner,
-  mktElast = NA_real_, insideSize = ifelse(demand == "logit",
-  sum(quantities, na.rm = TRUE), sum(prices * quantities, na.rm = TRUE)),
+  mktElast = NA_real_, insideSize = sum(quantities, na.rm = TRUE),
   diversions, quotaPre = rep(0, length(quantities)), quotaPost = rep(0,
   length(quantities)), priceOutside = ifelse(demand == "logit", 0, 1),
   priceStart, isMax = FALSE, parmStart, control.slopes, control.equ,

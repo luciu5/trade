@@ -9,7 +9,6 @@
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
-#' @param insideSize Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
@@ -71,7 +70,6 @@ bertrand_tariff <- function(
   prices,quantities,margins,
   owner,
   mktElast = NA_real_,
-  insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE)),
   diversions,
   tariffPre=rep(0,length(quantities)),
   tariffPost=rep(0,length(quantities)),
@@ -89,6 +87,8 @@ demand <- match.arg(demand)
 
 
 nprods <- length(quantities)
+
+insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
 
 subset= rep(TRUE,nprods)
 

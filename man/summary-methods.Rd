@@ -4,10 +4,15 @@
 \name{summary-methods}
 \alias{summary-methods}
 \alias{summary,TariffBertrand-method}
+\alias{summary,QuotaBertrand-method}
 \alias{summary,TariffCournot-method}
 \title{Summary Methods}
 \usage{
 \S4method{summary}{TariffBertrand}(object, revenue = FALSE, levels = FALSE,
+  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2,
+  ...)
+
+\S4method{summary}{QuotaBertrand}(object, revenue = FALSE, levels = FALSE,
   parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2,
   ...)
 
@@ -34,5 +39,5 @@ Default is FALSE}
 Prints either market or product/plant-level summary and invisibly returns a data frame containing the same information.
 }
 \description{
-Summary methods for the \code{TariffBertrand} and \code{TariffCournot} classes
+Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, and \code{TariffCournot} classes
 }
