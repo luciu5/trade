@@ -36,7 +36,7 @@
 #'
 #'
 #'
-#' @return \code{bertrand_quota} returns an instance of class \code{\linkS4class{quotaLogit}}.
+#' @return \code{bertrand_quota} returns an instance of class \code{\linkS4class{QuotaLogit}}.
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
