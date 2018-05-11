@@ -5,12 +5,11 @@
 \title{Tariff Simulation With A Bertrand Pricing Game}
 \usage{
 bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
-  margins, owner, mktElast = NA_real_, insideSize = ifelse(demand ==
-  "logit", sum(quantities, na.rm = TRUE), sum(prices * quantities, na.rm =
-  TRUE)), diversions, tariffPre = rep(0, length(quantities)),
-  tariffPost = rep(0, length(quantities)), priceOutside = ifelse(demand ==
-  "logit", 0, 1), priceStart, isMax = FALSE, parmStart, control.slopes,
-  control.equ, labels = paste("Prod", 1:length(quantities), sep = ""), ...)
+  margins, owner, mktElast = NA_real_, diversions, tariffPre = rep(0,
+  length(quantities)), tariffPost = rep(0, length(quantities)),
+  priceOutside = ifelse(demand == "logit", 0, 1), priceStart, isMax = FALSE,
+  parmStart, control.slopes, control.equ, labels = paste("Prod",
+  1:length(quantities), sep = ""), ...)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
@@ -24,8 +23,6 @@ bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
 \item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
-
-\item{insideSize}{Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.}
 
 \item{diversions}{A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.}
 

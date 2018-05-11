@@ -5,7 +5,7 @@ require(rhandsontable)
 shinyServer(function(input, output, session) {
 
 
-   nPossProds <- 10 #only allow 10 products
+   nPossProds <- 10 #only allow 10 products by default
 
    msgCatcher <-
 
@@ -32,7 +32,7 @@ shinyServer(function(input, output, session) {
 
 
 
-   isOverID <-  function(supply, calcElast, inputData =values[["inputData"]]){
+   isOverID <-  function(supply, calcElast, inputData){
 
 
 
@@ -71,7 +71,7 @@ shinyServer(function(input, output, session) {
 
 
 
-    #if(missing(data) || is.null(data)){
+
       exampleData <- data.frame(
        Name = c("Prod1","Prod2","Prod3","Prod4"),
        Owner  = c("Firm1","Firm2","Firm3","Firm3"),
@@ -82,10 +82,7 @@ shinyServer(function(input, output, session) {
        check.names=FALSE
      )
 
-    #}
-     #else{
-      # exampleData <- data[!is.na(data[,1])]
-     #}
+
 
       exampleData <- exampleData[order(exampleData$`Quantities`, decreasing = TRUE),]
       rownames(exampleData) <- NULL
@@ -97,8 +94,8 @@ shinyServer(function(input, output, session) {
                          check.names=FALSE)
       }
       else if (type == "Quotas"){
-        fx <- data.frame('Current \nQuota \n(proportion)' = as.numeric(c(NA,NA,NA,NA)),
-                         'New \nQuota \n(proportion)' = c(.75,.75,NA,NA),
+        fx <- data.frame('Current \nQuota \n(proportion)' = as.numeric(c(Inf,Inf,Inf,Inf)),
+                         'New \nQuota \n(proportion)' = c(.75,.75,Inf,Inf),
                          stringsAsFactors = FALSE,
                          check.names=FALSE)
 
@@ -157,7 +154,6 @@ shinyServer(function(input, output, session) {
      isAuction <- grepl("Auction",class(res))
      isRevDemand <- grepl("ces|aids",class(res),ignore.case = TRUE)
      isLogit <- grepl("logit",class(res),ignore.case = TRUE)
-     isTariff <- grepl("tariff",class(res),ignore.case = TRUE)
 
      missPrices <- any(is.na(res@prices))
 
@@ -172,16 +168,14 @@ shinyServer(function(input, output, session) {
      tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata), perl= TRUE),drop=TRUE]
      tariffPost <- indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata), perl=TRUE),drop=TRUE]
 
-     if(isTariff){
+     if(type == "Tariffs"){
      tariffPre[is.na(tariffPre)] <- 0
      tariffPost[is.na(tariffPost)] <- 0
      istaxed <- tariffPre > 0 | tariffPost > 0
      }
-     else{
+     else if (type=="Quotas"){
        ## set quota for unconstrained firms to be 100 times output
-       istaxed <- !is.na(tariffPre) | !is.na(tariffPost)
-       tariffPre[is.na(tariffPre)] <- 100
-       tariffPost[is.na(tariffPost)] <- 100
+       istaxed <- !is.finite(tariffPre) | !is.finite(tariffPost)
      }
 
      if(isCournot){
@@ -332,9 +326,9 @@ shinyServer(function(input, output, session) {
        tariffPost[is.na(tariffPost)] <- 0
      }
      else{
-       ## set quota for unconstrained firms to be 100 times output
-       tariffPre[is.na(tariffPre)] <- 100
-       tariffPost[is.na(tariffPost)] <- 100
+       ## set quota for unconstrained firms to be Inf
+       tariffPre[is.na(tariffPre)] <- Inf
+       tariffPost[is.na(tariffPost)] <- Inf
      }
      missPrices <- any(is.na(prices))
 
@@ -524,18 +518,17 @@ else if ( type == "Quotas"){
    #
 
    ## create a reactive list of objects
-   values <- reactiveValues(inputData = NULL,
-                            sim = NULL, msg = NULL)
+   valuesQuota <-  values <- reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
+
 
    ## initialize  inputData
  observe({
 
-   if(input$menu == "Tariffs" && (input$simulate == 0 || input$addRows)){
-                  values[["inputData"]] <- genInputData(nrow = input$addRows ,type = input$menu)}
+   if(input$addRows){
+                  values[["inputData"]] <- genInputData(nrow = input$addRows ,type = "Tariffs")}
 
-   if (input$menu == "Quotas" && (input$simulateQuota == 0 ||
-            input$addRowsQuota)){
-     values[["inputData"]] <- genInputData(nrow = input$addRowsQuota ,type = input$menu )
+   if ((input$addRowsQuota)){
+     valuesQuota[["inputData"]]<- genInputData(nrow = input$addRowsQuota ,type = "Quotas" )
    }
    })
 
@@ -586,21 +579,30 @@ else if ( type == "Quotas"){
 
 
       if(!is.null(input$hot)){
-        values$inputData = hot_to_r(input$hot)
+        if(input$menu == "Tariffs"){
+        values[["inputData"]] = hot_to_r(input$hot)
+        }
+        else if (input$menu == "Quotas"){
+
+          valuesQuota[["inputData"]] = hot_to_r(input$hot)
+        }
 
       }
     })
 
 
     ## display inputs
-    output$hotQuota <-output$hot <- renderRHandsontable({
+    output$hot <- renderRHandsontable({
 
       inputData <- values[["inputData"]]
+
+
 
       prices <- inputData[,"Prices \n($/unit)"]
       output <- inputData[,grepl("Quantities|Revenue",colnames(inputData), perl=TRUE)]
 
       missPrices <- isTRUE(any(is.na(prices[ !is.na(output) ] ) ))
+
 
       if(input$supply == "2nd Score Auction"){ colnames(inputData) <- gsub("Tariff \n(proportion)","Tariff \n($/unit)", colnames(inputData))}
       else{colnames(inputData) <- gsub("Tariff \n($/unit)","Tariff \n(proportion)", colnames(inputData))}
@@ -622,19 +624,52 @@ else if ( type == "Quotas"){
     })
 
 
+    output$hotQuota <- renderRHandsontable({
+
+      inputData <- valuesQuota[["inputData"]]
+
+      prices <- inputData[,"Prices \n($/unit)"]
+      output <- inputData[,grepl("Quantities|Revenue",colnames(inputData), perl=TRUE)]
+
+      missPrices <- isTRUE(any(is.na(prices[ !is.na(output) ] ) ))
+
+      if(input$supplyQuota == "2nd Score Auction"){ colnames(inputData) <- gsub("Tariff \n(proportion)","Tariff \n($/unit)", colnames(inputData))}
+      else{colnames(inputData) <- gsub("Tariff \n($/unit)","Tariff \n(proportion)", colnames(inputData))}
+
+      if(missPrices && input$supplyQuota =="2nd Score Auction"){colnames(inputData)[grepl("Margins",colnames(inputData))] <- "Margins\n ($/unit)"}
+      else{colnames(inputData)[grepl("Margins",colnames(inputData))] <- "Margins\n (p-c)/p"}
+
+      if (missPrices && any(grepl("ces|aids",input$demandQuota, perl=TRUE), na.rm=TRUE)){colnames(inputData)[grepl("Quantities",colnames(inputData))] <- "Revenues"}
+      else{{colnames(inputData)[grepl("Revenues",colnames(inputData))] <- "Quantities"}}
+
+
+      if(input$menu == "Tariffs"){colnames(inputData) <- gsub("Quota","Tariff", colnames(inputData))}
+      else if(input$menu == "Quotas"){colnames(inputData) <- gsub("Tariff","Quota", colnames(inputData))}
+
+      if (!is.null(inputData))
+        rhandsontable(inputData, stretchH = "all", contextMenu = FALSE ) %>% hot_col(col = 1:ncol(inputData), valign = "htMiddle") %>%
+        hot_col(col = which (sapply(inputData,is.numeric)),halign = "htCenter" ) %>% hot_cols(columnSorting = TRUE)
+
+    })
+
+
+
 
   ## simulate merger when the "simulate" button is clicked
    observeEvent(input$simulate | input$simulateQuota,{
 
 
-     values[["sim"]] <- values[["msg"]] <-  NULL
-
      if(input$menu == "Tariffs"){
-     updateTabsetPanel(session,inputId  = "inTabset", selected = "respanel")
+       values[["sim"]] <- values[["msg"]] <-  NULL
+       updateTabsetPanel(session,inputId  = "inTabset", selected = "respanel")
+       indata <- values[["inputData"]]
      }
-     else{ updateTabsetPanel(session,inputId  = "inTabsetQuota", selected = "respanelQuota")}
+     else if (input$menu == "Quotas"){
 
-      indata <- values[["inputData"]]
+       valuesQuota[["sim"]] <- valuesQuota[["msg"]] <-  NULL
+       updateTabsetPanel(session,inputId  = "inTabsetQuota", selected = "respanelQuota")
+       indata <-   valuesQuota[["inputData"]]
+     }
 
       isOutput <-  grepl("Quantities|Revenues",colnames(indata),perl = TRUE)
 
@@ -662,30 +697,39 @@ else if ( type == "Quotas"){
 
 
 
-      if(input$menu == "Tariffs"){
+
       thisSim <- msgCatcher(
                           runSims(supply = input$supply,demand = input$demand,
                                   indata = indata, mktElast = input$enterElast,
                                   type = input$menu)
       )
-      }
-      else if(input$menu == "Quotas"){
-        thisSim <- msgCatcher(
-        runSims(supply = input$supplyQuota,demand = input$demandQuota,
-                indata = indata, mktElast = input$enterElastQuota,
-                type = input$menu)
-      )}
+
 
 
      thisSim$warning <- grep("are the same|INCREASE in marginal costs", thisSim$warning, value= TRUE, invert=TRUE, perl=TRUE)
      if(length(thisSim$warning) == 0){thisSim$warning = NULL}
 
-     values[["sim"]] <-  thisSim$value
+     if(input$menu == "Tariffs"){
+      values[["sim"]]<-  thisSim$value
+      values[["msg"]]<-  list(error=thisSim$error,warning=thisSim$warning)
+     }
+     else if(input$menu == "Quotas"){
+       valuesQuota[["sim"]]<-  thisSim$value
+       valuesQuota[["msg"]]<-  list(error=thisSim$error,warning=thisSim$warning)
+     }
 
-     values[["msg"]] <-  list(error=thisSim$error,warning=thisSim$warning)
+     if(!is.null(thisSim$error) || !is.null(thisSim$warning)){
 
-     if(!is.null(thisSim$error) || !is.null(thisSim$warning)) updateTabsetPanel(session,inputId  = "inTabset", selected = "msgpanel")
-     if(!is.null(thisSim$errorQuota) || !is.null(thisSim$warningQota)) updateTabsetPanel(session,inputId  = "inTabsetQuota", selected = "msgpanelQuota")
+       if(input$menu == "Tariffs" ){
+       updateTabsetPanel(session,inputId  = "inTabset", selected = "msgpanel")
+       }
+
+       else  if(input$menu == "Quotas" ){
+         updateTabsetPanel(session,inputId  = "inTabsetQuota", selected = "msgpanelQuota")
+       }
+
+       }
+
     })
 
 
@@ -694,14 +738,14 @@ else if ( type == "Quotas"){
 
      if(is.null(values[["inputData"]])){return()}
 
-     isOverID(input$supply, input$calcElast)
+     isOverID(input$supply, input$calcElast, values[["InputData"]])
    })
 
    output$overIDTextQuota <-  renderText({
 
-     if(is.null(values[["inputData"]])){return()}
+     if(is.null(valuesQuota[["inputData"]])){return()}
 
-     isOverID(input$supplyQuota, input$calcElastQuota)
+     isOverID(input$supplyQuota, input$calcElastQuota, valuesQuota[["InputData"]])
    })
 
 
@@ -740,11 +784,11 @@ else if ( type == "Quotas"){
 
       renderTable({
 
-        if(input$inTabsetQuota != "respanelQuota" || input$simulateQuota == 0|| is.null(values[["sim"]])){return()}
+        if(input$inTabsetQuota != "respanelQuota" || input$simulateQuota == 0|| is.null(valuesQuota[["sim"]])){return()}
 
-        isolate(inputData <- values[["inputData"]])
-        print(input$menu)
-        gensum(values[["sim"]],inputData,type = input$menu)
+        isolate(inputData <- valuesQuota[["inputData"]])
+
+        gensum(valuesQuota[["sim"]],inputData,type = input$menu)
       })
 
 
@@ -803,12 +847,12 @@ else if ( type == "Quotas"){
     ## display summary values to details tab
     output$results_detailedQuota <- renderTable({
 
-      if(input$inTabsetQuota != "detpanelQuota" || input$simulateQuota == 0  || is.null(values[["sim"]])){return()}
+      if(input$inTabsetQuota != "detpanelQuota" || input$simulateQuota == 0  || is.null(valuesQuota[["sim"]])){return()}
 
       if(input$supplyQuota == "Cournot"){
 
         res <- NULL
-        capture.output(try(res <- summary(values[["sim"]], revenue= FALSE,market=FALSE),silent=TRUE))
+        capture.output(try(res <- summary(valuesQuota[["sim"]], revenue= FALSE,market=FALSE),silent=TRUE))
 
         res$isParty <- factor(res$mcDelta >0, labels=c("","*"))
 
@@ -820,14 +864,14 @@ else if ( type == "Quotas"){
 
       else{
 
-        isAuction <- grepl("Auction",class(values[["sim"]]))
-        isRevDemand <- grepl("ces|aids",class(values[["sim"]]),ignore.case = TRUE)
+        isAuction <- grepl("Auction",class(valuesQuota[["sim"]]))
+        isRevDemand <- grepl("ces|aids",class(valuesQuota[["sim"]]),ignore.case = TRUE)
         inLevels <- FALSE
-        #isAIDS <- grepl("aids",class(values[["sim"]]),ignore.case = TRUE)
-        missPrice <- any(is.na(values[["sim"]]@prices))
+        #isAIDS <- grepl("aids",class(valuesQuota[["sim"]]),ignore.case = TRUE)
+        missPrice <- any(is.na(valuesQuota[["sim"]]@prices))
         if(isAuction && missPrice){inLevels = TRUE}
 
-        capture.output(res <- summary(values[["sim"]], revenue=isRevDemand & missPrice, insideOnly=TRUE, levels=inLevels))
+        capture.output(res <- summary(valuesQuota[["sim"]], revenue=isRevDemand & missPrice, insideOnly=TRUE, levels=inLevels))
         res$Name <- rownames(res)
         #res$isParty <- factor(res$mcDelta >0, labels=c("","*")) # fix once new code is ready
         res$mcDelta <- NULL
@@ -865,9 +909,9 @@ else if ( type == "Quotas"){
 
     output$results_shareOutQuota <- renderTable({
 
-      if(input$inTabsetQuota != "detpanelQuota" || input$simulateQuota == 0  || is.null(values[["sim"]])){return()}
+      if(input$inTabsetQuota != "detpanelQuota" || input$simulateQuota == 0  || is.null(valuesQuota[["sim"]])){return()}
 
-      genShareOut(values[["sim"]])
+      genShareOut(valuesQuota[["sim"]])
 
     }, rownames = TRUE, digits=1,align="c")
 
@@ -885,9 +929,9 @@ else if ( type == "Quotas"){
 
     output$results_diagnosticsQuota <- renderTable({
 
-      if(input$inTabsetQuota != "diagpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+      if(input$inTabsetQuota != "diagpanelQuota" || input$simulateQuota == 0 || is.null(valuesQuota[["sim"]])){return()}
 
-      res <- gendiag(values[["sim"]])
+      res <- gendiag(valuesQuota[["sim"]])
 
       res
 
@@ -907,9 +951,9 @@ else if ( type == "Quotas"){
 
     output$results_diag_elastQuota <- renderTable({
 
-      if(input$inTabsetQuota!= "diagpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+      if(input$inTabsetQuota!= "diagpanelQuota" || input$simulateQuota == 0 || is.null(valuesQuota[["sim"]])){return()}
 
-      res <- gendiag(values[["sim"]], mktElast=TRUE)
+      res <- gendiag(valuesQuota[["sim"]], mktElast=TRUE)
 
       res
 
@@ -928,6 +972,14 @@ else if ( type == "Quotas"){
 
     })
 
+    output$parametersQuota <- renderPrint({
+
+      if(input$inTabset!= "diagpanel" || input$simulateQuota == 0  || is.null(valuesQuota[["sim"]])){return()}
+
+      print(getParms(valuesQuota[["sim"]],digits=2))
+
+
+    })
 
     ## display elasticities to elasticity tab
     output$results_elast <- renderTable({
@@ -952,17 +1004,17 @@ else if ( type == "Quotas"){
 
     output$results_elastQuota <- renderTable({
 
-      if(input$inTabsetQuota != "elastpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+      if(input$inTabsetQuota != "elastpanelQuota" || input$simulateQuota == 0 || is.null(valuesQuota[["sim"]])){return()}
 
-      isCournot <- grepl("Cournot",class(values[["sim"]]))
+      isCournot <- grepl("Cournot",class(valuesQuota[["sim"]]))
 
       if(input$pre_elastQuota == "Current Quota"){ preMerger = TRUE}
       else{preMerger =FALSE}
 
       if(!isCournot && input$diversionsQuota){
-        res <- diversion(values[["sim"]], preMerger=preMerger)
+        res <- diversion(valuesQuota[["sim"]], preMerger=preMerger)
       }
-      else{  res <- elast(values[["sim"]], preMerger=preMerger)}
+      else{  res <- elast(valuesQuota[["sim"]], preMerger=preMerger)}
       if(isCournot){colnames(res) <- "Elasticity"}
 
       res
@@ -986,12 +1038,12 @@ else if ( type == "Quotas"){
 
     output$results_mktelastQuota <- renderTable({
 
-      if(input$inTabsetQuota!= "elastpanelQuota" || input$simulateQuota == 0 || is.null(values[["sim"]])){return()}
+      if(input$inTabsetQuota!= "elastpanelQuota" || input$simulateQuota == 0 || is.null(valuesQuota[["sim"]])){return()}
 
       if(input$pre_elast == "Current Quota"){ preQuota = TRUE}
       else{preQuota =FALSE}
 
-      res <- as.matrix(elast(values[["sim"]], preMerger=preQuota, market = TRUE))
+      res <- as.matrix(elast(valuesQuota[["sim"]], preMerger=preQuota, market = TRUE))
       colnames(res)= "Market"
       res
 
@@ -1003,7 +1055,13 @@ else if ( type == "Quotas"){
 
       if(input$inTabset!= "codepanel" &&  input$inTabsetQuota!= "codepanelQuota"){return()}
 
-      indata <- values[["inputData"]]
+
+      if(input$menu == "Tariffs"){
+        indata <-   values[["inputData"]]
+      }
+      else if(input$menu == "Quotas"){
+        indata <-   valuesQuota[["inputData"]]}
+
       indata <- indata[!is.na(indata$Name) & indata$Name != '',]
 
       cnames <- colnames(indata)
@@ -1020,6 +1078,7 @@ else if ( type == "Quotas"){
                     "tariffPost"
 
                     )
+
 
       argvalues   <- paste0(argnames," = simdata$`",cnames,"`")
 
@@ -1065,7 +1124,8 @@ else if ( type == "Quotas"){
         argvalues[grep("tariffPre", argvalues)] <- paste0("tariffPre = as.matrix(simdata$`",grep("Current Tariff",cnames,value = TRUE),"`)")
         argvalues[grep("tariffPost", argvalues)] <- paste0("tariffPost = as.matrix(simdata$`",grep("New Tariff",cnames,value = TRUE),"`)")
         argvalues[grep("labels", argvalues)] <- sprintf("labels = list(as.character(simdata$Name),as.character(simdata$Name[%d]))",firstPrice)
-}
+        argvalues <- argvalues[grep("insideSize", argvalues, invert = TRUE)]
+        }
       else if( input$supply =="Bertrand"){atrfun <- "bertrand_tariff"}
       else{atrfun <- "auction2nd.logit.alm"
            argvalues <- argvalues[-1]
@@ -1083,6 +1143,11 @@ else if ( type == "Quotas"){
                                       paste0('`',cnames[x],'`',"= c(",paste(d,collapse=","),")")}
                             )
       indata_code <- paste0("simdata <- data.frame(\n\t", paste0(indata_code,collapse=",\n\t"),",\n check.names = FALSE,\n stringsAsFactors = FALSE\n)")
+
+      if(input$menu =="Quotas"){
+      atrfun <- gsub("tariff","quota",atrfun)
+      indata_code <- gsub("Tariff","Quota",indata_code)
+      }
 
       thiscode <- c(
         "library(trade)",
@@ -1108,7 +1173,7 @@ else if ( type == "Quotas"){
     ## display messages to message tab
    output$warnings <- renderPrint({
 
-      if(input$inTabset!= "msgpanel" || input$simulate == 0 || is.null(values[["msg"]]$warning)){return()}
+      if(input$inTabset!= "msgpanel" || input$simulate == 0 || is.null(values[["msg"]])){return()}
 
       print(values[["msg"]]$warning)
 
@@ -1117,9 +1182,9 @@ else if ( type == "Quotas"){
 
    output$warningsQuota <- renderPrint({
 
-     if(input$inTabsetQuota!= "msgpanelQuota" || input$simulateQuota == 0 || is.null(values[["msg"]]$warning)){return()}
+     if(input$inTabsetQuota!= "msgpanelQuota" || input$simulateQuota == 0 || is.null(valuesQuota[["msg"]])){return()}
 
-     print(values[["msg"]]$warning)
+     print(valuesQuota[["msg"]]$warning)
 
 
    })
@@ -1135,9 +1200,9 @@ else if ( type == "Quotas"){
 
    output$errorsQuota <- renderPrint({
 
-     if(input$inTabsetQuota!= "msgpanelQuota" || input$simulateQuota == 0 || is.null(values[["msg"]]$error)){cat(return())}
+     if(input$inTabsetQuota!= "msgpanelQuota" || input$simulateQuota == 0 || is.null(valuesQuota[["msg"]]$error)){cat(return())}
 
-     print(values[["msg"]]$error)
+     print(valuesQuota[["msg"]]$error)
 
 
    })

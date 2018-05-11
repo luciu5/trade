@@ -4,10 +4,13 @@
 \name{initialize-methods}
 \alias{initialize-methods}
 \alias{initialize,TariffBertrand-method}
+\alias{initialize,QuotaBertrand-method}
 \alias{initialize,TariffCournot-method}
 \title{Initialize Methods}
 \usage{
 \S4method{initialize}{TariffBertrand}(.Object, ...)
+
+\S4method{initialize}{QuotaBertrand}(.Object, ...)
 
 \S4method{initialize}{TariffCournot}(.Object, ...)
 }

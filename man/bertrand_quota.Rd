@@ -5,10 +5,9 @@
 \title{quota Simulation With A Bertrand Pricing Game}
 \usage{
 bertrand_quota(demand = c("logit"), prices, quantities, margins, owner,
-  mktElast = NA_real_, insideSize = sum(quantities, na.rm = TRUE),
-  diversions, quotaPre = rep(0, length(quantities)), quotaPost = rep(0,
-  length(quantities)), priceOutside = ifelse(demand == "logit", 0, 1),
-  priceStart, isMax = FALSE, parmStart, control.slopes, control.equ,
+  mktElast = NA_real_, diversions, quotaPre = rep(Inf, length(quantities)),
+  quotaPost, priceOutside = ifelse(demand == "logit", 0, 1), priceStart,
+  isMax = FALSE, parmStart, control.slopes, control.equ,
   labels = paste("Prod", 1:length(quantities), sep = ""), ...)
 }
 \arguments{
@@ -23,8 +22,6 @@ bertrand_quota(demand = c("logit"), prices, quantities, margins, owner,
 \item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
-
-\item{insideSize}{Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.}
 
 \item{diversions}{A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.}
 
@@ -48,9 +45,11 @@ For aids, the default is to draw k random elements from a [0,1] uniform distribu
 \item{labels}{A k-length vector of labels.}
 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
+
+\item{insideSize}{Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.}
 }
 \value{
-\code{bertrand_quota} returns an instance of class \code{\linkS4class{quotaLogit}}.
+\code{bertrand_quota} returns an instance of class \code{\linkS4class{QuotaLogit}}.
 }
 \description{
 Simulate the effect of quotas when firms play a Bertrand pricing game and consumer demand is either Logit, CES, or AIDS
