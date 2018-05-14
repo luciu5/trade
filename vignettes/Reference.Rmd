@@ -191,8 +191,51 @@ and 0 otherwise.
 
 The solution to system \@ref(eq:FOC) yields equilibrium prices conditional on the ownership structure $\Omega$ and tariffs $t_i,\forall i\in n$. A change in tariff policy  is modeled as the solution to system  \@ref(eq:FOC) where $\Omega$ and $\hat{c}_i,\forall i\in n$ are updated to reflect the change in tariffs.  
 
+### Quotas
+The Bertrand model described above assumes that products are produced
+with constant marginal costs and no quotas. Here, we
+extend this model to allow for quotas
+.^[This section is based on the model described in @Froeb2003]
+
+Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
+products so as to maximize profits, subject to quotas $\{\overline{q}_i\}_{i=1}^{n_k}$.
+Mathematically, firm $k$ solves:
+
+\begin{align*}
+  \max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n}\omega_{ik}(p_i - c_i)q_i,\\
+  s.t.\, & q_i \le \overline{q}_i,&i=1\ldots n_k
+\end{align*}
+
+In general, either the capacity constraint for product $i$ will bind
+and the firm will
+be forced to produce less of $i$ than it would find optimal, or the capacity
+constraint will not bind, and the firm will produce the optimal
+amount implied by the FOCs. In the former, it can be shown that
+$\partial p_i\le 0$ and $q_i - \overline{q}_i=0$,
+while in the latter
+$\partial p_i=0$ and $q_i - \overline{q}_i \le 0$. Mathematically, these cases can be
+written as
+
+\begin{align}
+  \max\{\partial p_i, q_i - \overline{q}_i\}=0,&i=1\ldots n_k
+(\#eq:FOCC)
+\end{align}
 
 
+The FOCs for the quota-constrained Bertrand game (equation
+\ref{eqn:FOCC}) suffer from an additional complication: the \verb@max@
+function introduces a kink that can make it difficult for the
+non-linear equation solver to find equilibrium
+prices. @Froeb2003 suggests replacing  equation
+\@ref(eq:FOCC) with
+\begin{align*}
+ FOC_i +  q_i - t_i + \sqrt{FOC_i^2 + (q_i - t_i)^2}=0,& i=1,\ldots,n
+\end{align*}
+
+which has the same roots as equation \@ref(eq:FOCC), but is
+smoother. The \verb@calcPrices@ method for all classes based on the
+capacity-constrained Bertrand Model use this smoothed system to solve
+for equilibrium prices when the constraint is binding.
 
 ## Calibrating Model Demand and Cost Parameters
 
