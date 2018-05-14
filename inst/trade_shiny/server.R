@@ -67,11 +67,6 @@ shinyServer(function(input, output, session) {
 
      type=match.arg(type)
 
-
-
-
-
-
       exampleData <- data.frame(
        Name = c("Prod1","Prod2","Prod3","Prod4"),
        Owner  = c("Firm1","Firm2","Firm3","Firm3"),
@@ -94,7 +89,7 @@ shinyServer(function(input, output, session) {
                          check.names=FALSE)
       }
       else if (type == "Quotas"){
-        fx <- data.frame('Current \nQuota \n(proportion)' = as.numeric(c(Inf,Inf,Inf,Inf)),
+        fx <- data.frame('Current \nQuota \n(proportion)' = c(Inf,Inf,Inf,Inf),
                          'New \nQuota \n(proportion)' = c(.75,.75,Inf,Inf),
                          stringsAsFactors = FALSE,
                          check.names=FALSE)
@@ -104,15 +99,9 @@ shinyServer(function(input, output, session) {
 
       exampleData <- cbind(exampleData, fx)
 
-      inputData <- as.data.frame(matrix(NA,nrow=max(nrows, nrow(exampleData)),ncol= ncol(exampleData)))
+      inputData <- as.data.frame(matrix(NA_real_,nrow=max(nrows, nrow(exampleData)),ncol= ncol(exampleData)))
       colnames(inputData) <- colnames(exampleData)
       inputData[1:nrow(exampleData),] <- exampleData
-
-
-
-
-
-
 
 
      return(inputData)
@@ -316,16 +305,16 @@ shinyServer(function(input, output, session) {
 
      prices <- indata[,"Prices \n($/unit)"]
      margins <- indata$Margins
-     tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE]
 
-     tariffPost <- as.vector(indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE])
+     tariffPre  <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE]
+     tariffPost <- indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata),perl=TRUE),drop=TRUE]
 
 
      if(type == "Tariffs"){
        tariffPre[is.na(tariffPre)] <- 0
        tariffPost[is.na(tariffPost)] <- 0
      }
-     else{
+     else if(type == "Quotas"){
        ## set quota for unconstrained firms to be Inf
        tariffPre[is.na(tariffPre)] <- Inf
        tariffPost[is.na(tariffPost)] <- Inf
@@ -334,6 +323,7 @@ shinyServer(function(input, output, session) {
 
      shares_quantity <- shares_revenue <- indata$Output/sum(indata$Output, na.rm=TRUE)
      insideSize <- sum(indata[,"Output"], na.rm=TRUE)
+
 
 
      if(!missPrices){
@@ -357,6 +347,7 @@ shinyServer(function(input, output, session) {
         ownerPost =ownerPost*(1-tariffPost)
         ownerPre =ownerPre*(1-tariffPre)
         }
+
 
 
 if( type == "Tariffs"){
@@ -518,16 +509,16 @@ else if ( type == "Quotas"){
    #
 
    ## create a reactive list of objects
-   valuesQuota <-  values <- reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
+   valuesQuota <-  values <- reactiveValues(inputData = NULL, sim =NULL, msg = NULL)
 
 
    ## initialize  inputData
  observe({
 
-   if(input$addRows){
+   if(input$simulate == 0 | input$addRows){
                   values[["inputData"]] <- genInputData(nrow = input$addRows ,type = "Tariffs")}
 
-   if ((input$addRowsQuota)){
+   if (input$simulateQuota == 0 | input$addRowsQuota){
      valuesQuota[["inputData"]]<- genInputData(nrow = input$addRowsQuota ,type = "Quotas" )
    }
    })
@@ -596,7 +587,7 @@ else if ( type == "Quotas"){
 
       inputData <- values[["inputData"]]
 
-
+      colnames(inputData) <- gsub("Quota","Tariff", colnames(inputData))
 
       prices <- inputData[,"Prices \n($/unit)"]
       output <- inputData[,grepl("Quantities|Revenue",colnames(inputData), perl=TRUE)]
@@ -614,8 +605,7 @@ else if ( type == "Quotas"){
       else{{colnames(inputData)[grepl("Revenues",colnames(inputData))] <- "Quantities"}}
 
 
-      if(input$menu == "Tariffs"){colnames(inputData) <- gsub("Quota","Tariff", colnames(inputData))}
-      else if(input$menu == "Quotas"){colnames(inputData) <- gsub("Tariff","Quota", colnames(inputData))}
+
 
       if (!is.null(inputData))
         rhandsontable(inputData, stretchH = "all", contextMenu = FALSE ) %>% hot_col(col = 1:ncol(inputData), valign = "htMiddle") %>%
@@ -628,13 +618,15 @@ else if ( type == "Quotas"){
 
       inputData <- valuesQuota[["inputData"]]
 
+      colnames(inputData) <- gsub("Tariff","Quota", colnames(inputData))
+
       prices <- inputData[,"Prices \n($/unit)"]
       output <- inputData[,grepl("Quantities|Revenue",colnames(inputData), perl=TRUE)]
 
       missPrices <- isTRUE(any(is.na(prices[ !is.na(output) ] ) ))
 
-      if(input$supplyQuota == "2nd Score Auction"){ colnames(inputData) <- gsub("Tariff \n(proportion)","Tariff \n($/unit)", colnames(inputData))}
-      else{colnames(inputData) <- gsub("Tariff \n($/unit)","Tariff \n(proportion)", colnames(inputData))}
+      if(input$supplyQuota == "2nd Score Auction"){ colnames(inputData) <- gsub("Quota \n(proportion)","Quota \n($/unit)", colnames(inputData))}
+      else{colnames(inputData) <- gsub("Quota \n($/unit)","Quota \n(proportion)", colnames(inputData))}
 
       if(missPrices && input$supplyQuota =="2nd Score Auction"){colnames(inputData)[grepl("Margins",colnames(inputData))] <- "Margins\n ($/unit)"}
       else{colnames(inputData)[grepl("Margins",colnames(inputData))] <- "Margins\n (p-c)/p"}
@@ -643,8 +635,8 @@ else if ( type == "Quotas"){
       else{{colnames(inputData)[grepl("Revenues",colnames(inputData))] <- "Quantities"}}
 
 
-      if(input$menu == "Tariffs"){colnames(inputData) <- gsub("Quota","Tariff", colnames(inputData))}
-      else if(input$menu == "Quotas"){colnames(inputData) <- gsub("Tariff","Quota", colnames(inputData))}
+
+
 
       if (!is.null(inputData))
         rhandsontable(inputData, stretchH = "all", contextMenu = FALSE ) %>% hot_col(col = 1:ncol(inputData), valign = "htMiddle") %>%
@@ -681,17 +673,23 @@ else if ( type == "Quotas"){
       indata <- indata[!is.na(indata[,"Output"]),]
 
 
-      tariffPost <- indata[,grep('New.*\\n(Tariff|Quota)',colnames(indata)), drop = TRUE]
-      tariffPost[is.na(tariffPost)] <- 0
+      indata$mcDelta <- 0
 
-      tariffPre <- indata[,grep('Cur.*\\n(Tariff|Quota)',colnames(indata)), drop= TRUE]
-      tariffPre[is.na(tariffPre)] <- 0
+      if(input$menu == "Tariffs"){
+         tariffPost <- indata[,grep('New.*\\n(Tariff)',colnames(indata), perl=TRUE), drop = TRUE]
+         tariffPost[is.na(tariffPost)] <- 0
+
+         tariffPre <- indata[,grep('Cur.*\\n(Tariff)',colnames(indata), perl = TRUE), drop= TRUE]
+         tariffPre[is.na(tariffPre)] <- 0
+         indata$mcDelta <-  (tariffPost - tariffPre)
+         indata$mcDelta <-  indata$mcDelta/(1 - tariffPost)
+      }
 
 
-      indata$mcDelta <-  (tariffPost - tariffPre)
-      indata$mcDelta <-  indata$mcDelta/(1 - tariffPost)
 
-      if(input$menu == "Quotas"){ indata$mcDelta[] <- 0}
+
+      print(indata)
+      print(indata$mcDelta)
 
       indata$Owner <- factor(indata$Owner,levels=unique(indata$Owner) )
 
@@ -854,7 +852,8 @@ else if ( type == "Quotas"){
         res <- NULL
         capture.output(try(res <- summary(valuesQuota[["sim"]], revenue= FALSE,market=FALSE),silent=TRUE))
 
-        res$isParty <- factor(res$mcDelta >0, labels=c("","*"))
+        res$isParty <- factor(!is.na(valuesQuota[["sim"]]@capacitiesPre) |
+                                !is.na(valuesQuota[["sim"]]@capacitiesPost)  , labels=c("","*"))
 
         res$product <- res$mcDelta <- NULL
 
@@ -873,7 +872,9 @@ else if ( type == "Quotas"){
 
         capture.output(res <- summary(valuesQuota[["sim"]], revenue=isRevDemand & missPrice, insideOnly=TRUE, levels=inLevels))
         res$Name <- rownames(res)
-        #res$isParty <- factor(res$mcDelta >0, labels=c("","*")) # fix once new code is ready
+        res$isParty <- factor(!is.na(valuesQuota[["sim"]]@capacitiesPre) |
+                                !is.na(valuesQuota[["sim"]]@capacitiesPost)  , labels=c("","*"))
+
         res$mcDelta <- NULL
         res <- res[,c(1, ncol(res), 2 : (ncol(res)  - 1))]
 

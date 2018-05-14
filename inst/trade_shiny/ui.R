@@ -156,9 +156,9 @@ fluidPage(
                ),hr(),
 
                radioButtons("supplyQuota", "Competitive Interaction:",
-                            choices = c("Bertrand",
-                                        # "2nd Score Auction",
-                                        "Cournot"
+                            choices = c("Bertrand"
+                                        #,"2nd Score Auction"
+                                        #,"Cournot"
                             )),
 
                selectInput("demandQuota", "Demand Specification:",
