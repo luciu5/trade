@@ -509,18 +509,22 @@ else if ( type == "Quotas"){
    #
 
    ## create a reactive list of objects
-   valuesQuota <-  values <- reactiveValues(inputData = NULL, sim =NULL, msg = NULL)
+
+   valuesQuota <-   reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
+   values <-  reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
+
 
 
    ## initialize  inputData
- observe({
+ observeEvent(input$menu=="Tariffs" | input$addRows,{
 
-   if(input$simulate == 0 | input$addRows){
                   values[["inputData"]] <- genInputData(nrow = input$addRows ,type = "Tariffs")}
 
-   if (input$simulateQuota == 0 | input$addRowsQuota){
+ )
+
+ observeEvent(input$menu == "Quotas" | input$addRowsQuota,{
      valuesQuota[["inputData"]]<- genInputData(nrow = input$addRowsQuota ,type = "Quotas" )
-   }
+
    })
 
 
@@ -570,15 +574,17 @@ else if ( type == "Quotas"){
 
 
       if(!is.null(input$hot)){
-        if(input$menu == "Tariffs"){
+
         values[["inputData"]] = hot_to_r(input$hot)
-        }
-        else if (input$menu == "Quotas"){
-
-          valuesQuota[["inputData"]] = hot_to_r(input$hot)
-        }
-
       }
+
+
+
+      if(!is.null(input$hotQuota)){
+
+        valuesQuota[["inputData"]] = hot_to_r(input$hotQuota)
+      }
+
     })
 
 
@@ -685,11 +691,6 @@ else if ( type == "Quotas"){
          indata$mcDelta <-  indata$mcDelta/(1 - tariffPost)
       }
 
-
-
-
-      print(indata)
-      print(indata$mcDelta)
 
       indata$Owner <- factor(indata$Owner,levels=unique(indata$Owner) )
 
@@ -852,8 +853,9 @@ else if ( type == "Quotas"){
         res <- NULL
         capture.output(try(res <- summary(valuesQuota[["sim"]], revenue= FALSE,market=FALSE),silent=TRUE))
 
-        res$isParty <- factor(!is.na(valuesQuota[["sim"]]@capacitiesPre) |
-                                !is.na(valuesQuota[["sim"]]@capacitiesPost)  , labels=c("","*"))
+
+        res$isParty <- factor(is.finite(valuesQuota[["sim"]]@capacitiesPre) | is.finite(valuesQuota[["sim"]]@capacitiesPost), labels=c("","*"))
+
 
         res$product <- res$mcDelta <- NULL
 
@@ -872,8 +874,9 @@ else if ( type == "Quotas"){
 
         capture.output(res <- summary(valuesQuota[["sim"]], revenue=isRevDemand & missPrice, insideOnly=TRUE, levels=inLevels))
         res$Name <- rownames(res)
-        res$isParty <- factor(!is.na(valuesQuota[["sim"]]@capacitiesPre) |
-                                !is.na(valuesQuota[["sim"]]@capacitiesPost)  , labels=c("","*"))
+
+        res$isParty <- factor(is.finite(valuesQuota[["sim"]]@capacitiesPre) | is.finite(valuesQuota[["sim"]]@capacitiesPost), labels=c("","*"))
+
 
         res$mcDelta <- NULL
         res <- res[,c(1, ncol(res), 2 : (ncol(res)  - 1))]
@@ -1054,7 +1057,7 @@ else if ( type == "Quotas"){
     ## display R code to code tab
     output$results_codeQuota <- output$results_code <- renderPrint({
 
-      if(input$inTabset!= "codepanel" &&  input$inTabsetQuota!= "codepanelQuota"){return()}
+      if(input$inTabset!= "codepanel" ||  input$inTabsetQuota!= "codepanelQuota"){return()}
 
 
       if(input$menu == "Tariffs"){
