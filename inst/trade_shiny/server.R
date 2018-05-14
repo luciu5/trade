@@ -518,18 +518,19 @@ else if ( type == "Quotas"){
    #
 
    ## create a reactive list of objects
-   valuesQuota <-  values <- reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
+   valuesQuota <-   reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
+   values <-  reactiveValues(inputData = genInputData(nPossProds), sim =NULL, msg = NULL)
 
 
    ## initialize  inputData
- observe({
+ observeEvent(input$menu=="Tariffs" | input$addRows,{
 
-   if(input$addRows){
-                  values[["inputData"]] <- genInputData(nrow = input$addRows ,type = "Tariffs")}
+                  values[["inputData"]] <- genInputData(nrow = input$addRows ,type = input$menu)}
 
-   if ((input$addRowsQuota)){
-     valuesQuota[["inputData"]]<- genInputData(nrow = input$addRowsQuota ,type = "Quotas" )
-   }
+ )
+
+ observeEvent(input$menu == "Quotas" |input$addRowsQuota,{
+     valuesQuota[["inputData"]]<- genInputData(nrow = input$addRowsQuota ,type = input$menu )
    })
 
 
@@ -854,7 +855,7 @@ else if ( type == "Quotas"){
         res <- NULL
         capture.output(try(res <- summary(valuesQuota[["sim"]], revenue= FALSE,market=FALSE),silent=TRUE))
 
-        res$isParty <- factor(res$mcDelta >0, labels=c("","*"))
+        res$isParty <- factor(is.finite(valuesQuota[["sim"]]@capacitiesPre) | is.finite(valuesQuota[["sim"]]@capacitiesPost), labels=c("","*"))
 
         res$product <- res$mcDelta <- NULL
 
@@ -873,7 +874,8 @@ else if ( type == "Quotas"){
 
         capture.output(res <- summary(valuesQuota[["sim"]], revenue=isRevDemand & missPrice, insideOnly=TRUE, levels=inLevels))
         res$Name <- rownames(res)
-        #res$isParty <- factor(res$mcDelta >0, labels=c("","*")) # fix once new code is ready
+        res$isParty <- factor(is.finite(valuesQuota[["sim"]]@capacitiesPre) | is.finite(valuesQuota[["sim"]]@capacitiesPost), labels=c("","*"))
+
         res$mcDelta <- NULL
         res <- res[,c(1, ncol(res), 2 : (ncol(res)  - 1))]
 
