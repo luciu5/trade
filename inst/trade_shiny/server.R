@@ -109,6 +109,128 @@ shinyServer(function(input, output, session) {
    }
 
 
+
+
+   gencode <- function(type){
+
+     if(type == "Tariffs"){
+       indata <-   values[["inputData"]]
+     }
+     else if(type == "Quotas"){
+       indata <-   valuesQuota[["inputData"]]}
+
+     indata <- indata[!is.na(indata$Name) & indata$Name != '',]
+
+     cnames <- colnames(indata)
+     cnames <- gsub("\n","",cnames)
+
+     firstPrice <- which(!is.na(indata[,grep("price",cnames, ignore.case = TRUE)]))[1]
+
+     argnames <- c("demand",
+                   "owner",
+                   "prices",
+                   "quantities",
+                   "margins",
+                   "tariffPre",
+                   "tariffPost"
+
+     )
+
+
+     argvalues   <- paste0(argnames," = simdata$`",cnames,"`")
+
+     thisElast <- ifelse(grepl("elast",input$calcElast),
+                         input$enterElast,
+                         "NA_real_"
+     )
+
+     if(grepl("logit", input$demand, ignore.case =TRUE)){
+       thisSize <- "sum(simdata$`Quantities`)"
+     }
+     else if(all(is.na(indata[,grepl("price",cnames, ignore.case = TRUE)]))){
+
+       thisSize <-   "sum(simdata$`Revenues`)"
+     }
+
+     else{
+
+       thisSize <- paste0("sum(simdata$`",grep("price",cnames, ignore.case = TRUE, value=TRUE),"`*simdata$`Quantities`)")
+
+
+     }
+
+     thisdemand <- gsub("\\s*\\(.*","",input$demand,perl=TRUE)
+
+     argvalues[1] <- paste(c("demand = ", shQuote(thisdemand)), collapse = "")
+
+     argvalues <- c(argvalues,
+                    paste0("mktElast = ", thisElast,collapse = ""),
+                    paste0("insideSize = ",thisSize, collapse=""),
+                    "labels = simdata$Name"
+
+     )
+
+
+
+
+     if(input$supply == "Cournot"){
+       atrfun <- "cournot_tariff"
+       argvalues[grep("prices", argvalues)] <- paste0(argvalues[grep("prices", argvalues)],"[",firstPrice,"]")
+       argvalues[grep("quantities", argvalues)] <- "quantities = as.matrix(simdata$`Quantities`)"
+       argvalues[grep("margins", argvalues)] <- paste0("margins = as.matrix(simdata$`",grep("Margin",cnames,value = TRUE),"`)")
+       argvalues[grep("tariffPre", argvalues)] <- paste0("tariffPre = as.matrix(simdata$`",grep("Current Tariff",cnames,value = TRUE),"`)")
+       argvalues[grep("tariffPost", argvalues)] <- paste0("tariffPost = as.matrix(simdata$`",grep("New Tariff",cnames,value = TRUE),"`)")
+       argvalues[grep("labels", argvalues)] <- sprintf("labels = list(as.character(simdata$Name),as.character(simdata$Name[%d]))",firstPrice)
+       argvalues <- argvalues[grep("insideSize", argvalues, invert = TRUE)]
+     }
+     else if( input$supply =="Bertrand"){atrfun <- "bertrand_tariff"}
+     else{atrfun <- "auction2nd.logit.alm"
+     argvalues <- argvalues[-1]
+     argvalues[grep("quantities", argvalues)] <- "shares = simdata$`Quantities` / sum( simdata$`Quantities` ) "
+     argvalues[grep("margins", argvalues)] <- paste0("margins = simdata$`",
+                                                     grep("Margin",cnames,value = TRUE),
+                                                     "` * ", "simdata$`", grep("Price", cnames, value=TRUE),"`")
+     }
+
+     atrfun <- paste0("simres <- ",atrfun,"(\n\t",paste0(argvalues,collapse = ",\n\t"),")",collapse = "\n")
+
+     indata_code <- sapply(1:ncol(indata),
+                           function(x){d <- indata[,x];
+                           if(is.character(d)){d <- sprintf("'%s'", indata[,x])};
+                           paste0('`',cnames[x],'`',"= c(",paste(d,collapse=","),")")}
+     )
+     indata_code <- paste0("simdata <- data.frame(\n\t", paste0(indata_code,collapse=",\n\t"),",\n check.names = FALSE,\n stringsAsFactors = FALSE\n)")
+
+     if(type =="Quotas"){
+       atrfun <- gsub("tariff","quota",atrfun)
+       indata_code <- gsub("Tariff","Quota",indata_code)
+     }
+
+     thiscode <- c(
+       "library(trade)",
+       "\n\n ## Load Data:\n",
+       indata_code,
+       "\n\n ## Run Simulation: \n",
+       atrfun,
+       "\n\n ## Summary Tab Results:\n",
+       "summary(simres, revenues = FALSE, levels = FALSE, market=TRUE)",
+       "\n\n ## Details Tab Results:\n",
+       "summary(simres, revenues = FALSE, levels = FALSE, market=FALSE)\n\n",
+       "\n\n ## Elasticities Tab Results  (Pre-tariff Only):\n",
+       "elast(simres, preMerger = TRUE, market=TRUE)\n elast(simres, preMerger = TRUE, market=FALSE)",
+       "\n\n ## Diagnostics Tab Results:\n",
+       "calcDiagnostics(simres)\n\n"
+     )
+
+     return(thiscode)
+
+
+
+
+
+   }
+
+
    genShareOut <- function(sim){
    if( grepl("cournot",class(sim),ignore.case = TRUE)){return()}
 
@@ -157,15 +279,17 @@ shinyServer(function(input, output, session) {
      tariffPre <- indata[,grepl("Cur.*\\n(Tariff|Quota)",colnames(indata), perl= TRUE),drop=TRUE]
      tariffPost <- indata[,grepl("New.*\\n(Tariff|Quota)",colnames(indata), perl=TRUE),drop=TRUE]
 
+
      if(type == "Tariffs"){
      tariffPre[is.na(tariffPre)] <- 0
      tariffPost[is.na(tariffPost)] <- 0
      istaxed <- tariffPre > 0 | tariffPost > 0
      }
      else if (type=="Quotas"){
-       ## set quota for unconstrained firms to be 100 times output
-       istaxed <- !is.finite(tariffPre) | !is.finite(tariffPost)
+       ## set quota for unconstrained firms to be Infinite
+       istaxed <- is.finite(tariffPre) | is.finite(tariffPost)
      }
+
 
      if(isCournot){
 
@@ -204,6 +328,8 @@ shinyServer(function(input, output, session) {
 
 
        try(thispsdelta  <- tapply(drop(calcProducerSurplus(res,preMerger=FALSE)*(1 - tariffPost)) - drop(calcProducerSurplus(res,preMerger=TRUE)*(1 - tariffPre)), istaxed,sum),silent=TRUE)
+
+
 
 
      foreignshare <- s$sharesPost[istaxed]
@@ -350,6 +476,7 @@ shinyServer(function(input, output, session) {
 
 
 
+
 if( type == "Tariffs"){
      switch(supply,
             Bertrand =
@@ -453,6 +580,7 @@ if( type == "Tariffs"){
 }
 
 else if ( type == "Quotas"){
+
 
   switch(supply,
          Bertrand =
@@ -978,7 +1106,7 @@ else if ( type == "Quotas"){
 
     output$parametersQuota <- renderPrint({
 
-      if(input$inTabset!= "diagpanel" || input$simulateQuota == 0  || is.null(valuesQuota[["sim"]])){return()}
+      if(input$inTabsetQuota!= "diagpanelQuota" || input$simulateQuota == 0  || is.null(valuesQuota[["sim"]])){return()}
 
       print(getParms(valuesQuota[["sim"]],digits=2))
 
@@ -1055,124 +1183,29 @@ else if ( type == "Quotas"){
 
 
     ## display R code to code tab
-    output$results_codeQuota <- output$results_code <- renderPrint({
+    output$results_code <- renderPrint({
 
-      if(input$inTabset!= "codepanel" ||  input$inTabsetQuota!= "codepanelQuota"){return()}
-
-
-      if(input$menu == "Tariffs"){
-        indata <-   values[["inputData"]]
-      }
-      else if(input$menu == "Quotas"){
-        indata <-   valuesQuota[["inputData"]]}
-
-      indata <- indata[!is.na(indata$Name) & indata$Name != '',]
-
-      cnames <- colnames(indata)
-      cnames <- gsub("\n","",cnames)
-
-      firstPrice <- which(!is.na(indata[,grep("price",cnames, ignore.case = TRUE)]))[1]
-
-      argnames <- c("demand",
-                    "owner",
-                    "prices",
-                    "quantities",
-                    "margins",
-                    "tariffPre",
-                    "tariffPost"
-
-                    )
+      if(input$inTabset!= "codepanel"){return()}
 
 
-      argvalues   <- paste0(argnames," = simdata$`",cnames,"`")
-
-    thisElast <- ifelse(grepl("elast",input$calcElast),
-                        input$enterElast,
-                        "NA_real_"
-    )
-
-    if(grepl("logit", input$demand, ignore.case =TRUE)){
-                        thisSize <- "sum(simdata$`Quantities`)"
-    }
-    else if(all(is.na(indata[,grepl("price",cnames, ignore.case = TRUE)]))){
-
-      thisSize <-   "sum(simdata$`Revenues`)"
-    }
-
-    else{
-
-      thisSize <- paste0("sum(simdata$`",grep("price",cnames, ignore.case = TRUE, value=TRUE),"`*simdata$`Quantities`)")
-
-
-    }
-
-    thisdemand <- gsub("\\s*\\(.*","",input$demand,perl=TRUE)
-
-      argvalues[1] <- paste(c("demand = ", shQuote(thisdemand)), collapse = "")
-
-      argvalues <- c(argvalues,
-                     paste0("mktElast = ", thisElast,collapse = ""),
-                     paste0("insideSize = ",thisSize, collapse=""),
-                     "labels = simdata$Name"
-
-      )
-
-
-
-
-      if(input$supply == "Cournot"){
-        atrfun <- "cournot_tariff"
-        argvalues[grep("prices", argvalues)] <- paste0(argvalues[grep("prices", argvalues)],"[",firstPrice,"]")
-        argvalues[grep("quantities", argvalues)] <- "quantities = as.matrix(simdata$`Quantities`)"
-        argvalues[grep("margins", argvalues)] <- paste0("margins = as.matrix(simdata$`",grep("Margin",cnames,value = TRUE),"`)")
-        argvalues[grep("tariffPre", argvalues)] <- paste0("tariffPre = as.matrix(simdata$`",grep("Current Tariff",cnames,value = TRUE),"`)")
-        argvalues[grep("tariffPost", argvalues)] <- paste0("tariffPost = as.matrix(simdata$`",grep("New Tariff",cnames,value = TRUE),"`)")
-        argvalues[grep("labels", argvalues)] <- sprintf("labels = list(as.character(simdata$Name),as.character(simdata$Name[%d]))",firstPrice)
-        argvalues <- argvalues[grep("insideSize", argvalues, invert = TRUE)]
-        }
-      else if( input$supply =="Bertrand"){atrfun <- "bertrand_tariff"}
-      else{atrfun <- "auction2nd.logit.alm"
-           argvalues <- argvalues[-1]
-           argvalues[grep("quantities", argvalues)] <- "shares = simdata$`Quantities` / sum( simdata$`Quantities` ) "
-           argvalues[grep("margins", argvalues)] <- paste0("margins = simdata$`",
-                                                           grep("Margin",cnames,value = TRUE),
-                                                            "` * ", "simdata$`", grep("Price", cnames, value=TRUE),"`")
-           }
-
-      atrfun <- paste0("simres <- ",atrfun,"(\n\t",paste0(argvalues,collapse = ",\n\t"),")",collapse = "\n")
-
-      indata_code <- sapply(1:ncol(indata),
-                            function(x){d <- indata[,x];
-                                      if(is.character(d)){d <- sprintf("'%s'", indata[,x])};
-                                      paste0('`',cnames[x],'`',"= c(",paste(d,collapse=","),")")}
-                            )
-      indata_code <- paste0("simdata <- data.frame(\n\t", paste0(indata_code,collapse=",\n\t"),",\n check.names = FALSE,\n stringsAsFactors = FALSE\n)")
-
-      if(input$menu =="Quotas"){
-      atrfun <- gsub("tariff","quota",atrfun)
-      indata_code <- gsub("Tariff","Quota",indata_code)
-      }
-
-      thiscode <- c(
-        "library(trade)",
-        "\n\n ## Load Data:\n",
-        indata_code,
-        "\n\n ## Run Simulation: \n",
-        atrfun,
-        "\n\n ## Summary Tab Results:\n",
-        "summary(simres, revenues = FALSE, levels = FALSE, market=TRUE)",
-        "\n\n ## Details Tab Results:\n",
-        "summary(simres, revenues = FALSE, levels = FALSE, market=FALSE)\n\n",
-        "\n\n ## Elasticities Tab Results  (Pre-tariff Only):\n",
-        "elast(simres, preMerger = TRUE, market=TRUE)\n elast(simres, preMerger = TRUE, market=FALSE)",
-        "\n\n ## Diagnostics Tab Results:\n",
-        "calcDiagnostics(simres)\n\n"
-      )
+      thiscode <- gencode("Tariffs")
 
       cat(thiscode)
 
+    })
+
+
+    output$results_codeQuota <- renderPrint({
+
+      if( input$inTabsetQuota!= "codepanelQuota"){return()}
+
+
+      thiscode <- gencode("Quotas")
+
+      cat(thiscode)
 
     })
+
 
     ## display messages to message tab
    output$warnings <- renderPrint({
