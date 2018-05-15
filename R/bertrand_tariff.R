@@ -117,7 +117,7 @@ if(!is.matrix(owner)){
 ownerPost <- owner*(1-tariffPost)
 ownerPre <- owner*(1-tariffPre)
 
-mcDelta <- (tariffPost - tariffPre)/(1 - tariffPre)
+mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
 
 shares_revenue <- shares_quantity <- quantities/sum(quantities)
 

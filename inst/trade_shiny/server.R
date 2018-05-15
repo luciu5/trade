@@ -165,7 +165,7 @@ shinyServer(function(input, output, session) {
 
      argvalues <- c(argvalues,
                     paste0("mktElast = ", thisElast,collapse = ""),
-                    paste0("insideSize = ",thisSize, collapse=""),
+                    #paste0("insideSize = ",thisSize, collapse=""),
                     "labels = simdata$Name"
 
      )
