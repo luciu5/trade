@@ -9,17 +9,17 @@
 \title{Summary Methods}
 \usage{
 \S4method{summary}{TariffBertrand}(object, revenue = FALSE, levels = FALSE,
-  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2,
-  ...)
+  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2)
 
 \S4method{summary}{QuotaBertrand}(object, revenue = FALSE, levels = FALSE,
-  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2,
-  ...)
+  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2)
 
 \S4method{summary}{TariffCournot}(object, market = FALSE, revenue = FALSE,
-  levels = FALSE, parameters = FALSE, digits = 2, ...)
+  levels = FALSE, parameters = FALSE, digits = 2)
 }
 \arguments{
+\item{object}{an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, or \code{TariffCournot}}
+
 \item{revenue}{When TRUE, returns revenues, when FALSE returns quantitities. Default is FALSE.}
 
 \item{levels}{When TRUE returns changes in levels rather than percents and quantities rather than shares, when FALSE, returns

@@ -1,13 +1,14 @@
 #'@title Methods To Calculate Producer Surplus
 #'@description Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes
 #' @name ps-methods
+#' @param object an instance of class \code{TariffBertrand} or \code{TariffCournot}
 #' @param preMerger when TRUE, calculates producer surplus under the existing tariff regime. When FALSE, calculates
 #' tariffs under the new tariff regime. Default is TRUE.
 #' @return product-level (or in the case of Cournot, plant-level) producer surplus
 #'@include TariffClasses.R
-#' @export
 NULL
 #' @rdname ps-methods
+#' @export
 setMethod(
 
   f= "calcProducerSurplus",
@@ -47,6 +48,7 @@ setMethod(
 )
 
 #' @rdname ps-methods
+#' @export
 setMethod(
   f= "calcProducerSurplus",
   signature= "TariffCournot",

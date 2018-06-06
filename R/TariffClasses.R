@@ -1,4 +1,7 @@
 #'@title S4 classes to model tariffs
+#'@import antitrust
+#'@import methods
+#'@import stats
 #'@description Extend classes from the \code{\link{antitrust}} package to accomodate tariffs.
 #'@slot tariffPre For TariffCournot, a matrix containing  \strong{current} plant-level (rows) AND product-level (columns) tariffs.
 #'Default is a matrix of 0s.  For all other classes,  a vector containg \strong{current} product-level  tariffs.
@@ -9,10 +12,10 @@
 #'\emph{ad valorem} taxes are expressed as a proportion of the consumer price.
 #'Default is a vector of 0s.
 #'@name Tariff-classes
-#' @export
 NULL
 
 #'@rdname Tariff-classes
+#' @export
 setClass("TariffCournot", contains = "Cournot",
          representation=representation(
                         tariffPre       = "matrix",
@@ -36,6 +39,7 @@ setClass("TariffCournot", contains = "Cournot",
          })
 
 #'@rdname Tariff-classes
+#' @export
 setClass("TariffLogit", contains = "LogitALM",
          representation=representation(
            tariffPre       = "numeric",
@@ -59,6 +63,7 @@ setClass("TariffLogit", contains = "LogitALM",
          })
 
 #'@rdname Tariff-classes
+#' @export
 setClass("TariffCES", contains = "CESALM",
          representation=representation(
            tariffPre       = "numeric",
@@ -81,6 +86,7 @@ setClass("TariffCES", contains = "CESALM",
          })
 
 #'@rdname Tariff-classes
+#' @export
 setClass("TariffAIDS", contains = "AIDS",
          representation=representation(
            tariffPre       = "numeric",
@@ -103,6 +109,7 @@ setClass("TariffAIDS", contains = "AIDS",
          })
 
 #'@rdname Tariff-classes
+#' @export
 setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS"))
 
 

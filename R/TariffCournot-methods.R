@@ -1,14 +1,17 @@
 #'@title Additional methods for TariffCournot Class
 #'@description Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes
 #' @name TariffCournot-methods
+#' @param object an instance of class \code{TariffCournot}
 #' @param preMerger when TRUE, computes result  under the existing tariff regime. When FALSE, calculates
 #' tariffs under the new tariff regime. Default is TRUE.
+#' @param market when TRUE, computes market-wide results. When FALSE, calculates
+#' plant-specific results.
 #' @return \code{calcSlopes} return a TariffCournot object containing estimated slopes. \code{CalcQuantities} returns
 #' a matrix of equilbrium quantities under either the current or new tariff.
 #'@include TariffClasses.R
-#' @export
 NULL
 #' @rdname TariffCournot-methods
+#' @export
 setMethod(
   f= "calcSlopes",
   signature= "TariffCournot",
@@ -165,10 +168,11 @@ setMethod(
 
 
 #' @rdname TariffCournot-methods
+#' @export
 setMethod(
   f= "calcQuantities",
   signature= "TariffCournot",
-  definition=function(object,preMerger=TRUE,market=FALSE,...){
+  definition=function(object,preMerger=TRUE,market=FALSE){
 
     slopes <- object@slopes
     intercepts <- object@intercepts

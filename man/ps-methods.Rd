@@ -12,6 +12,8 @@
 \S4method{calcProducerSurplus}{TariffCournot}(object, preMerger = TRUE)
 }
 \arguments{
+\item{object}{an instance of class \code{TariffBertrand} or \code{TariffCournot}}
+
 \item{preMerger}{when TRUE, calculates producer surplus under the existing tariff regime. When FALSE, calculates
 tariffs under the new tariff regime. Default is TRUE.}
 }

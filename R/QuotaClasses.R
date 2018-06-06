@@ -9,10 +9,11 @@
 #'quotas are expressed as a proportion of pre-merger output.
 #'Default is a vector of Infss.
 #'@name Quota-classes
-#' @export
+
 NULL
 
 #'@rdname Quota-classes
+#' @export
 setClass("QuotaCournot", contains = "Cournot",
          representation=representation(
                         quotaPre       = "matrix",
@@ -36,6 +37,7 @@ setClass("QuotaCournot", contains = "Cournot",
          })
 
 #'@rdname Quota-classes
+#' @export
 setClass("QuotaLogit", contains = "LogitCapALM",
          representation=representation(
            quotaPre       = "numeric",
@@ -61,6 +63,7 @@ setClass("QuotaLogit", contains = "LogitCapALM",
 
 
 #'@rdname Quota-classes
+#' @export
 setClassUnion("QuotaBertrand", c("QuotaLogit"))
 
 

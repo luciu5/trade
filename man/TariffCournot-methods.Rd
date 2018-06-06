@@ -10,11 +10,16 @@
 \S4method{calcSlopes}{TariffCournot}(object)
 
 \S4method{calcQuantities}{TariffCournot}(object, preMerger = TRUE,
-  market = FALSE, ...)
+  market = FALSE)
 }
 \arguments{
+\item{object}{an instance of class \code{TariffCournot}}
+
 \item{preMerger}{when TRUE, computes result  under the existing tariff regime. When FALSE, calculates
 tariffs under the new tariff regime. Default is TRUE.}
+
+\item{market}{when TRUE, computes market-wide results. When FALSE, calculates
+plant-specific results.}
 }
 \value{
 \code{calcSlopes} return a TariffCournot object containing estimated slopes. \code{CalcQuantities} returns

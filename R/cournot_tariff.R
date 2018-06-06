@@ -13,11 +13,7 @@
 #'  "constant" if a plant's marginal curve is assumed to be constant. Returns an error if a multi-plant firm with constant
 #'   marginal costs does not have capacity constraints.
 #' @param owner EITHER a vector of length n whose values indicate which plants are commonly owned OR an n x n matrix of ownership shares.
-#' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which
-#'  case diversion according to revenue share is assumed.
 #' @param mktElast A length k vector of product elasticities. Default is a length k vector of NAs
-#' @param insideSize Size of all units included in the market. For logit, this defaults to total quantity, while for aids
-#'  and ces this defaults to total revenues.
 #' @param tariffPre  An n x k matrix  where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
 #'  on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  An n x k matrix  where each element equals the \strong{new}  \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
@@ -33,9 +29,8 @@
 #'@param capacitiesPre A length n numeric vector of plant capacities under the current tariff regime. Default is Inf.
 #'@param capacitiesPost A length n numeric vector of plant capacities under the new tariff regime. Default is Inf.
 #'@param productsPre An n x k matrix that equals TRUE if under the current tariff regime, a plant produces a product. Default is TRUE if 'quantities' is not NA.
-#'@param productsPost An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals ‘productsPre’.
-#'@param mktElast A length k vector of product elasticities. Default is a length k vector of NAs.
-#'@param quantityStart A length k vector of quantities used as the initial guess in the nonlinear equation solver. Default is ‘quantities’.
+#'@param productsPost An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals 'productsPre'.
+#'@param quantityStart A length k vector of quantities used as the initial guess in the nonlinear equation solver. Default is 'quantities'.
 #'@param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer
 #'  (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver
@@ -48,7 +43,7 @@
 #' Let k denote the number of products and n denote the number of plants. Using price, and quantity, information for all products in each market, as well as
 #' margin information for at least one products in each market, \code{cournot_tariff} is able to recover the
 #' slopes and intercepts of either a Linear or Log-linear demand system. These parameters are then used
-#' to simulate the price effects of a merger between two firms under the assumption that the firms are playing a
+#' to simulate the price effects of a tariff under the assumption that the firms are playing a
 #' homogeneous products simultaneous quantity setting game.
 #'
 #'
@@ -90,8 +85,8 @@
 #'                     tariffPre =  as.matrix(tariffPre),
 #'                     tariffPost = as.matrix(tariffPost))
 #'
-#' summary(result.c, market = TRUE)         # summarize merger simulation (high-level)
-#' summary(result.c, market = FALSE)         # summarize merger simulation (detailed)
+#' summary(result.c, market = TRUE)         # summarize tariff (high-level)
+#' summary(result.c, market = FALSE)         # summarize tariff (detailed)
 #'
 #' @include ps-methods.R summary-methods.R TariffCournot-methods.R
 #' @export
@@ -121,6 +116,8 @@ cournot_tariff <- function(
   ...){
 
   shares <- as.vector(quantities/sum(quantities))
+
+  nprods <- length(prices)
 
   tariffPre[is.na(tariffPre)] <- 0
   tariffPost[is.na(tariffPost)] <- 0

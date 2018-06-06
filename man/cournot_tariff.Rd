@@ -54,13 +54,13 @@ If empty (the default), assumes quadratic costs.}
 
 \item{productsPre}{An n x k matrix that equals TRUE if under the current tariff regime, a plant produces a product. Default is TRUE if 'quantities' is not NA.}
 
-\item{productsPost}{An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals ‘productsPre’.}
+\item{productsPost}{An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals 'productsPre'.}
 
 \item{owner}{EITHER a vector of length n whose values indicate which plants are commonly owned OR an n x n matrix of ownership shares.}
 
 \item{mktElast}{A length k vector of product elasticities. Default is a length k vector of NAs}
 
-\item{quantityStart}{A length k vector of quantities used as the initial guess in the nonlinear equation solver. Default is ‘quantities’.}
+\item{quantityStart}{A length k vector of quantities used as the initial guess in the nonlinear equation solver. Default is 'quantities'.}
 
 \item{control.slopes}{A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer
 (typically the \code{calcSlopes} method).}
@@ -71,14 +71,6 @@ If empty (the default), assumes quadratic costs.}
 \item{labels}{A k-length vector of labels.}
 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium quantities.}
-
-\item{diversions}{A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which
-case diversion according to revenue share is assumed.}
-
-\item{insideSize}{Size of all units included in the market. For logit, this defaults to total quantity, while for aids
-and ces this defaults to total revenues.}
-
-\item{mktElast}{A length k vector of product elasticities. Default is a length k vector of NAs.}
 }
 \value{
 \code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
@@ -90,7 +82,7 @@ Simulate the effect of tariffs when firms play a cournot quantity setting game a
 Let k denote the number of products and n denote the number of plants. Using price, and quantity, information for all products in each market, as well as
 margin information for at least one products in each market, \code{cournot_tariff} is able to recover the
 slopes and intercepts of either a Linear or Log-linear demand system. These parameters are then used
-to simulate the price effects of a merger between two firms under the assumption that the firms are playing a
+to simulate the price effects of a tariff under the assumption that the firms are playing a
 homogeneous products simultaneous quantity setting game.
 }
 \examples{
@@ -125,8 +117,8 @@ result.c <- cournot_tariff(prices = price.pre.c,quantities = as.matrix(quantity.
                     tariffPre =  as.matrix(tariffPre),
                     tariffPost = as.matrix(tariffPost))
 
-summary(result.c, market = TRUE)         # summarize merger simulation (high-level)
-summary(result.c, market = FALSE)         # summarize merger simulation (detailed)
+summary(result.c, market = TRUE)         # summarize tariff (high-level)
+summary(result.c, market = FALSE)         # summarize tariff (detailed)
 
 }
 \references{

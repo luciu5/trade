@@ -1,6 +1,7 @@
 #'@title Summary Methods
 #'@description Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, and \code{TariffCournot} classes
 #' @name summary-methods
+#' @param object an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, or \code{TariffCournot}
 #' @param revenue When TRUE, returns revenues, when FALSE returns quantitities. Default is FALSE.
 #' @param levels When TRUE returns changes in levels rather than percents and quantities rather than shares, when FALSE, returns
 #' changes as a parcent and shares rather than quantities. Default is FALSE.
@@ -12,14 +13,13 @@
 #' @param digits Number of digits to report. Default is 2.
 #' @return Prints either market or product/plant-level summary and invisibly returns a data frame containing the same information.
 #'@include TariffClasses.R
-#' @export
 NULL
 #' @rdname summary-methods
-
+#' @export
 setMethod(
   f= "summary",
   signature= "TariffBertrand",
-  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2,...){
+  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2){
 
     curWidth <-  getOption("width")
 
@@ -38,7 +38,7 @@ setMethod(
 
     if(!levels) priceDelta <- priceDelta *100
 
-    if(levels && !missPrices){
+    if(levels){
       outPre  <-  calcQuantities(object,preMerger=TRUE)
       outPost <-  calcQuantities(object,preMerger=FALSE)
 
@@ -184,10 +184,11 @@ setMethod(
 
 
 #' @rdname summary-methods
+#' @export
 setMethod(
   f= "summary",
   signature= "QuotaBertrand",
-  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2,...){
+  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2){
 
     curWidth <-  getOption("width")
 
@@ -206,7 +207,7 @@ setMethod(
 
     if(!levels) priceDelta <- priceDelta *100
 
-    if(levels && !missPrices){
+    if(levels){
       outPre  <-  calcQuantities(object,preMerger=TRUE)
       outPost <-  calcQuantities(object,preMerger=FALSE)
 
@@ -352,7 +353,7 @@ setMethod(
 setMethod(
   f= "summary",
   signature= "TariffCournot",
-  definition=function(object,market=FALSE,revenue=FALSE,levels=FALSE,parameters=FALSE,digits=2,...){
+  definition=function(object,market=FALSE,revenue=FALSE,levels=FALSE,parameters=FALSE,digits=2){
 
     if(market){nplants <- 1}
     else{ nplants <- nrow(object@quantities) }

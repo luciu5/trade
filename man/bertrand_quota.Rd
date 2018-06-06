@@ -31,8 +31,10 @@ imposed on each product. Default is Inf, which assumes no quota.}
 \item{quotaPost}{A vector of length k where each element equals the \strong{new}  quota
 (expressed as a proportion of pre-merger quantities) imposed on each product. Default is Inf, which assumes no quota.}
 
-\item{priceOutside}{A vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-For aids, the default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
+\item{priceOutside}{price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.}
+
+\item{priceStart}{For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
+The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
 
 \item{isMax}{If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.}
 
@@ -45,8 +47,6 @@ For aids, the default is to draw k random elements from a [0,1] uniform distribu
 \item{labels}{A k-length vector of labels.}
 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
-
-\item{insideSize}{Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.}
 }
 \value{
 \code{bertrand_quota} returns an instance of class \code{\linkS4class{QuotaLogit}}.

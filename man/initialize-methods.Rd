@@ -8,11 +8,14 @@
 \alias{initialize,TariffCournot-method}
 \title{Initialize Methods}
 \usage{
-\S4method{initialize}{TariffBertrand}(.Object, ...)
+\S4method{initialize}{TariffBertrand}(.Object)
 
-\S4method{initialize}{QuotaBertrand}(.Object, ...)
+\S4method{initialize}{QuotaBertrand}(.Object)
 
-\S4method{initialize}{TariffCournot}(.Object, ...)
+\S4method{initialize}{TariffCournot}(.Object)
+}
+\arguments{
+\item{.Object}{an instance of class \code{TariffBertrand} or \code{TariffCournot}}
 }
 \description{
 Initialize methods for the \code{TariffBertrand} and \code{TariffCournot} classes

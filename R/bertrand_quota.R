@@ -9,14 +9,14 @@
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
-#' @param insideSize Size of all units included in the market. For logit, this defaults to total quantity, while for aids and ces this defaults to total revenues.
 #' @param quotaPre  A vector of length k where each element equals the \strong{current}  quota (expressed as a proportion of pre-merger quantities)
 #'                  imposed on each product. Default is Inf, which assumes no quota.
 #' @param quotaPost  A vector of length k where each element equals the \strong{new}  quota
 #' (expressed as a proportion of pre-merger quantities) imposed on each product. Default is Inf, which assumes no quota.
 #' @param parmStart \code{aids} only. A vector of length 2 who elements equal to an initial guess for "known" element of the diagonal of the demand matrix and the market elasticity.
-#' @param priceOutside A vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-#'  For aids, the default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
+#' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
+#'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
+#' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
 #' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
