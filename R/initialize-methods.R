@@ -1,12 +1,13 @@
 #'@title Initialize Methods
 #'@description Initialize methods for the \code{TariffBertrand} and \code{TariffCournot} classes
 #' @param .Object an instance of class \code{TariffBertrand} or \code{TariffCournot}
+#' @param ... arguments to pass to initialize
 #' @name initialize-methods
-#'@include TariffClasses.R
+#'@include QuotaClasses.R
 NULL
 #' @rdname initialize-methods
 #' @export
-setMethod("initialize", "TariffBertrand", function(.Object) {
+setMethod("initialize", "TariffBertrand", function(.Object, ...) {
 
   trapWarning <- function(expr){
     withCallingHandlers({expr}
@@ -26,7 +27,7 @@ setMethod("initialize", "TariffBertrand", function(.Object) {
 })
 #' @rdname initialize-methods
 #' @export
-setMethod("initialize", "QuotaBertrand", function(.Object) {
+setMethod("initialize", "QuotaBertrand", function(.Object, ...) {
 
   trapWarning <- function(expr){
     withCallingHandlers({expr}
@@ -46,7 +47,7 @@ setMethod("initialize", "QuotaBertrand", function(.Object) {
 })
 #' @rdname initialize-methods
 #' @export
-setMethod("initialize", "TariffCournot", function(.Object) {
+setMethod("initialize", "TariffCournot", function(.Object, ...) {
 
   trapWarning <- function(expr){
     withCallingHandlers({expr}
