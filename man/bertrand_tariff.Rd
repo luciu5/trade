@@ -20,7 +20,7 @@ bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
 
 \item{margins}{A length k vector of product margins. All margins must be either be between 0 and 1, or NA.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.}
+\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
 

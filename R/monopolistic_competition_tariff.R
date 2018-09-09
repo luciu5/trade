@@ -48,7 +48,7 @@
 #'
 #'
 #' result.logit <- monopolistic_competition_tariff(demand = "logit",prices=price,quantities=quantities,
-#'                                 margins = margins
+#'                                 margins = margins,
 #'                                  tariffPost = tariff, labels=prodNames)
 #'
 #' print(result.logit)           # return predicted price change
@@ -101,13 +101,14 @@ result <-   switch(demand,
 
          logit=  new("TariffMonComLogit",prices=prices, shares=shares_quantity,
                      margins=margins,
-                     ownerPre=ownerPre,
-                     ownerPost=ownerPost,
+                     ownerPre=owner,
+                     ownerPost=owner,
                      mktElast = mktElast,
                      mcDelta=mcDelta,
                      subset=subset,
                      priceOutside=priceOutside,
                      priceStart=prices,
+                     normIndex=ifelse(is.na(mktElast) & sum(shares_quantity) == 1,1,NA),
                      shareInside= sum(shares_quantity),
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
