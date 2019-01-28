@@ -210,6 +210,20 @@ setMethod(
     return(result)
   })
 
+#' @rdname TariffMonComRUM-methods
+#' @export
+setMethod(
+  f= "calcPrices",
+  signature= "TariffMonComLogit",
+  definition=function(object,preMerger=TRUE){
+
+    if(preMerger){mc <- object@mcPre}
+    else{         mc <- object@mcPost}
+
+    result <- mc - 1/object@slopes$alpha
+    names(result) <- object@labels
+    return(result)
+  })
 
 #' @rdname TariffMonComRUM-methods
 #' @export
