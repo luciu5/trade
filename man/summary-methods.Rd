@@ -8,14 +8,16 @@
 \alias{summary,TariffCournot-method}
 \title{Summary Methods}
 \usage{
-\S4method{summary}{TariffBertrand}(object, revenue = FALSE, levels = FALSE,
-  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2)
+\S4method{summary}{TariffBertrand}(object, revenue = FALSE,
+  levels = FALSE, parameters = FALSE, market = FALSE,
+  insideOnly = TRUE, digits = 2)
 
-\S4method{summary}{QuotaBertrand}(object, revenue = FALSE, levels = FALSE,
-  parameters = FALSE, market = FALSE, insideOnly = TRUE, digits = 2)
+\S4method{summary}{QuotaBertrand}(object, revenue = FALSE,
+  levels = FALSE, parameters = FALSE, market = FALSE,
+  insideOnly = TRUE, digits = 2)
 
-\S4method{summary}{TariffCournot}(object, market = FALSE, revenue = FALSE,
-  levels = FALSE, parameters = FALSE, digits = 2)
+\S4method{summary}{TariffCournot}(object, market = FALSE,
+  revenue = FALSE, levels = FALSE, parameters = FALSE, digits = 2)
 }
 \arguments{
 \item{object}{an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, or \code{TariffCournot}}

@@ -86,9 +86,31 @@ setClass("TariffMonComLogit", contains = "Logit",
            }
          })
 
+setClass("TariffMonComCES", contains = "CES",
+         representation=representation(
+           tariffPre       = "numeric",
+           tariffPost       = "numeric"),
+         validity = function(object){
+
+           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
+             stop("'tariffPre' and 'tariffPost' are equal")
+           }
+
+           if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
+              !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
+           ){
+             stop("'tariffPre' and 'tariffPost' must have the same dimensions as 'revenues'")
+           }
+
+           if(any(is.na(object@tariffPre)) ||
+              any(is.na(object@tariffPost)) ){
+             stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
+           }
+         })
+
 #'@rdname Tariff-classes
 #' @export
-setClass("TariffCES", contains = "CESALM",
+setClass("TariffCES", contains = "CES",
          representation=representation(
            tariffPre       = "numeric",
            tariffPost       = "numeric"),
@@ -134,6 +156,6 @@ setClass("TariffAIDS", contains = "AIDS",
 
 #'@rdname Tariff-classes
 #' @export
-setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit"))
+setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES"))
 
 

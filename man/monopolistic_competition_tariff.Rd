@@ -4,13 +4,14 @@
 \alias{monopolistic_competition_tariff}
 \title{Tariff Simulation With A Monopolistic Competition Pricing Game}
 \usage{
-monopolistic_competition_tariff(demand = c("logit"), prices, quantities,
-  margins, mktElast = NA_real_, tariffPre = rep(0, length(quantities)),
-  tariffPost = rep(0, length(quantities)), priceOutside = ifelse(demand ==
-  "logit", 0, 1), labels = paste("Prod", 1:length(quantities), sep = ""))
+monopolistic_competition_tariff(demand = c("logit", "ces"), prices,
+  quantities, margins, mktElast = NA_real_, tariffPre = rep(0,
+  length(quantities)), tariffPost = rep(0, length(quantities)),
+  priceOutside = ifelse(demand == "logit", 0, 1),
+  labels = paste("Prod", 1:length(quantities), sep = ""))
 }
 \arguments{
-\item{demand}{A character vector indicating which demand system to use. Currently allows logit.}
+\item{demand}{A character vector indicating which demand system to use. Currently allows ``logit" or ``ces" .}
 
 \item{prices}{A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.}
 
@@ -34,7 +35,7 @@ monopolistic_competition_tariff(demand = c("logit"), prices, quantities,
 \code{monopolistic_competition_tariff} returns an instance of class \code{\linkS4class{TariffMonComLogit}} , depending upon the value of the ``demand'' argument.
 }
 \description{
-Simulate the effect of tariffs when firms play a Monopolistic Competition game and consumer demand is Logit
+Simulate the effect of tariffs when firms play a Monopolistic Competition game and consumer demand is either Logit or CES
 }
 \details{
 Let k denote the number of products produced by all firms.
@@ -69,6 +70,14 @@ result.logit <- monopolistic_competition_tariff(demand = "logit",prices=price,qu
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
+
+result.ces <- monopolistic_competition_tariff(demand = "ces",prices=price,quantities=quantities,
+                                margins = margins,
+                                 tariffPost = tariff, labels=prodNames)
+
+print(result.ces)           # return predicted price change
+summary(result.ces)         # summarize merger simulation
+
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,

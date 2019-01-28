@@ -1,8 +1,8 @@
 #'Tariff Simulation With A Monopolistic Competition Pricing Game
 #'
-#' Simulate the effect of tariffs when firms play a Monopolistic Competition game and consumer demand is Logit
+#' Simulate the effect of tariffs when firms play a Monopolistic Competition game and consumer demand is either Logit or CES
 #'
-#' @param demand A character vector indicating which demand system to use. Currently allows logit.
+#' @param demand A character vector indicating which demand system to use. Currently allows ``logit" or ``ces" .
 #' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
@@ -53,12 +53,20 @@
 #'
 #' print(result.logit)           # return predicted price change
 #' summary(result.logit)         # summarize merger simulation
+#'
+#' result.ces <- monopolistic_competition_tariff(demand = "ces",prices=price,quantities=quantities,
+#'                                 margins = margins,
+#'                                  tariffPost = tariff, labels=prodNames)
+#'
+#' print(result.ces)           # return predicted price change
+#' summary(result.ces)         # summarize merger simulation
+#'
 #' @include ps-methods.R summary-methods.R
 #' @export
 
 
 monopolistic_competition_tariff <- function(
-  demand = c("logit"),
+  demand = c("logit","ces"),
   prices,quantities,margins,
   mktElast = NA_real_,
   tariffPre=rep(0,length(quantities)),
@@ -113,7 +121,23 @@ result <-   switch(demand,
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
                      insideSize = insideSize,
+                     labels=labels),
+         ces=  new("TariffMonComCES",prices=prices, shares=shares_revenue,
+                     margins=margins,
+                     ownerPre=owner,
+                     ownerPost=owner,
+                     mktElast = mktElast,
+                     mcDelta=mcDelta,
+                     subset=subset,
+                     priceOutside=priceOutside,
+                     priceStart=prices,
+                     normIndex=ifelse(is.na(mktElast) & sum(shares_revenue) == 1,1,NA),
+                     shareInside= sum(shares_revenue),
+                     tariffPre=tariffPre,
+                     tariffPost=tariffPost,
+                     insideSize = insideSize,
                      labels=labels)
+
   )
 
 
