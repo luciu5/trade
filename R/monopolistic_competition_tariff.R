@@ -6,7 +6,8 @@
 #' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
-#' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
+#' @param mktElast A negative number equal to the industry pre-tariff price elasticity. Default is NA .
+#' @param mktSize  A positive number equal to the industry pre-tariff market size. If demand is ``logit", then market size should be in quantities. If demand is ``ces" market size should be in revenues. If missing, market size equals either sum of quantities or sum of revenues.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
@@ -69,6 +70,7 @@ monopolistic_competition_tariff <- function(
   demand = c("logit","ces"),
   prices,quantities,margins,
   mktElast = NA_real_,
+  mktSize,
   tariffPre=rep(0,length(quantities)),
   tariffPost=rep(0,length(quantities)),
   priceOutside=ifelse(demand== "logit",0, 1),
@@ -83,6 +85,8 @@ nprods <- length(quantities)
 
 insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
 
+if(missing(mktSize)) mktSize <-  insideSize
+
 subset= rep(TRUE,nprods)
 
 tariffPre[is.na(tariffPre)] <- 0
@@ -93,11 +97,9 @@ owner <-  diag(nprods)
 
 mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
 
-shares_revenue <- shares_quantity <- quantities/sum(quantities)
+if(demand == "logit"){ shares <-  quantities/mktSize}
+else {prices*quantities/mktSize}
 
-
-
-if(all(!is.na(prices))) shares_revenue <- prices*shares_quantity/sum(prices*shares_quantity)
 
 
 
@@ -107,7 +109,7 @@ if(all(!is.na(prices))) shares_revenue <- prices*shares_quantity/sum(prices*shar
 
 result <-   switch(demand,
 
-         logit=  new("TariffMonComLogit",prices=prices, shares=shares_quantity,
+         logit=  new("TariffMonComLogit",prices=prices, shares=shares,
                      margins=margins,
                      ownerPre=owner,
                      ownerPost=owner,
@@ -116,13 +118,14 @@ result <-   switch(demand,
                      subset=subset,
                      priceOutside=priceOutside,
                      priceStart=prices,
-                     normIndex=ifelse(is.na(mktElast) & sum(shares_quantity) == 1,1,NA),
-                     shareInside= sum(shares_quantity),
+                     normIndex=ifelse(is.na(mktElast) & sum(shares) == 1,1,NA),
+                     shareInside= sum(shares),
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
                      insideSize = insideSize,
+                     mktSize = mktSize,
                      labels=labels),
-         ces=  new("TariffMonComCES",prices=prices, shares=shares_revenue,
+         ces=  new("TariffMonComCES",prices=prices, shares=shares,
                      margins=margins,
                      ownerPre=owner,
                      ownerPost=owner,
@@ -131,11 +134,12 @@ result <-   switch(demand,
                      subset=subset,
                      priceOutside=priceOutside,
                      priceStart=prices,
-                     normIndex=ifelse(is.na(mktElast) & sum(shares_revenue) == 1,1,NA),
-                     shareInside= sum(shares_revenue),
+                     normIndex=ifelse(is.na(mktElast) & sum(shares) == 1,1,NA),
+                     shareInside= sum(shares),
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
                      insideSize = insideSize,
+                     mktSize = mktSize,
                      labels=labels)
 
   )

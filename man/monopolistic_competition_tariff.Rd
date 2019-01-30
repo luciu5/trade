@@ -5,7 +5,7 @@
 \title{Tariff Simulation With A Monopolistic Competition Pricing Game}
 \usage{
 monopolistic_competition_tariff(demand = c("logit", "ces"), prices,
-  quantities, margins, mktElast = NA_real_, tariffPre = rep(0,
+  quantities, margins, mktElast = NA_real_, mktSize, tariffPre = rep(0,
   length(quantities)), tariffPost = rep(0, length(quantities)),
   priceOutside = ifelse(demand == "logit", 0, 1),
   labels = paste("Prod", 1:length(quantities), sep = ""))
@@ -19,7 +19,9 @@ monopolistic_competition_tariff(demand = c("logit", "ces"), prices,
 
 \item{margins}{A length k vector of product margins. All margins must be either be between 0 and 1, or NA.}
 
-\item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
+\item{mktElast}{A negative number equal to the industry pre-tariff price elasticity. Default is NA .}
+
+\item{mktSize}{A positive number equal to the industry pre-tariff market size. If demand is ``logit", then market size should be in quantities. If demand is ``ces" market size should be in revenues. If missing, market size equals either sum of quantities or sum of revenues.}
 
 \item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
