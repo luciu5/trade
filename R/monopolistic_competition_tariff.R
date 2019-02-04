@@ -98,8 +98,9 @@ owner <-  diag(nprods)
 mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
 
 if(demand == "logit"){ shares <-  quantities/mktSize}
-else {prices*quantities/mktSize}
+else {shares <- prices*quantities/mktSize}
 
+if(any(shares>1)) {stop("some shares are greater than 1. Check that 'mktSize' is set correctly.")}
 
 
 
