@@ -21,7 +21,7 @@ monopolistic_competition_tariff(demand = c("logit", "ces"), prices,
 
 \item{mktElast}{A negative number equal to the industry pre-tariff price elasticity. Default is NA .}
 
-\item{mktSize}{A positive number equal to the industry pre-tariff market size. If demand is ``logit", then market size should be in quantities. If demand is ``ces" market size should be in revenues. If missing, market size equals either sum of quantities or sum of revenues.}
+\item{mktSize}{A positive number equal to the industry pre-tariff market size. Market size equals total quantity sold,\emph{including sales to the outside good}.}
 
 \item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
@@ -29,7 +29,7 @@ monopolistic_competition_tariff(demand = c("logit", "ces"), prices,
 \item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
 
-\item{priceOutside}{price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.}
+\item{priceOutside}{price of the outside good. Default 0 for logit and 1 for ces. Not used for aids.}
 
 \item{labels}{A k-length vector of labels.}
 }
@@ -46,8 +46,7 @@ in each market, as well as margin information for at least
 one products in each market, \code{monopolistic_competition_tariff} is able to
 recover the slopes and intercepts of a Logit demand
 system. These parameters are then used to simulate the price
-effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
-simultaneous price setting game.
+effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a monopolisitcally competitive pricing game
 }
 \examples{
 ## Calibration and simulation results from a 10\% tariff on non-US beers "OTHER-LITE"
@@ -84,4 +83,8 @@ summary(result.ces)         # summarize merger simulation
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
+Anderson, Simon P., and André De Palma. Economic distributions and primitive distributions in monopolistic competition. Centre for Economic Policy Research, 2015.
+}
+\seealso{
+\code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game.
 }

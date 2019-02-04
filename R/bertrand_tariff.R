@@ -34,7 +34,7 @@
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 #' simultaneous price setting game.
 #'
-#'
+#' @seealso \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
 #' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{TariffLogit}}, \code{\linkS4class{TariffCES}}, or \code{\linkS4class{TariffAIDS}}, depending upon the value of the ``demand'' argument.
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
@@ -198,7 +198,7 @@ result <-   switch(demand,
                    priceOutside=priceOutside,
                    priceStart=priceStart,
                    shareInside=sum(shares_revenue),
-                   parmsStart=parmStart,
+                   #parmsStart=parmStart,
                    insideSize =insideSize,
                    tariffPre=tariffPre,
                    tariffPost=tariffPost,

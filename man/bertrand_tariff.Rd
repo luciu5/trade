@@ -94,3 +94,6 @@ summary(result.logit)         # summarize merger simulation
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 }
+\seealso{
+\code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
+}

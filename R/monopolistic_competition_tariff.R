@@ -7,12 +7,12 @@
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
 #' @param mktElast A negative number equal to the industry pre-tariff price elasticity. Default is NA .
-#' @param mktSize  A positive number equal to the industry pre-tariff market size. If demand is ``logit", then market size should be in quantities. If demand is ``ces" market size should be in revenues. If missing, market size equals either sum of quantities or sum of revenues.
+#' @param mktSize  A positive number equal to the industry pre-tariff market size. Market size equals total quantity sold,\emph{including sales to the outside good}.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
-#' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
+#' @param priceOutside price of the outside good. Default 0 for logit and 1 for ces. Not used for aids.
 #' @param labels A k-length vector of labels.
 #'
 #' @details
@@ -23,14 +23,15 @@
 #' one products in each market, \code{monopolistic_competition_tariff} is able to
 #' recover the slopes and intercepts of a Logit demand
 #' system. These parameters are then used to simulate the price
-#' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
-#' simultaneous price setting game.
+#' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a monopolisitcally competitive pricing game
 #'
+#' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game.
 #'
 #'
 #' @return \code{monopolistic_competition_tariff} returns an instance of class \code{\linkS4class{TariffMonComLogit}} , depending upon the value of the ``demand'' argument.
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
+#' Anderson, Simon P., and André De Palma. Economic distributions and primitive distributions in monopolistic competition. Centre for Economic Policy Research, 2015.
 #' @examples
 #' ## Calibration and simulation results from a 10% tariff on non-US beers "OTHER-LITE"
 #' ## and "OTHER-REG"
@@ -86,6 +87,14 @@ nprods <- length(quantities)
 insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
 
 if(missing(mktSize)) mktSize <-  insideSize
+else{
+  if(demand == "ces"){
+    mktSize <-  sum(quantities*prices) + (mktSize - sum(quantities,na.rm=TRUE))*priceOutside
+  }
+}
+
+if(length(mktSize)>1) stop("'mktSize' must be length 1")
+
 
 subset= rep(TRUE,nprods)
 
