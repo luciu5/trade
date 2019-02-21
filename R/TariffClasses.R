@@ -68,6 +68,9 @@ setClass("TariffMonComLogit", contains = "Logit",
          representation=representation(
            tariffPre       = "numeric",
            tariffPost       = "numeric"),
+         prototype=list(
+         control.slopes=list(reltol=.Machine$double.eps^0.25)
+           ),
          validity = function(object){
 
            if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
@@ -90,6 +93,9 @@ setClass("TariffMonComCES", contains = "CES",
          representation=representation(
            tariffPre       = "numeric",
            tariffPost       = "numeric"),
+         prototype=list(
+           control.slopes=list(reltol=.Machine$double.eps^0.25)
+         ),
          validity = function(object){
 
            if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
