@@ -92,6 +92,7 @@ nprods <- length(quantities)
 
 insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
 
+
 subset= rep(TRUE,nprods)
 
 tariffPre[is.na(tariffPre)] <- 0
@@ -155,7 +156,21 @@ else if (demand %in% c("logit","ces")){
     else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
     }
   if(missing(priceStart)) priceStart <- prices
-}
+
+
+  if(demand == "logit" &&  missing(diversions)){
+    diversions <- tcrossprod(1/(1-shares_quantity),shares_quantity)
+    diag(diversions) <- -1
+
+  }
+
+  else if(demand == "ces" &&  missing(diversions)){
+    diversions <- tcrossprod(1/(1-shares_revenue),shares_revenue)
+    diag(diversions) <- -1
+
+
+  }
+  }
 
 
 
@@ -181,6 +196,7 @@ result <-   switch(demand,
                      subset=subset,
                      priceOutside=priceOutside,
                      priceStart=priceStart,
+                     diversion = diversions,
                      shareInside= sum(shares_quantity),
                      parmsStart=parmStart,
                      tariffPre=tariffPre,
@@ -197,8 +213,9 @@ result <-   switch(demand,
                    subset=subset,
                    priceOutside=priceOutside,
                    priceStart=priceStart,
+                   diversion = diversions,
                    shareInside=sum(shares_revenue),
-                   #parmsStart=parmStart,
+                   parmsStart=parmStart,
                    insideSize =insideSize,
                    tariffPre=tariffPre,
                    tariffPost=tariffPost,

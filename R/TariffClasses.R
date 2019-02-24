@@ -116,7 +116,7 @@ setClass("TariffMonComCES", contains = "CES",
 
 #'@rdname Tariff-classes
 #' @export
-setClass("TariffCES", contains = "CES",
+setClass("TariffCES", contains = "CESALM",
          representation=representation(
            tariffPre       = "numeric",
            tariffPost       = "numeric"),
