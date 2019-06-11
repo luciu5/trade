@@ -4,7 +4,7 @@ author: "Charles Taragin^[The views expressed herein are entirely those of the a
 public domain without warranty of any kind, expressed or implied. We
 thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
 Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas
-Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Economic Analysis Group, Antitrust Division, U.S. Department of Justice, 450 5th St. NW, Washington DC 20530. email: <charles.taragin@usdoj.gov>]"
+Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Economic Analysis Group, Antitrust Division, U.S. Department of Justice, 450 5th St. NW, Washington DC 20530. email: <ctaragin@ftc.gov>]"
 date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
