@@ -4,8 +4,6 @@
 #' @param object an instance of class \code{TariffMonComLogit} or class  \code{TariffMonComCES}
 #' @param preMerger when TRUE, computes result  under the existing tariff regime. When FALSE, calculates
 #' tariffs under the new tariff regime. Default is TRUE.
-#' @param market when TRUE, computes market-wide results. When FALSE, calculates
-#' plant-specific results.
 #' @return \code{calcSlopes} return a  \code{TariffMonComLogit} or  \code{TariffMonComCES} object containing estimated slopes. \code{CalcQuantities} returns
 #' a matrix of equilbrium quantities under either the current or new tariff.
 #'@include TariffClasses.R
@@ -104,7 +102,8 @@ setMethod(
 
   )
 
-
+#' @rdname TariffMonComRUM-methods
+#' @export
 setMethod(
   f= "calcSlopes",
   signature= "TariffMonComCES",

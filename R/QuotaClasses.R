@@ -1,5 +1,5 @@
 #'@title S4 classes to model quotas
-#'@description Extend classes from the \code{\link{antitrust}} package to accomodate quotas.
+#'@description Extend classes from the \pkg{antitrust} package to accomodate quotas.
 #'@slot quotaPre For QuotaCournot, a matrix containing  \strong{current} plant-level (rows) AND product-level (columns) quotas.
 #'Default is a matrix of 0s.  For all other classes,  a vector containing \strong{current} product-level  quotas.
 #'Quotas are expressed as a proportion of pre-merger output.

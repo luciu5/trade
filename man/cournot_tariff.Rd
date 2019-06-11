@@ -74,7 +74,7 @@ If empty (the default), assumes quadratic costs.}
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium quantities.}
 }
 \value{
-\code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
+\code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \pkg{antitrust}, depending upon the value of the ``demand'' argument.
 }
 \description{
 Simulate the effect of tariffs when firms play a cournot quantity setting game and consumer demand is either linear or log-linear

@@ -8,7 +8,7 @@
 \alias{QuotaBertrand-class}
 \title{S4 classes to model quotas}
 \description{
-Extend classes from the \code{\link{antitrust}} package to accomodate quotas.
+Extend classes from the \pkg{antitrust} package to accomodate quotas.
 }
 \section{Slots}{
 

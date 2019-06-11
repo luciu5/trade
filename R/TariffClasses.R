@@ -2,7 +2,7 @@
 #'@import antitrust
 #'@import methods
 #'@import stats
-#'@description Extend classes from the \code{\link{antitrust}} package to accomodate tariffs.
+#'@description Extend classes from the \pkg{antitrust} package to accomodate tariffs.
 #'@slot tariffPre For TariffCournot, a matrix containing  \strong{current} plant-level (rows) AND product-level (columns) tariffs.
 #'Default is a matrix of 0s.  For all other classes,  a vector containg \strong{current} product-level  tariffs.
 #'\emph{ad valorem} taxes are expressed as a proportion of the consumer price.

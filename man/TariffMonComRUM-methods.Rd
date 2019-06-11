@@ -4,6 +4,7 @@
 \name{TariffMonComRUM-methods}
 \alias{TariffMonComRUM-methods}
 \alias{calcSlopes,TariffMonComLogit-method}
+\alias{calcSlopes,TariffMonComCES-method}
 \alias{calcMargins,TariffMonComLogit-method}
 \alias{calcMargins,TariffMonComCES-method}
 \alias{calcPrices,TariffMonComLogit-method}
@@ -11,6 +12,8 @@
 \title{Additional methods for TariffMonComLogit, TariffMonComCES Classes}
 \usage{
 \S4method{calcSlopes}{TariffMonComLogit}(object)
+
+\S4method{calcSlopes}{TariffMonComCES}(object)
 
 \S4method{calcMargins}{TariffMonComLogit}(object, preMerger = TRUE)
 
@@ -25,9 +28,6 @@
 
 \item{preMerger}{when TRUE, computes result  under the existing tariff regime. When FALSE, calculates
 tariffs under the new tariff regime. Default is TRUE.}
-
-\item{market}{when TRUE, computes market-wide results. When FALSE, calculates
-plant-specific results.}
 }
 \value{
 \code{calcSlopes} return a  \code{TariffMonComLogit} or  \code{TariffMonComCES} object containing estimated slopes. \code{CalcQuantities} returns

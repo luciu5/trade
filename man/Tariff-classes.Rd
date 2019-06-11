@@ -11,7 +11,7 @@
 \alias{TariffBertrand-class}
 \title{S4 classes to model tariffs}
 \description{
-Extend classes from the \code{\link{antitrust}} package to accomodate tariffs.
+Extend classes from the \pkg{antitrust} package to accomodate tariffs.
 }
 \section{Slots}{
 

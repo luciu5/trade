@@ -48,7 +48,7 @@
 #'
 #'
 #'
-#'@return \code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \code{\link{antitrust}}, depending upon the value of the ``demand'' argument.
+#'@return \code{cournot_tariff} returns an instance of class \code{\linkS4class{Cournot}} from package \pkg{antitrust}, depending upon the value of the ``demand'' argument.
 #'@references Simon P. Anderson, Andre de Palma, Brent Kreider,
 #'The efficiency of indirect taxes under imperfect competition,
 #'Journal of Public Economics,
