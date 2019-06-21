@@ -4,7 +4,7 @@ Title: Tools for Trade Practitioners
 Version: 0.5.4
 Author: Charles Taragin
 Maintainer: Charles Taragin <ctaragin@ftc.gov>
-Depends: antitrust 
+Depends: antitrust (>= 0.99.11)
 Imports: methods, stats
 Suggests: shiny,bookdown,knitr, rhandsontable
 VignetteBuilder: knitr
