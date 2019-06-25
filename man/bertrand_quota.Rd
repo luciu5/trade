@@ -66,6 +66,7 @@ effects of a quota under the assumption that the firms are playing a
 simultaneous price setting game.
 }
 \examples{
+\donttest{
 ## Calibration and simulation results from a 80\% quota on non-US beers "OTHER-LITE"
 ## and "OTHER-REG"
 ## Source: Epstein/Rubenfeld 2004, pg 80
@@ -88,6 +89,7 @@ result.logit <- bertrand_quota(demand = "logit",prices=price,quantities=quantiti
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
+}
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,

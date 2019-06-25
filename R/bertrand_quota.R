@@ -40,6 +40,7 @@
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
+#' \donttest{
 #' ## Calibration and simulation results from a 80% quota on non-US beers "OTHER-LITE"
 #' ## and "OTHER-REG"
 #' ## Source: Epstein/Rubenfeld 2004, pg 80
@@ -62,6 +63,7 @@
 #'
 #' print(result.logit)           # return predicted price change
 #' summary(result.logit)         # summarize merger simulation
+#' }
 #' @include ps-methods.R summary-methods.R
 #' @export
 

@@ -66,6 +66,7 @@ effects of an \emph{ad valorem} tariff under the assumption that the firms are p
 simultaneous price setting game.
 }
 \examples{
+\donttest{
 ## Calibration and simulation results from a 10\% tariff on non-US beers "OTHER-LITE"
 ## and "OTHER-REG"
 ## Source: Epstein/Rubenfeld 2004, pg 80
@@ -89,6 +90,7 @@ result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantit
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
+}
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
