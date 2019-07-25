@@ -13,11 +13,20 @@ License: Unlimited
 Encoding: UTF-8
 LazyLoad: yes
 RoxygenNote: 6.1.1
-Collate: 'QuotaClasses.R' 'TariffClasses.R' 'TariffCournot-methods.R'
-        'TariffMonComRUM-methods.R' 'summary-methods.R' 'ps-methods.R'
-        'bertrand_quota.R' 'bertrand_tariff.R' 'cournot_tariff.R'
-        'initialize-methods.R' 'monopolistic_competition_tariff.R'
-        'trade_shiny.R'
+Collate: 
+    'QuotaClasses.R'
+    'TariffClasses.R'
+    'TariffCournot-methods.R'
+    'TariffMonComRUM-methods.R'
+    'summary-methods.R'
+    'ps-methods.R'
+    'bertrand_quota.R'
+    'bertrand_tariff.R'
+    'cournot_tariff.R'
+    'initialize-methods.R'
+    'monopolistic_competition_tariff.R'
+    'trade-deprecated.R'
+    'trade_shiny.R'
 NeedsCompilation: no
 Packaged: 2019-06-25 18:47:45 UTC; ctaragin
 Repository: CRAN
