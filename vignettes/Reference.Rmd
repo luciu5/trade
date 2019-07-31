@@ -1,10 +1,6 @@
 ---
 title: "`trade` Reference Manual"
-author: "Charles Taragin^[The views expressed herein are entirely those of the authors and should not be purported to reflect those of the U.S. Department of Justice.  The `trade` package has been released into the
-public domain without warranty of any kind, expressed or implied. We
-thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
-Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas
-Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Economic Analysis Group, Antitrust Division, U.S. Department of Justice, 450 5th St. NW, Washington DC 20530. email: <ctaragin@ftc.gov>]"
+author: "Charles Taragin"
 date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
@@ -20,6 +16,11 @@ link-citations: true
 %\VignetteIndexEntry{`trade` Reference Manual}
 %\VignetteEncoding{UTF-8}
 -->
+*Disclaimer:* The views expressed herein are entirely those of the authors and should not be purported to reflect those of the U.S. Department of Justice.  The `trade` package has been released into the
+public domain without warranty of any kind, expressed or implied. We
+thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
+Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Economic Analysis Group, Antitrust Division, U.S. Department of Justice, 450 5th St. NW, Washington DC 20530. email: <ctaragin@ftc.gov>
+
 # Introduction
 
 `trade` is a suite of tools that may be used in assessing the implications of tariffs.  The package contains
