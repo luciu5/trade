@@ -9,11 +9,21 @@
 #' ability to calibrate model parameters and simulate tariff effects using many of the supply and demand models
 #'  included in the \code{trade} package.
 #'
+#' @name trade_shiny-deprecated
+#' @seealso \code{\link{trade-deprecated}}
+#' @keywords internal
+NULL
+
+#' @rdname trade-deprecated
+#' @section \code{trade_shiny}:
+#' For \code{trade_shiny}, use \code{\link[competitiontoolbox]{ct_shiny}}.
+#'
 #'
 #' @export
 
 
 trade_shiny <- function() {
-  requireNamespace("rhandsontable")
-  shiny::runApp(system.file('trade_shiny', package='trade'))
+  .Deprecated("ct_shiny' in the 'competitiontoolbox' package")
+  # requireNamespace("rhandsontable")
+  # shiny::runApp(system.file('trade_shiny', package='trade'))
 }

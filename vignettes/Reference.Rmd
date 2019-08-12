@@ -1,14 +1,15 @@
 ---
 title: "`trade` Reference Manual"
-author: "Charles Taragin^[The views expressed herein are entirely those of the authors and should not be purported to reflect those of the U.S. Department of Justice.  The `trade` package has been released into the
-public domain without warranty of any kind, expressed or implied. We
-thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
-Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas
-Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Economic Analysis Group, Antitrust Division, U.S. Department of Justice, 450 5th St. NW, Washington DC 20530. email: <ctaragin@ftc.gov>]"
+author: "Charles Taragin"
 date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
+    theme: paper
     toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
 header-includes:
    - \usepackage{amsmath}
 bibliography: ["tradebib.bib"]
@@ -20,6 +21,11 @@ link-citations: true
 %\VignetteIndexEntry{`trade` Reference Manual}
 %\VignetteEncoding{UTF-8}
 -->
+*Disclaimer:* The views expressed herein are entirely those of the authors and should not be purported to reflect those of the Federal Trade Commission.  The `trade` package has been released into the
+public domain without warranty of any kind, expressed or implied. We
+thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
+Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Bureau of Economics #202, Federal Trade Commission, 600 Pennsylvania Ave. NW, Washington, DC 20530. email: <ctaragin@ftc.gov>
+
 # Introduction
 
 `trade` is a suite of tools that may be used in assessing the implications of tariffs.  The package contains
@@ -43,7 +49,7 @@ wish, but they can also modify and extend the software as they see
 fit.  We hope that having this collection of tools on a common, open
 source platform will facilitate discussion and collaboration among practitioners.
 
-Third, `trade` includes a web interface built using `shiny`. While this interface does not give users access to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `trade_shiny` function.   
+Third, `trade` includes a web interface built using `shiny`. While this interface does not give users access to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `ct_shiny` function in the `competitiontoolbox` package.   
 
 
 
@@ -70,9 +76,9 @@ additional data and is beyond the current scope of `trade`.
 
 
 This document provides an introduction to the economic theory upon
-which the `trade` packages' functions are built.  Please use the
+which the `trade` package's functions are built.  Please use the
 `help` function for assistance invoking any of the functions, classes, or
-methods included in `trade`. Alternatively please refer to the vignette and manpages of `trade`'s sister
+methods included in `trade`. Alternatively, please refer to the vignette and manpages of `trade`'s sister
 package `antitrust` from which much of `trade` was generated.
 
 
@@ -85,14 +91,14 @@ package `antitrust` from which much of `trade` was generated.
 
 
 Much of `trade`'s functionality is built around the Bertrand pricing
-game.^[`trade`'s version of the Bertrand pricing game extends [@Werden1994] and [@Anderson2001] to accommodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
+game.^[`trade`'s version of the Bertrand pricing game extends @Werden1994 and @Anderson2001 to accommodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
 differentiated products with distinct, constant, marginal costs
 simultaneously set their products' prices to maximize their
 profits. In this model, prices are *strategic complements* in the sense that increasing the price of
 one product causes some customers to switch to other products, raising
 the quantities sold and therefore the profit-maximizing prices of these other
 products. Ultimately, it is the magnitude of these lost sales that, at
-the margin, dissuades firms from raising their prices further .
+the margin, dissuades firms from raising their prices further.
 
 Tariffs are modeled by effectively assuming that the marginal costs 
 of certain products produced by
@@ -117,7 +123,7 @@ The primary `trade` function responsible for modeling tariffs in a Bertrand game
 
 Suppose that there are $K$ firms in a
 market, and that each of the $k \in K$ firms produces $n_k$
-products, some of which may be produced domestically and some of which may be produced abroad .^[Throughout, we abuse the notation slightly by treating variables like $K$ as both the set of firms as well as the
+products, some of which may be produced domestically and some of which may be produced abroad.^[Throughout, we abuse the notation slightly by treating variables like $K$ as both the set of firms as well as the
   number of firms.] Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price received by the firm is  $1-t_i$ the price faced by consumers.  
   
 Let  $n=\sum\limits_{k\in K}n_k$ denote the number of products sold
@@ -139,8 +145,8 @@ products so as to maximize profits. Mathematically, firm $k$ solves:
 \max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n_k}(1-t_i)(p_i - \frac{c_i}{(1-t_i)})q_i,
 \end{align*}
 
-where  $t_i$ equals 0 if the product is not subject to a tariff .  $q_i$, the quantity sold of product $i$,  is assumed to
-be a twice differentiable function of \\*all* product prices.
+where  $t_i$ equals 0 if the product is not subject to a tariff.  $q_i$, the quantity sold of product $i$,  is assumed to
+be a twice differentiable function of *all* product prices.
 
 Differentiating profits with respect to each $p_i$  yields the following first order conditions (FOCs):
 
@@ -194,8 +200,7 @@ The solution to system \@ref(eq:FOC) yields equilibrium prices conditional on th
 ### Quotas
 The Bertrand model described above assumes that products are produced
 with constant marginal costs and no quotas. Here, we
-extend this model to allow for quotas
-.^[This section is based on the model described in @Froeb2003]
+extend this model to allow for quotas.^[This section is based on the model described in @Froeb2003.]
 
 Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
 products so as to maximize profits, subject to quotas $\{\overline{q}_i\}_{i=1}^{n_k}$.
@@ -252,9 +257,9 @@ In addition to quantities, prices, some margins and capacities, we assume that
 users observe diversion ratios. Diversion ratios come in two
 forms: *quantity* diversion and *revenue* diversion. The
 *quantity* diversion from
-product $i$ to product $j$ $d^q_{ij}$ is defined as the percentage of all of $i$'s
+product $i$ to product $j$, $d^q_{ij}$, is defined as the percentage of all of $i$'s
 lost unit sales that switch to $j$ *due to a price increase in product $i$*, while the *revenue* diversion  from
-product $i$ to product $j$ $d^r_{ij}$ is  defined as the percentage of all of $i$'s
+product $i$ to product $j$, $d^r_{ij}$, is  defined as the percentage of all of $i$'s
 lost revenue that switches to $j$ *due to a price increase in product $i$*. Mathematically, quantity and revenue diversion may be
 represented as
 
@@ -268,7 +273,7 @@ d^r_{ij}=&-\frac{\frac{\partial p_jq_j}{\partial p_i}}{\frac{\partial
 \end{align}
 
 Note that $d^q_{ij},d^r_{ij}$ are restricted to be between -1 and 1,
-and are positive if products $i$ and $j$ are substitutes and negative if they are complements. Additionally, conditional on customers switching from product $i$, they must switch to another product (i.e. $\sum_{j}d_{ij}\le 0$). For all the models included in `trade` , we assume that $i$ and $j$ are not complements ($d_{ij}\ge 0$) and for some demand models (i.e. AIDS) we will assume that   $\sum_{j}d_{ij} = 0$.
+and are positive if products $i$ and $j$ are substitutes and negative if they are complements. Additionally, conditional on customers switching from product $i$, they must switch to another product (i.e. $\sum_{j}d_{ij}\le 0$). For all the models included in `trade`, we assume that $i$ and $j$ are not complements ($d_{ij}\ge 0$) and for some demand models (i.e. AIDS) we will assume that   $\sum_{j}d_{ij} = 0$.
 
 Although diversion ratios are not present in equation
 \@ref(eq:FOC), these definitions indicate that diversion ratios may
@@ -322,7 +327,7 @@ Logit demand is based on a discrete choice model
 that assumes that each consumer is
 willing to purchase **at most** a single unit of one product from the
 set of $I$ products available in the market. When consumers choose not to purchase
-one of the products in the market, they are assumed to purchase the "outside good".
+one of the products in the market, they are assumed to purchase the "outside good."
 
 This model assumes that while the quantities of the products *included* in the market can be observed with some accuracy, 
 the quantity of all the products *excluded* from the market (i.e. the "outside good") is difficult to estimate reliably.  The `bertrand_tariff` function attempts to circumvent this issue by treating the share of the outside good as a nuisance parameter
@@ -340,7 +345,7 @@ purchases product $i \in I$ is given by
   s_{i|I}=&\frac{\exp(V_i)}{\sum\limits_{k \in I}\exp(V_k)},&\\
   s_I=&1-s_0,&
 \end{align*}
-where  $s_{i|I}$ is product $i$'s quantity share,conditional on a product being chosen from the set of inside goods $I$, and $s_0$ is the share of the outside good. This implies that
+where  $s_{i|I}$ is product $i$'s quantity share, conditional on a product being chosen from the set of inside goods $I$, and $s_0$ is the share of the outside good. This implies that
 \begin{align*}
   \sum\limits_{k \in I} s_{k|I}=&1,&
 \end{align*}
@@ -368,10 +373,10 @@ values for $\alpha$ and $s_0$ that best satisfy all the equations for which ther
 
 
 
-###CES Demand With Unobserved Outside Share
+### CES Demand With Unobserved Outside Share
 
 The Bertrand model with Constant Elasticity of Substitution (CES) demand and unobserved outside share may be
-implemented using the  `bertrand_tariff` function with 'demand' equal to "ces".
+implemented using the  `bertrand_tariff` function with 'demand' equal to "ces."
 
 Like the Logit, CES demand is based on a discrete
 choice model. However, CES differs from the Logit model in that under CES
@@ -430,7 +435,7 @@ values for $\gamma$ and $r_0$ that best satisfy all the equations for which ther
 
 ### LA-AIDS Demand
 The Bertrand model with the linear approximate Almost Ideal Demand System (LA-AIDS)  may be implemented 
-using the `bertrand_tariff` function with 'demand' equal to "aids".
+using the `bertrand_tariff` function with 'demand' equal to "aids."
 
 The LA-AIDS without income effects assumes that the demand for each product $i
 \in n$ in the market is given by
@@ -445,10 +450,10 @@ which may be written in matrix notation as
 
 
 where $r,p$ are vectors of product *revenue* shares and prices, $\alpha$ is a vector of product-specific demand intercepts and
-$B$ is a matrix of slopes^[LA-AIDS differs from AIDS in that
+$B$ is a matrix of slopes.^[LA-AIDS differs from AIDS in that
   LA-AIDS substitutes the AIDS price index with Stone's price
   index. Since this version of LA-AIDS is without income effects,
-  Stone's price index is only used to derive the own- and cross-price elasticities.].
+  Stone's price index is only used to derive the own- and cross-price elasticities.]
 
 The LA-AIDS model yields the following own- and cross-price elasticities:
 \begin{align*}
@@ -464,7 +469,7 @@ assumes that *revenue* diversion, rather than *quantity*
 diversion is observed.^[If the 'diversion' argument to `bertrand_tariff` 
   is missing, `bertrand_tariff`  assumes diversion according to revenue
   share.] Under these two assumptions, there are $\frac{n(n+3)}{2}$ unknown
-demand parameters ($\frac{n(n-1)}{2}$ diagonal elements in $B$, $n$ diagonal elements,and $n$ intercepts) and up to $n(n+1)$ equations ($n(n-1)$ diversion equations, $n$ FOCs and  $n$ demand equations),
+demand parameters ($\frac{n(n-1)}{2}$ diagonal elements in $B$, $n$ diagonal elements, and $n$ intercepts) and up to $n(n+1)$ equations ($n(n-1)$ diversion equations, $n$ FOCs and  $n$ demand equations),
 in which case the system is over-identified.^[In fact, it turns out that only one element of $B$ must be estimated.To see why, note that under symmetry, $\beta_{jj}=\frac{d_{ij}}{d_{ji}}\beta_{ii}$. Hence, if $\beta_{ii}$ is known, then the preceding equation indicates that all the $\beta_{jj}$s may be recovered. From here, the definition of diversion may be used to recover all the $\beta_{ij}s$.]
 
 Unlike the Logit and CES models described above, none of the LA-AIDS model's equations are a function of the share of the 
@@ -472,14 +477,14 @@ outside good. Instead, these equations are a function of the market elasticity o
 Roughly speaking, $\epsilon$ controls
 the extent to which consumers substitute to products outside
 the $n$ products included in the simulation
-given a small change in market-wide product prices. Here, we assume that $\epsilon$ is a parameter whose value is not a function of product prices.^[This assumption implies that customers substitute to  products outside of the simulation in response to price increases by all products in the simulation at the same rate before and after the change in tariffs. ].
+given a small change in market-wide product prices. Here, we assume that $\epsilon$ is a parameter whose value is not a function of product prices.^[This assumption implies that customers substitute to  products outside of the simulation in response to price increases by all products in the simulation at the same rate before and after the change in tariffs.]
 
 The `calcSlopes` method, called by the `aids`
-function to calibrate the AIDS parameters uses a minimum distance algorithm to find the $\epsilon$  (if not supplied using the 'mktElast' argument) and a single diagonal element of $B$ that best satisfy i) all the FOCs for which there is sufficient information and ii) the diversion equations $d_{ij}=-\frac{\beta_{ji}}{\beta_{ii}}$, and iii) the market elasticity (if supplied using the 'mktElast' argument). The $\beta_{ii}$s are recovered from the fact that $\sum_{j}d_{ij}=0$; customers must switch to a product included in the model.
+function to calibrate the AIDS parameters, uses a minimum distance algorithm to find the $\epsilon$  (if not supplied using the 'mktElast' argument) and a single diagonal element of $B$ that best satisfy i) all the FOCs for which there is sufficient information and ii) the diversion equations $d_{ij}=-\frac{\beta_{ji}}{\beta_{ii}}$, and iii) the market elasticity (if supplied using the 'mktElast' argument). The $\beta_{ii}$'s are recovered from the fact that $\sum_{j}d_{ij}=0$; customers must switch to a product included in the model.
 
 Another distinguishing feature of the LA-AIDS model is that it does not require any information on product
 prices in order to simulate tariff price effects. The LA-AIDS accomplishes this by
-using the supplied margin and revenue information to estimate $B$, but not $\alpha$. There are
+using the supplied margin and revenue information to estimate $B$, but not $\alpha$. There are,
 however, a few drawbacks to not using pricing information.  First, while
 tariff-specific price *changes* may be calculated, pre- and post-tariff
 price *levels* cannot. Second, welfare measures like
@@ -524,7 +529,7 @@ technology.
 
 
 
-Firm $k \in K$ chooses product output at each plant $\{q_j^r\}_{\substack{j\in j_k,\\ r\in n_k}}$, $ so as to maximize profits. Mathematically, firm $k$ solves:
+Firm $k \in K$ chooses product output at each plant $\{q_j^r\}_{\substack{j\in j_k,\\ r\in n_k}}$ so as to maximize profits. Mathematically, firm $k$ solves:
 
 \begin{align*}
 \max_{{\{q_j^r\}}_{\substack{j\in J_k,\\ r\in n_k}}} & \sum_{\substack{j\in J_k,\\ r\in n_k}}p_jq_j^r(1-t_j^r) - \sum_{r\in n_k}c^r(q^r)
@@ -551,9 +556,9 @@ The Cournot model can yield different equilibrium quantity and price predictions
 
 Currently, `cournot` contains two different ways to specify plant costs. First, users can set the 'cost' option equal to a $n$-length character vector whose values are either equal to "linear" for linear marginal costs ($\frac{\partial c^r}{\partial q_j^r}= 0.5\gamma_r\sum_{j\in n_r}q_j^r$) or "constant" for constant marginal costs ($\frac{\partial c^r}{\partial q_j^r}= \gamma_r$) . When the 'cost' option is employed, `cournot`'s `calcSlopes` method uses observed costs (implied by predicted margins and prices) and prices to calibrate plant-level cost parameters $\gamma_r$.    
 
-Alternatively, users can specify both plant level marginal and variable costs. Marginal costs may be specified by setting   the 'mcfunPre' argument equal to a length $n$ list of functions that each take as an input the vector of product quantities produced at a plant and then return the marginal cost associated with producing that level of output at that plant. Likewise, the 'vcfunPre' argument can be similarly used to specify plant-level variable costs. Note that when marginal costs and variable costs are specified in this manner, `cournot` makes no attempt to calibrate any parameters on the cost side. 
+Alternatively, users can specify both plant-level marginal and variable costs. Marginal costs may be specified by setting   the 'mcfunPre' argument equal to a length $n$ list of functions that each take as an input the vector of product quantities produced at a plant and then return the marginal cost associated with producing that level of output at that plant. Likewise, the 'vcfunPre' argument can be similarly used to specify plant-level variable costs. Note that when marginal costs and variable costs are specified in this manner, `cournot` makes no attempt to calibrate any parameters on the cost side. 
 
-Currently, `cournot` allows users to specify that product demand is either linear ($p_j=b_j + a_j\sum_{k\in n}q_j^k$) or log-linear ($\ln(p_j)=b_j + a_j\ln(\sum_{k\in n}q_j^k)$) Users can specify product demand by setting `cournot`'s `demand' argument equal to a $j$-length character vector equal to either "linear" for linear demand or "log" for log-linear demand. 
+Currently, `cournot` allows users to specify that product demand is either linear ($p_j=b_j + a_j\sum_{k\in n}q_j^k$) or log-linear ($\ln(p_j)=b_j + a_j\ln(\sum_{k\in n}q_j^k)$). Users can specify product demand by setting `cournot`'s 'demand' argument equal to a $j$-length character vector equal to either "linear" for linear demand or "log" for log-linear demand. 
 
 <!-- ## Simulating Merger Effects -->
 
