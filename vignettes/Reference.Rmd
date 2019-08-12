@@ -4,7 +4,12 @@ author: "Charles Taragin"
 date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
+    theme: paper
     toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
 header-includes:
    - \usepackage{amsmath}
 bibliography: ["tradebib.bib"]
