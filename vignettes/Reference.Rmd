@@ -16,10 +16,10 @@ link-citations: true
 %\VignetteIndexEntry{`trade` Reference Manual}
 %\VignetteEncoding{UTF-8}
 -->
-*Disclaimer:* The views expressed herein are entirely those of the authors and should not be purported to reflect those of the U.S. Department of Justice.  The `trade` package has been released into the
+*Disclaimer:* The views expressed herein are entirely those of the authors and should not be purported to reflect those of the Federal Trade Commission.  The `trade` package has been released into the
 public domain without warranty of any kind, expressed or implied. We
 thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
-Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Economic Analysis Group, Antitrust Division, U.S. Department of Justice, 450 5th St. NW, Washington DC 20530. email: <ctaragin@ftc.gov>
+Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Bureau of Economics #202, Federal Trade Commission, 600 Pennsylvania Ave. NW, Washington, DC 20530. email: <ctaragin@ftc.gov>
 
 # Introduction
 
@@ -44,7 +44,7 @@ wish, but they can also modify and extend the software as they see
 fit.  We hope that having this collection of tools on a common, open
 source platform will facilitate discussion and collaboration among practitioners.
 
-Third, `trade` includes a web interface built using `shiny`. While this interface does not give users access to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `trade_shiny` function.   
+Third, `trade` includes a web interface built using `shiny`. While this interface does not give users access to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `ct_shiny` function in the `competitiontoolbox` package.   
 
 
 
