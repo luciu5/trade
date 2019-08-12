@@ -23,7 +23,7 @@ NULL
 
 
 trade_shiny <- function() {
-  .Deprecated("competitiontoolbox package")
+  .Deprecated("ct_shiny' in the 'competitiontoolbox' package")
   # requireNamespace("rhandsontable")
   # shiny::runApp(system.file('trade_shiny', package='trade'))
 }
