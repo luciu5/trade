@@ -1,7 +1,7 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.5.5
+Version: 0.5.4
 Author: Charles Taragin
 Maintainer: Charles Taragin <ctaragin@ftc.gov>
 Depends: antitrust (>= 0.99.11)
