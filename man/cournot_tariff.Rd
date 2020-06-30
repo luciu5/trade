@@ -4,17 +4,30 @@
 \alias{cournot_tariff}
 \title{Tariff Simulation With A Cournot Quantity Setting Game}
 \usage{
-cournot_tariff(prices, quantities, margins = matrix(NA_real_,
-  nrow(quantities), ncol(quantities)), demand = rep("linear",
-  length(prices)), cost = rep("linear", nrow(quantities)),
-  tariffPre = matrix(0, nrow = nrow(quantities), ncol =
-  ncol(quantities)), tariffPost = tariffPre, mcfunPre = list(),
-  mcfunPost = mcfunPre, vcfunPre = list(), vcfunPost = vcfunPre,
+cournot_tariff(
+  prices,
+  quantities,
+  margins = matrix(NA_real_, nrow(quantities), ncol(quantities)),
+  demand = rep("linear", length(prices)),
+  cost = rep("linear", nrow(quantities)),
+  tariffPre = matrix(0, nrow = nrow(quantities), ncol = ncol(quantities)),
+  tariffPost = tariffPre,
+  mcfunPre = list(),
+  mcfunPost = mcfunPre,
+  vcfunPre = list(),
+  vcfunPost = vcfunPre,
   capacitiesPre = rep(Inf, nrow(quantities)),
-  capacitiesPost = capacitiesPre, productsPre = !is.na(quantities),
-  productsPost = productsPre, owner, mktElast = rep(NA_real_,
-  length(prices)), quantityStart = as.vector(quantities), control.slopes,
-  control.equ, labels, ...)
+  capacitiesPost = capacitiesPre,
+  productsPre = !is.na(quantities),
+  productsPost = productsPre,
+  owner,
+  mktElast = rep(NA_real_, length(prices)),
+  quantityStart = as.vector(quantities),
+  control.slopes,
+  control.equ,
+  labels,
+  ...
+)
 }
 \arguments{
 \item{prices}{A length k vector product prices.}

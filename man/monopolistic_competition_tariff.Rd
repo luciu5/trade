@@ -4,11 +4,18 @@
 \alias{monopolistic_competition_tariff}
 \title{Tariff Simulation With A Monopolistic Competition Pricing Game}
 \usage{
-monopolistic_competition_tariff(demand = c("logit", "ces"), prices,
-  quantities, margins, mktElast = NA_real_, mktSize, tariffPre = rep(0,
-  length(quantities)), tariffPost = rep(0, length(quantities)),
+monopolistic_competition_tariff(
+  demand = c("logit", "ces"),
+  prices,
+  quantities,
+  margins,
+  mktElast = NA_real_,
+  mktSize,
+  tariffPre = rep(0, length(quantities)),
+  tariffPost = rep(0, length(quantities)),
   priceOutside = ifelse(demand == "logit", 0, 1),
-  labels = paste("Prod", 1:length(quantities), sep = ""))
+  labels = paste("Prod", 1:length(quantities), sep = "")
+)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows ``logit" or ``ces" .}

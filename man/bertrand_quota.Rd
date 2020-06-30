@@ -4,12 +4,25 @@
 \alias{bertrand_quota}
 \title{quota Simulation With A Bertrand Pricing Game}
 \usage{
-bertrand_quota(demand = c("logit"), prices, quantities, margins, owner,
-  mktElast = NA_real_, diversions, quotaPre = rep(Inf,
-  length(quantities)), quotaPost, priceOutside = ifelse(demand ==
-  "logit", 0, 1), priceStart, isMax = FALSE, parmStart, control.slopes,
-  control.equ, labels = paste("Prod", 1:length(quantities), sep = ""),
-  ...)
+bertrand_quota(
+  demand = c("logit"),
+  prices,
+  quantities,
+  margins,
+  owner,
+  mktElast = NA_real_,
+  diversions,
+  quotaPre = rep(Inf, length(quantities)),
+  quotaPost,
+  priceOutside = ifelse(demand == "logit", 0, 1),
+  priceStart,
+  isMax = FALSE,
+  parmStart,
+  control.slopes,
+  control.equ,
+  labels = paste("Prod", 1:length(quantities), sep = ""),
+  ...
+)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
