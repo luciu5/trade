@@ -80,3 +80,44 @@ setMethod(
   }
 
 )
+
+
+#' @rdname ps-methods
+#' @export
+setMethod(
+
+  f= "calcProducerSurplus",
+  signature= "Tariff2ndLogit",
+  definition=function(object,preMerger=TRUE){
+
+
+
+    if( preMerger) {
+      prices <- object@pricePre
+      mc     <- object@mcPre
+      tariff <-  object@tariffPre
+    }
+    else{prices <- object@pricePost
+    mc     <- object@mcPost
+    tariff <-  object@tariffPost
+    }
+
+
+    output <- calcQuantities(object,preMerger)
+
+    if (all(is.na(output))){
+      warning("'calcQuantities' yielded all NAs. Using 'calcShares' instead")
+      output <- calcShares(object,preMerger,revenue=FALSE)
+    }
+
+    ps <- (prices - mc) * output
+
+    if(!preMerger) ps <- ps * (1 - tariff)
+
+    names(ps) <- object@labels
+
+    return(ps)
+
+  }
+
+)

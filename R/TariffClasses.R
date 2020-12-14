@@ -40,6 +40,31 @@ setClass("TariffCournot", contains = "Cournot",
 
 #'@rdname Tariff-classes
 #' @export
+setClass("Tariff2ndLogit", contains = "auction2ndLogitALM",
+         representation=representation(
+           tariffPre       = "matrix",
+           tariffPost       = "matrix"),
+         validity = function(object){
+
+
+           if(!isTRUE(all.equal(dim(object@tariffPre), dim(object@quantities))) ||
+              !isTRUE(all.equal(dim(object@tariffPost), dim(object@quantities)))
+           ){
+             stop("'tariffPre' and 'tariffPost' must have the same dimensions as 'quantities'")
+           }
+           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
+             stop("'tariffPre' and 'tariffPost' are equal")
+           }
+
+           if(any(is.na(object@tariffPre)) ||
+              any(is.na(object@tariffPost)) ){
+             stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
+           }
+         })
+
+
+#'@rdname Tariff-classes
+#' @export
 setClass("TariffLogit", contains = "LogitALM",
          representation=representation(
            tariffPre       = "numeric",
@@ -162,6 +187,6 @@ setClass("TariffAIDS", contains = "AIDS",
 
 #'@rdname Tariff-classes
 #' @export
-setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES"))
+setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES","Tariff2ndLogit"))
 
 
