@@ -4,12 +4,25 @@
 \alias{bertrand_tariff}
 \title{Tariff Simulation With A Bertrand Pricing Game}
 \usage{
-bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
-  margins, owner, mktElast = NA_real_, diversions, tariffPre = rep(0,
-  length(quantities)), tariffPost = rep(0, length(quantities)),
-  priceOutside = ifelse(demand == "logit", 0, 1), priceStart,
-  isMax = FALSE, parmStart, control.slopes, control.equ,
-  labels = paste("Prod", 1:length(quantities), sep = ""), ...)
+bertrand_tariff(
+  demand = c("logit", "ces", "aids"),
+  prices,
+  quantities,
+  margins,
+  owner,
+  mktElast = NA_real_,
+  diversions,
+  tariffPre = rep(0, length(quantities)),
+  tariffPost = rep(0, length(quantities)),
+  priceOutside = ifelse(demand == "logit", 0, 1),
+  priceStart,
+  isMax = FALSE,
+  parmStart,
+  control.slopes,
+  control.equ,
+  labels = paste("Prod", 1:length(quantities), sep = ""),
+  ...
+)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
