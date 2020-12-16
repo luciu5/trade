@@ -1,18 +1,30 @@
-#'Tariff Simulation With A Second Score Procurement Auction Game
+#'Tariff Simulation With A Nash Bargaining Game
 #'
-#' Simulate the effect of tariffs when firms play a second score procurement auction game and consumer demand is Logit.
+#' Simulate the effect of tariffs when firms play a Nash Bargaining game and consumer demand is Logit.
 #'
 #' @param demand A character vector indicating which demand system to use. Currently allows logit (default).
 #' @param prices  A length k vector product prices.
-#' @param quantities A length k vector of product quantities.
+#' @param shares A length k vector of product shares. Values must be between 0 and 1.
 #' @param margins A length k vector of product margins. All margins must be in \textbf{levels} (not w.r.t to price), or NA.
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
+#' @param insideSize An integer equal to total pre-merger units sold.
+#' If shares sum to one, this also equals the size of the market.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
+#' @param bargpowerPre A length k vector of pre-tariff bargaining power parameters. Values
+#' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
+#' though must be calibrated from additional margin and share data. Default is 0.5.
+#' @param bargpowerPost A length k vector of post-tariff bargaining power parameters. Values
+#' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
+#' though must be calibrated from additional margin and share data. Default is \sQuote{bargpowerPre}.
+#' @param normIndex An integer equalling the index (position) of the
+#' inside product whose mean valuation will be normalized to 1. Default
+#' is 1, unless \sQuote{shares} sum to less than 1, in which case the default is
+#' NA and an outside good is assumed to exist.
 #' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
@@ -28,15 +40,15 @@
 #' Let k denote the number of products produced by all firms.
 #' Using price, and quantity, information for all products
 #'in each market, as well as margin information for at least
-#' one products in each market, \code{auction2ndtariff} is able to
-#' recover the slopes and intercepts of a Logit, CES, demand
+#' one products in each market, \code{bargaining_tariff} is able to
+#' recover the slopes and intercepts of a Logit  demand
 #' system. These parameters are then used to simulate the price
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
-#' 2nd score auction.
+#' Nash Bargaining game.
 #'
 #' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game and \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
-#' @return \code{auction2ndtariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
+#' @return \code{bargaining_tariff} returns an instance of class \code{\linkS4class{TariffBargainingLogit}}
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
@@ -48,36 +60,40 @@
 #' prodNames <- c("BUD","OLD STYLE","MILLER","MILLER-LITE","OTHER-LITE","OTHER-REG")
 #' owner <-c("BUD","OLD STYLE","MILLER","MILLER","OTHER-LITE","OTHER-REG")
 #' price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
-#' quantities   <- c(.066,.172,.253,.187,.099,.223)*100
+#' shares   <- c(.066,.172,.253,.187,.099,.223)*100
 #' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
 #' margins <- margins*prices # dollar margins
 #' tariff <- c(0,0,0,0,.1,.1)
 #'
 #' names(price) <-
-#'  names(quantities) <-
+#'  names(shares) <-
 #'  names(margins) <-
 #'  prodNames
 #'
 #'
-#' result.logit <- auction2nd_tariff(demand = "logit",prices=price,quantities=quantities,
+#' result.barg <- bargaining_tariff(demand = "logit",prices=price,shares=shares,
 #'                                 margins = margins,owner=owner,
 #'                                  tariffPost = tariff, labels=prodNames)
 #'
-#' print(result.logit)           # return predicted price change
-#' summary(result.logit)         # summarize merger simulation
+#' print(result.barg)           # return predicted price change
+#' summary(result.barg)         # summarize merger simulation
 #' }
 #' @include ps-methods.R summary-methods.R
 #' @export
 
 
-auction2nd_tariff <- function(
+bargaining_tariff <- function(
   demand = c("logit"),
-  prices,quantities,margins,
+  prices,shares,margins,
   owner,
   mktElast = NA_real_,
+  insideSize = NA_real_,
   diversions,
   tariffPre=rep(0,length(quantities)),
   tariffPost=rep(0,length(quantities)),
+  bargpowerPre=rep(0.5,length(prices)),
+  bargpowerPost=bargpowerPre,
+  normIndex=ifelse(isTRUE(all.equal(sum(shares),1,check.names=FALSE)),1, NA),
   priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
   parmStart,
@@ -90,9 +106,9 @@ auction2nd_tariff <- function(
 demand <- match.arg(demand)
 
 
-nprods <- length(quantities)
+nprods <- length(shares)
 
-insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
+#insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
 
 
 subset= rep(TRUE,nprods)
@@ -123,7 +139,7 @@ ownerPre <- ownerPost <- owner
 
 mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
 
-shares_revenue <- shares_quantity <- quantities/sum(quantities)
+shares_revenue <- shares_quantity <- shares #quantities/sum(quantities)
 
 
 
@@ -175,13 +191,15 @@ else if (demand %in% c("logit","ces")){
 
 
 
-
+print(shares_quantity)
 
 
 result <-   switch(demand,
 
 
-         logit=  new("Tariff2ndLogit",prices=prices, shares=shares_quantity,
+         logit=  new("TariffBargainingLogit",
+                     prices=prices,
+                     shares=shares_quantity,
                      margins=margins,
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
@@ -193,6 +211,9 @@ result <-   switch(demand,
                      diversion = diversions,
                      shareInside= sum(shares_quantity),
                      parmsStart=parmStart,
+                     bargpowerPre=bargpowerPre,
+                     bargpowerPost=bargpowerPost,
+                     normIndex=normIndex,
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
                      insideSize = insideSize,

@@ -4,6 +4,8 @@
 \name{Tariff-classes}
 \alias{Tariff-classes}
 \alias{TariffCournot-class}
+\alias{Tariff2ndLogit-class}
+\alias{TariffBargainingLogit-class}
 \alias{TariffLogit-class}
 \alias{TariffMonComLogit-class}
 \alias{TariffCES-class}
