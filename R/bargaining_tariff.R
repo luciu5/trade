@@ -25,7 +25,7 @@
 #' inside product whose mean valuation will be normalized to 1. Default
 #' is 1, unless \sQuote{shares} sum to less than 1, in which case the default is
 #' NA and an outside good is assumed to exist.
-#' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
+# @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
 #' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
@@ -60,9 +60,8 @@
 #' prodNames <- c("BUD","OLD STYLE","MILLER","MILLER-LITE","OTHER-LITE","OTHER-REG")
 #' owner <-c("BUD","OLD STYLE","MILLER","MILLER","OTHER-LITE","OTHER-REG")
 #' price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
-#' shares   <- c(.066,.172,.253,.187,.099,.223)*100
+#' shares   <- c(.066,.172,.253,.187,.099,.223)
 #' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
-#' margins <- margins*prices # dollar margins
 #' tariff <- c(0,0,0,0,.1,.1)
 #'
 #' names(price) <-
@@ -89,17 +88,16 @@ bargaining_tariff <- function(
   mktElast = NA_real_,
   insideSize = NA_real_,
   diversions,
-  tariffPre=rep(0,length(quantities)),
-  tariffPost=rep(0,length(quantities)),
+  tariffPre=rep(0,length(shares)),
+  tariffPost=rep(0,length(shares)),
   bargpowerPre=rep(0.5,length(prices)),
   bargpowerPost=bargpowerPre,
   normIndex=ifelse(isTRUE(all.equal(sum(shares),1,check.names=FALSE)),1, NA),
   priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
-  parmStart,
   control.slopes,
   control.equ,
-  labels=paste("Prod",1:length(quantities),sep=""),
+  labels=paste("Prod",1:length(shares),sep=""),
   ...){
 
 
@@ -108,7 +106,7 @@ demand <- match.arg(demand)
 
 nprods <- length(shares)
 
-#insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
+#insideSize = ifelse(demand == "logit",sum(shares,na.rm=TRUE), sum(prices*shares,na.rm=TRUE))
 
 
 subset= rep(TRUE,nprods)
@@ -134,7 +132,8 @@ if(!is.matrix(owner)){
 
 }
 
-ownerPre <- ownerPost <- owner
+ownerPost <- owner*(1-tariffPost)
+ownerPre <- owner*(1-tariffPre)
 
 
 mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
@@ -149,7 +148,7 @@ if(demand == "aids"){
 
   if(missing(prices)){ prices <- rep(NA_real_,nprods)}
 
-  if(missing(parmStart)) parmStart <- rep(NA_real_,2)
+  #if(missing(parmStart)) parmStart <- rep(NA_real_,2)
 
   if(missing(priceStart)) priceStart <- runif(nprods)
 
@@ -163,15 +162,15 @@ if(demand == "aids"){
 }
 
 else if (demand %in% c("logit","ces")){
-
-  if(missing(parmStart)){
-    parmStart <- rep(.1,2)
-    nm <- which(!is.na(margins))[1]
-    if(demand == "logit"){
-    parmStart[1] <- -1/(margins[nm]*prices[nm]*(1-shares_quantity[nm])) #ballpark alpha for starting values
-    }
-    else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
-    }
+#
+#   if(missing(parmStart)){
+#     parmStart <- rep(.1,2)
+#     nm <- which(!is.na(margins))[1]
+#     if(demand == "logit"){
+#     parmStart[1] <- -1/(margins[nm]*prices[nm]*(1-shares_quantity[nm])) #ballpark alpha for starting values
+#     }
+#     else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
+#     }
   if(missing(priceStart)) priceStart <- prices
 
 
@@ -191,8 +190,6 @@ else if (demand %in% c("logit","ces")){
 
 
 
-print(shares_quantity)
-
 
 result <-   switch(demand,
 
@@ -210,7 +207,6 @@ result <-   switch(demand,
                      priceStart=priceStart,
                      diversion = diversions,
                      shareInside= sum(shares_quantity),
-                     parmsStart=parmStart,
                      bargpowerPre=bargpowerPre,
                      bargpowerPost=bargpowerPost,
                      normIndex=normIndex,

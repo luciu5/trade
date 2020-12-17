@@ -13,17 +13,16 @@ bargaining_tariff(
   mktElast = NA_real_,
   insideSize = NA_real_,
   diversions,
-  tariffPre = rep(0, length(quantities)),
-  tariffPost = rep(0, length(quantities)),
+  tariffPre = rep(0, length(shares)),
+  tariffPost = rep(0, length(shares)),
   bargpowerPre = rep(0.5, length(prices)),
   bargpowerPost = bargpowerPre,
   normIndex = ifelse(isTRUE(all.equal(sum(shares), 1, check.names = FALSE)), 1, NA),
   priceOutside = ifelse(demand == "logit", 0, 1),
   priceStart,
-  parmStart,
   control.slopes,
   control.equ,
-  labels = paste("Prod", 1:length(quantities), sep = ""),
+  labels = paste("Prod", 1:length(shares), sep = ""),
   ...
 )
 }
@@ -69,8 +68,6 @@ NA and an outside good is assumed to exist.}
 \item{priceStart}{For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
 
-\item{parmStart}{\code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.}
-
 \item{control.slopes}{A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
 
 \item{control.equ}{A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).}
@@ -106,9 +103,8 @@ Nash Bargaining game.
 prodNames <- c("BUD","OLD STYLE","MILLER","MILLER-LITE","OTHER-LITE","OTHER-REG")
 owner <-c("BUD","OLD STYLE","MILLER","MILLER","OTHER-LITE","OTHER-REG")
 price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
-shares   <- c(.066,.172,.253,.187,.099,.223)*100
+shares   <- c(.066,.172,.253,.187,.099,.223)
 margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
-margins <- margins*prices # dollar margins
 tariff <- c(0,0,0,0,.1,.1)
 
 names(price) <-

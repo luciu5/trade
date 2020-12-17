@@ -5,7 +5,7 @@
 #' @param demand A character vector indicating which demand system to use. Currently allows logit (default).
 #' @param prices  A length k vector product prices.
 #' @param quantities A length k vector of product quantities.
-#' @param margins A length k vector of product margins. All margins must be in \textbf{levels} (not w.r.t to price), or NA.
+#' @param margins A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
@@ -50,7 +50,7 @@
 #' price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
 #' quantities   <- c(.066,.172,.253,.187,.099,.223)*100
 #' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
-#' margins <- margins*prices # dollar margins
+#' margins <- margins*price # dollar margins
 #' tariff <- c(0,0,0,0,.1,.1)
 #'
 #' names(price) <-
@@ -59,12 +59,12 @@
 #'  prodNames
 #'
 #'
-#' result.logit <- auction2nd_tariff(demand = "logit",prices=price,quantities=quantities,
+#' result.2nd <- auction2nd_tariff(demand = "logit",prices=price,quantities=quantities,
 #'                                 margins = margins,owner=owner,
 #'                                  tariffPost = tariff, labels=prodNames)
 #'
-#' print(result.logit)           # return predicted price change
-#' summary(result.logit)         # summarize merger simulation
+#' print(result.2nd)           # return predicted price change
+#' summary(result.2nd)         # summarize merger simulation
 #' }
 #' @include ps-methods.R summary-methods.R
 #' @export
