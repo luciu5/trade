@@ -107,7 +107,7 @@ cournot_tariff <- function(
   capacitiesPost = capacitiesPre,
   productsPre=!is.na(quantities),
   productsPost=productsPre,
-  owner,
+  owner=NULL,
   mktElast = rep(NA_real_, length(prices)),
   quantityStart=as.vector(quantities),
   control.slopes,
@@ -137,15 +137,15 @@ cournot_tariff <- function(
   }
 
 
-  if(missing(owner)){
+  if(is.null(owner)){
 
-    warning("'owner' is missing. Assuming each product is owned by a single firm.")
+    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
     owner <-  diag(nprods)
 
   }
 
 
-  if(!is.matrix(owner)){
+  else if(!is.matrix(owner)){
 
     owner <- factor(owner, levels = unique(owner))
     owner = model.matrix(~-1+owner)

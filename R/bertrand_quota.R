@@ -71,7 +71,7 @@
 bertrand_quota <- function(
   demand = c("logit"),
   prices,quantities,margins,
-  owner,
+  owner=NULL,
   mktElast = NA_real_,
   diversions,
   quotaPre=rep(Inf,length(quantities)),
@@ -101,9 +101,9 @@ quotaPost[is.na(quotaPost)] <- Inf
 capacitiesPre <- quotaPre*quantities
 capacitiesPost <- quotaPost*quantities
 
-if(missing(owner)){
+if(is.null(owner)){
 
-    warning("'owner' is missing. Assuming each product is owned by a single firm.")
+    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
   ownerPre <-  diag(nprods)
 
 }

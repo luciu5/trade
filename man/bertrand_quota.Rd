@@ -9,7 +9,7 @@ bertrand_quota(
   prices,
   quantities,
   margins,
-  owner,
+  owner = NULL,
   mktElast = NA_real_,
   diversions,
   quotaPre = rep(Inf, length(quantities)),

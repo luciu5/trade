@@ -84,7 +84,7 @@
 bargaining_tariff <- function(
   demand = c("logit"),
   prices,shares,margins,
-  owner,
+  owner=NULL,
   mktElast = NA_real_,
   insideSize = NA_real_,
   diversions,
@@ -114,15 +114,15 @@ subset= rep(TRUE,nprods)
 tariffPre[is.na(tariffPre)] <- 0
 tariffPost[is.na(tariffPost)] <- 0
 
-if(missing(owner)){
+if(is.null(owner)){
 
-    warning("'owner' is missing. Assuming each product is owned by a single firm.")
+    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
   ownerPre <-  diag(nprods)
 
 }
 
 
-if(!is.matrix(owner)){
+else if(!is.matrix(owner)){
 
   owner <- factor(owner, levels = unique(owner))
   owner = model.matrix(~-1+owner)

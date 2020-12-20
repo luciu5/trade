@@ -9,7 +9,7 @@ bertrand_tariff(
   prices,
   quantities,
   margins,
-  owner,
+  owner = NULL,
   mktElast = NA_real_,
   diversions,
   tariffPre = rep(0, length(quantities)),

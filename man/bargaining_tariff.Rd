@@ -9,7 +9,7 @@ bargaining_tariff(
   prices,
   shares,
   margins,
-  owner,
+  owner = NULL,
   mktElast = NA_real_,
   insideSize = NA_real_,
   diversions,

@@ -20,7 +20,7 @@ cournot_tariff(
   capacitiesPost = capacitiesPre,
   productsPre = !is.na(quantities),
   productsPost = productsPre,
-  owner,
+  owner = NULL,
   mktElast = rep(NA_real_, length(prices)),
   quantityStart = as.vector(quantities),
   control.slopes,
