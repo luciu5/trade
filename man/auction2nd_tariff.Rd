@@ -14,7 +14,6 @@ auction2nd_tariff(
   diversions,
   tariffPre = rep(0, length(quantities)),
   tariffPost = rep(0, length(quantities)),
-  priceOutside = ifelse(demand == "logit", 0, 1),
   priceStart,
   parmStart,
   control.slopes,
@@ -43,8 +42,6 @@ auction2nd_tariff(
 
 \item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
-
-\item{priceOutside}{price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.}
 
 \item{priceStart}{For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
