@@ -16,7 +16,6 @@
 #' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
-#' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
 #' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
@@ -78,7 +77,6 @@ auction2nd_tariff <- function(
   diversions,
   tariffPre=rep(0,length(quantities)),
   tariffPost=rep(0,length(quantities)),
-  priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
   parmStart,
   control.slopes,
@@ -188,7 +186,7 @@ result <-   switch(demand,
                      mktElast = mktElast,
                      mcDelta=mcDelta,
                      subset=subset,
-                     priceOutside=priceOutside,
+                     priceOutside=0,
                      priceStart=priceStart,
                      diversion = diversions,
                      shareInside= sum(shares_quantity),
