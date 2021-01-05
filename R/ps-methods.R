@@ -1,12 +1,92 @@
-#'@title Methods To Calculate Producer Surplus
-#'@description Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes
+#' @title Methods To Calculate Margins and Producer Surplus
+#' @description Margins and Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes
 #' @name ps-methods
 #' @param object an instance of class \code{TariffBertrand} or \code{TariffCournot}
 #' @param preMerger when TRUE, calculates producer surplus under the existing tariff regime. When FALSE, calculates
 #' tariffs under the new tariff regime. Default is TRUE.
-#' @return product-level (or in the case of Cournot, plant-level) producer surplus
-#'@include TariffClasses.R
+#' @return product-level (or in the case of Cournot, plant-level) margins or producer surplus
+#' @include TariffClasses.R
 NULL
+marginfun <- function(object,preMerger=TRUE,level=TRUE,...){
+
+
+
+  if( preMerger) {
+
+    tariff <-  object@tariffPre
+  }
+  else{
+
+    tariff <-  object@tariffPost
+  }
+
+  res <- callNextMethod(object,preMerger=preMerger,level=level,...)
+
+  return(res*(1-tariff))
+
+}
+
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffLogit",
+  definition= marginfun
+)
+
+
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffCES",
+  definition= marginfun
+)
+
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffAIDS",
+  definition= marginfun
+)
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffMonComLogit",
+  definition= marginfun
+)
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffMonComCES",
+  definition= marginfun
+)
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "Tariff2ndLogit",
+  definition= marginfun
+)
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffBargainingLogit",
+  definition= marginfun
+)
+#' @rdname ps-methods
+#' @export
+setMethod(
+  f= "calcMargins",
+  signature= "TariffCournot",
+  definition=marginfun
+
+)
+
 #' @rdname ps-methods
 #' @export
 setMethod(
@@ -37,7 +117,7 @@ setMethod(
 
     ps <- (prices - mc) * output
 
-    if(!preMerger) ps <- ps * (1 - tariff)
+    ps <- ps * (1 - tariff)
 
     names(ps) <- object@labels
 
