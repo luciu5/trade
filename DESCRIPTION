@@ -1,7 +1,7 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.6.0
+Version: 0.7.0
 Author: Charles Taragin
 Maintainer: Charles Taragin <ctaragin@ftc.gov>
 Depends: antitrust (>= 0.99.11)
@@ -15,14 +15,16 @@ Encoding: UTF-8
 LazyLoad: yes
 RoxygenNote: 7.1.0
 Collate: 
-    'QuotaClasses.R'
     'TariffClasses.R'
+    'ps-methods.R'
+    'HypoMonMethods.R'
+    'QuotaClasses.R'
+    'summary-methods.R'
+    'bargaining_tariff.R'
+    'SimFunctions.R'
     'TariffCournot-methods.R'
     'TariffMonComRUM-methods.R'
-    'summary-methods.R'
-    'ps-methods.R'
     'auction2nd_tariff.R'
-    'bargaining_tariff.R'
     'bertrand_quota.R'
     'bertrand_tariff.R'
     'cournot_tariff.R'
