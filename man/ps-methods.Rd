@@ -2,34 +2,10 @@
 % Please edit documentation in R/ps-methods.R
 \name{ps-methods}
 \alias{ps-methods}
-\alias{calcMargins,TariffLogit-method}
-\alias{calcMargins,TariffCES-method}
-\alias{calcMargins,TariffAIDS-method}
-\alias{calcMargins,TariffMonComLogit-method}
-\alias{calcMargins,TariffMonComCES-method}
-\alias{calcMargins,Tariff2ndLogit-method}
-\alias{calcMargins,TariffBargainingLogit-method}
-\alias{calcMargins,TariffCournot-method}
 \alias{calcProducerSurplus,TariffBertrand-method}
 \alias{calcProducerSurplus,TariffCournot-method}
-\title{Methods To Calculate Margins and Producer Surplus}
+\title{Methods To Calculate Producer Surplus}
 \usage{
-\S4method{calcMargins}{TariffLogit}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{TariffCES}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{TariffAIDS}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{TariffMonComLogit}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{TariffMonComCES}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{Tariff2ndLogit}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{TariffBargainingLogit}(object, preMerger = TRUE, level = TRUE, ...)
-
-\S4method{calcMargins}{TariffCournot}(object, preMerger = TRUE, level = TRUE, ...)
-
 \S4method{calcProducerSurplus}{TariffBertrand}(object, preMerger = TRUE)
 
 \S4method{calcProducerSurplus}{TariffCournot}(object, preMerger = TRUE)
@@ -41,8 +17,8 @@
 tariffs under the new tariff regime. Default is TRUE.}
 }
 \value{
-product-level (or in the case of Cournot, plant-level) margins or producer surplus
+product-level (or in the case of Cournot, plant-level) producer surplus
 }
 \description{
-Margins and Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes
+Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes
 }

@@ -14,9 +14,9 @@
 
 \S4method{calcSlopes}{TariffMonComCES}(object)
 
-\S4method{calcMargins}{TariffMonComLogit}(object, preMerger = TRUE, level = TRUE, ...)
+\S4method{calcMargins}{TariffMonComLogit}(object, preMerger = TRUE)
 
-\S4method{calcMargins}{TariffMonComCES}(object, preMerger = TRUE, level = TRUE, ...)
+\S4method{calcMargins}{TariffMonComCES}(object, preMerger = TRUE)
 
 \S4method{calcPrices}{TariffMonComLogit}(object, preMerger = TRUE)
 

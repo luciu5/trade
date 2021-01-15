@@ -37,7 +37,7 @@ setMethod(
 
     ps <- (prices - mc) * output
 
-    if(!preMerger) ps <- ps * (1 - tariff)
+    ps <- ps * (1 - tariff)
 
     names(ps) <- object@labels
 
