@@ -110,7 +110,7 @@ setMethod(
        #  'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
         'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
         'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
-        'Industry Price Change (%)' = calcPriceDelta(object, market=TRUE)*100,
+        'Industry Price Change (%)' = calcPriceDelta(object, market=TRUE,levels=FALSE)*100,
         'Consumer Harm ($)' = thiscv,
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
