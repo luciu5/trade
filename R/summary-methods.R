@@ -115,7 +115,8 @@ setMethod(
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
         `Gov't Revenue ($)` = thisgovrev,
-        'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
+        'Net Domestic Harm ($)'= thiscv - thispsdelta[1]  - thisgovrev,
+        'Net Total Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
 
         check.names=FALSE
       ))
