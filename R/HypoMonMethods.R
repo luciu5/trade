@@ -1,4 +1,4 @@
-#' @title Methods For Implementing The Hypothetical Monopolist Test 
+#' @title Methods For Implementing The Hypothetical Monopolist Test
 #' @name defineMarketTools-methods
 #' @docType methods
 #' @aliases HypoMonTest
@@ -18,12 +18,12 @@
 #' Hypothetical Monopolist Test determines whether a profit-maximizing
 #' Hypothetical Monopolist who controls the products indexed by
 #' \sQuote{prodIndex} would increase the price of at least one of the products in \sQuote{prodIndex} by a
-#' small, significant, and non-transitory amount (i.e. impose a SSNIP). The  main difference between this implementation and the
-#' one in  the \code{\link{antitrust}} package, as this one does not check to see if \sQuote{prodIndex} contains a merging party's product. 
+#' small, significant, and non-transitory amount (i.e. impose a SSNIP). The  main difference between this implementation and
+#' \code{\link[antitrust:HypoMonTest]{antitrust::HypoMonTest()}} is this implementation does not check to see if \sQuote{prodIndex} contains a merging party's product.
 #' @return
 #' \code{HypoMonTest} returns TRUE if a profit-maximizing Hypothetical Monopolist who controls the products indexed by
 #' \sQuote{prodIndex} would increase the price of at least one of the products in \sQuote{prodIndex} by a \sQuote{ssnip}, and
-#' FALSE otherwise. 
+#' FALSE otherwise.
 #'
 #' @references U.S. Department of Justice and Federal Trade Commission,
 #' \emph{Horizontal Merger Guidelines}. Washington DC: U.S. Department of Justice, 2010.
@@ -52,7 +52,7 @@ setMethod(
 
     if(length(ssnip)>1 || ssnip<0 | ssnip>1 ){stop("'ssnip' must be a number between 0 and 1")}
 
-    
+
 
     pricesDelta[prodIndex] <-  calcPriceDeltaHypoMon(object,prodIndex,...)
 
@@ -71,29 +71,29 @@ setMethod(
   f= "HypoMonTest",
   signature= "TariffCournot",
   definition=function(object,plantIndex,prodIndex,ssnip=.05,...){
-    
+
     ownerPre <- object@ownerPre
     nprods   <- ncol(ownerPre)
     nplants <- nrow(ownerPre)
 
-    
+
     if(missing(plantIndex) || any(plantIndex>nplants | plantIndex <1 ) ){
       stop("'plantIndex' must be a vector of plant indices between 1 and ",nplants)
     }
-    
+
     if(missing(prodIndex) || length(prodIndex) != 1 || any(prodIndex>nprods | prodIndex <1 ) ){
       stop("'prodIndex' must be between between 1 and ",nprods)
     }
     if(length(ssnip)>1 || ssnip<0 | ssnip>1 ){stop("'ssnip' must be a number between 0 and 1")}
-    
-    
+
+
     pricesDelta <-  calcPriceDeltaHypoMon(object,prodIndex=prodIndex,plantIndex=plantIndex,...)
-    
-    
+
+
     result <-pricesDelta > ssnip
-    
+
     return( result)
   }
-  
+
 )
 

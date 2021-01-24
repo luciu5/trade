@@ -55,8 +55,6 @@ The default is to draw k random elements from a [0,1] uniform distribution. For 
 \item{labels}{A k-length vector of labels.}
 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
-
-\item{isMax}{If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.}
 }
 \value{
 \code{auction2ndtariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}

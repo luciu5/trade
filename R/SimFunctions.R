@@ -9,12 +9,12 @@
 #' @param prices A length k vector of product prices.
 #' @param supply A character string indicating how firms compete with one another. Valid
 #' values are "moncom" (monopolistic competition), "bertrand" (Nash Bertrand),  "auction2nd"
-#' (2nd score auction), or "bargaining". 
+#' (2nd score auction), or "bargaining".
 #' @param demand A character string indicating the type of demand system
 #'   to be used in the merger simulation. Supported demand systems are
 #'   logit (\sQuote{Logit}) or ces (\sQuote{CES}).
 #' @param demand.param  See Below.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff 
+#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff
 #' OR a k x k matrix of pre-merger ownership shares.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
@@ -76,7 +76,7 @@
 #' @return \code{sim} returns an instance of the class specified by the
 #' \sQuote{demand} argument.
 #' @seealso The S4 class documentation for:  \code{\linkS4class{Logit}} and
-#' \code{\linkS4class{CES}}, 
+#' \code{\linkS4class{CES}},
 #' @author Charles Taragin \email{ctaragin@ftc.gov}
 #'
 #' @examples ## Calibration and simulation results from a merger between Budweiser and
@@ -133,35 +133,37 @@ sim <- function(prices,
                 subset=rep(TRUE,length(prices)),
                 priceOutside,
                 priceStart,
+                bargpowerPre=rep(0.5,length(prices)),
+                bargpowerPost=bargpowerPre,
                 labels=paste("Prod",1:length(prices),sep=""),...){
 
   supply <- match.arg(supply)
   demand <- match.arg(demand)
   nprods <- length(prices)
-  
+
   mcDelta= (tariffPost - tariffPre)/(1 - tariffPost)
   insideSize <- NA_real_
-  
+
   if(is.null(owner)){
-    
+
     warning("'owner' is NULL. Assuming each product is owned by a single firm.")
     ownerPre <-  diag(nprods)
-    
+
   }
-  
-  
+
+
   else if(!is.matrix(owner)){
-    
+
     owner <- factor(owner, levels = unique(owner))
     owner = model.matrix(~-1+owner)
     owner = tcrossprod(owner)
-    
-    
-    
+
+
+
   }
- 
+
   if(missing(priceStart)){priceStart <- prices}
-  
+
 
   ## Create placeholders values to fill required Class slots
 
@@ -259,17 +261,17 @@ sim <- function(prices,
 
   }
 
- 
-  
+
+
 
 
 
   ## Create constructors for each demand system specified in the 'demand' parameter
 
-  
-  result <- 
+
+  result <-
     switch(demand,
-         
+
          "logit" =switch(supply,
                          "bertrand" =
                            new("TariffLogit",prices=prices, shares=shares,
@@ -314,8 +316,8 @@ sim <- function(prices,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
                                shareInside= shareInside,
-                               bargpowerPre=rep(0.5,nFirms),
-                               bargpowerPost=rep(0.5,nFirms),
+                               bargpowerPre=bargpowerPre,
+                               bargpowerPost=bargpowerPost,
                                normIndex=normIndex,
                                tariffPre=tariffPre,
                                tariffPost=tariffPost,
@@ -338,7 +340,7 @@ sim <- function(prices,
                                normIndex=normIndex,
                                labels=labels)
          ),
-         
+
          "ces" =  switch(supply,
                          "bertrand" =
                            new("TariffCES",prices=prices, shares=shares,
@@ -372,25 +374,25 @@ sim <- function(prices,
                                normIndex=normIndex,
                                labels=labels)
          )
-         
+
   )
-  
+
 
 
   result@slopes=demand.param
 
 
- 
+
 
   ## Calculate marginal cost
   result@mcPre     <-  calcMC(result,TRUE)
   result@mcPost    <-  calcMC(result,FALSE)
 
-  
-  
+
+
   if(supply=="auction2nd"){result@mcDelta <- result@mcPre*mcDelta}
   else{result@mcDelta <- mcDelta}
-  
+
 
   ## Solve Non-Linear System for Price Changes
   result@pricePre  <- calcPrices(result,TRUE,...)

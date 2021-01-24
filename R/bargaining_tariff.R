@@ -5,7 +5,7 @@
 #' @param demand A character vector indicating which demand system to use. Currently allows logit (default).
 #' @param prices  A length k vector product prices.
 #' @param shares A length k vector of product shares. Values must be between 0 and 1.
-#' @param margins A length k vector of product margins. All margins must be in \textbf{levels} (not w.r.t to price), or NA.
+#' @param margins A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
@@ -29,7 +29,6 @@
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
 #' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
-#' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
 #' @param labels A k-length vector of labels.

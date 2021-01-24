@@ -33,7 +33,7 @@ bargaining_tariff(
 
 \item{shares}{A length k vector of product shares. Values must be between 0 and 1.}
 
-\item{margins}{A length k vector of product margins. All margins must be in \textbf{levels} (not w.r.t to price), or NA.}
+\item{margins}{A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.}
 
 \item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.}
 
@@ -75,8 +75,6 @@ The default is to draw k random elements from a [0,1] uniform distribution. For 
 \item{labels}{A k-length vector of labels.}
 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
-
-\item{isMax}{If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.}
 }
 \value{
 \code{bargaining_tariff} returns an instance of class \code{\linkS4class{TariffBargainingLogit}}

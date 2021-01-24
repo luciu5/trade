@@ -16,6 +16,8 @@ sim(
   subset = rep(TRUE, length(prices)),
   priceOutside,
   priceStart,
+  bargpowerPre = rep(0.5, length(prices)),
+  bargpowerPost = bargpowerPre,
   labels = paste("Prod", 1:length(prices), sep = ""),
   ...
 )
@@ -33,7 +35,7 @@ logit (\sQuote{Logit}) or ces (\sQuote{CES}).}
 
 \item{demand.param}{See Below.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff 
+\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff
 OR a k x k matrix of pre-merger ownership shares.}
 
 \item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
@@ -56,12 +58,6 @@ and for \sQuote{CES} and \sQuote{CesNests} is 1.}
 equilibrium price. Default is the \sQuote{prices} vector for all values of
 demand except for \sQuote{AIDS}, which is set equal to a vector of 0s.}
 
-\item{labels}{A k-length vector of labels. Default is \dQuote{Prod#}, where
-\sQuote{#} is a number between 1 and the length of \sQuote{prices}.}
-
-\item{...}{Additional options to feed to the
-optimizer used to solve for equilibrium prices.}
-
 \item{bargpowerPre}{A length k vector of pre-merger bargaining power parameters. Values
 must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
 though must be calibrated from additional margin and share data. Default is 0.5. Ignored if \sQuote{demand} not equal
@@ -71,6 +67,12 @@ to "bargaining".}
 must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
 though must be calibrated from additional margin and share data. Default is \sQuote{bargpowerPre}.
 Ignored if \sQuote{demand} not equal to "bargaining".}
+
+\item{labels}{A k-length vector of labels. Default is \dQuote{Prod#}, where
+\sQuote{#} is a number between 1 and the length of \sQuote{prices}.}
+
+\item{...}{Additional options to feed to the
+optimizer used to solve for equilibrium prices.}
 }
 \value{
 \code{sim} returns an instance of the class specified by the
