@@ -414,7 +414,7 @@ setMethod(
       results <- data.frame(
         # 'Current Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
         # 'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
-        'Industry Price Change (%)' = sum(priceDelta * outPost/sum(outPost),na.rm=TRUE),
+        'Industry Price Change (%)' = calcPriceDelta(object)*100,
         'Consumer Harm ($)' = thiscv,
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
