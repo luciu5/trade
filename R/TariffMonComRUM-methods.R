@@ -214,7 +214,7 @@ setMethod(
 setMethod(
   f= "calcPrices",
   signature= "TariffMonComLogit",
-  definition=function(object,preMerger=TRUE){
+  definition=function(object,preMerger=TRUE,...){
 
     if(preMerger){mc <- object@mcPre}
     else{         mc <- object@mcPost}
@@ -229,12 +229,12 @@ setMethod(
 setMethod(
   f= "calcPrices",
   signature= "TariffMonComCES",
-  definition=function(object,preMerger=TRUE){
+  definition=function(object,preMerger=TRUE,...){
 
     if(preMerger){mc <- object@mcPre}
     else{         mc <- object@mcPost}
 
-    result <- mc*(1 - 1/(1-object@slopes$gamma))
+    result <- mc/(1 - 1/object@slopes$gamma)
     names(result) <- object@labels
     return(result)
   })

@@ -188,7 +188,7 @@ sim <- function(prices,
       ## An outside option is assumed to exist if all mean valuations are non-zero
       if(all(demand.param$meanval!=0)){
         normIndex <- NA
-        shares <- rep(1/(nprods+1),nprods)
+        #shares <- rep(1/(nprods+1),nprods)
       }
       else{
         normIndex <- which(demand.param$meanval==0)
@@ -206,7 +206,6 @@ sim <- function(prices,
         stop("'demand.param' does not contain 'alpha' or 'alpha' is not a negative number.")
       }
 
-      shareInside <- sum(shares)
       if(missing(priceOutside)){priceOutside <- 0}
 
     }
@@ -221,10 +220,10 @@ sim <- function(prices,
 
 
       ## uncover Numeraire Coefficients
-      if(!("alpha" %in% names(demand.param)) &&
+      if((!("alpha" %in% names(demand.param) ) || is.null(demand.param$alpha)) &&
          !("shareInside" %in% names(demand.param))){
-        warning("'demand.param' does not contain either 'alpha' or 'shareInside'. Setting shareInside=1 and alpha=NULL.")
-        shareInside=1
+        warning("'demand.param' does not contain either 'alpha' or 'shareInside'. Setting alpha=NULL.")
+
         demand.param$alpha=NULL
       }
 
@@ -242,7 +241,7 @@ sim <- function(prices,
       ## An outside option is assumed to exist if all mean valuations are non-zero
       if(all(demand.param$meanval!=1)){
         normIndex <- NA
-        shares <- rep(1/(nprods+1),nprods)
+        #shares <- rep(1/(nprods+1),nprods)
       }
       else{
         normIndex <- which(demand.param$meanval==1)
@@ -251,6 +250,7 @@ sim <- function(prices,
           warning("multiple values of meanval are equal to one. Normalizing with respect to the first product with  mean value equal to 1.")
           normIndex <- normIndex[1]
         }
+
 
       }
 
@@ -282,7 +282,7 @@ sim <- function(prices,
                                subset=subset,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
-                               shareInside= shareInside,
+                               shareInside= 1,
                                tariffPre=tariffPre,
                                tariffPost=tariffPost,
                                insideSize = insideSize,
@@ -298,7 +298,7 @@ sim <- function(prices,
                                subset=subset,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
-                               shareInside= shareInside,
+                               shareInside= 1,
                                tariffPre=tariffPre,
                                tariffPost=tariffPost,
                                normIndex=normIndex,
@@ -315,7 +315,7 @@ sim <- function(prices,
                                subset=subset,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
-                               shareInside= shareInside,
+                               shareInside= 1,
                                bargpowerPre=bargpowerPre,
                                bargpowerPost=bargpowerPost,
                                normIndex=normIndex,
@@ -333,7 +333,7 @@ sim <- function(prices,
                                subset=subset,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
-                               shareInside= shareInside,
+                               shareInside= 1,
                                tariffPre=tariffPre,
                                tariffPost=tariffPost,
                                insideSize = insideSize,
@@ -351,7 +351,7 @@ sim <- function(prices,
                                subset=subset,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
-                               shareInside= shareInside,
+                               shareInside= 1,
                                tariffPre=tariffPre,
                                tariffPost=tariffPost,
                                insideSize = insideSize,
@@ -367,7 +367,7 @@ sim <- function(prices,
                                subset=subset,
                                priceOutside=priceOutside,
                                priceStart=priceStart,
-                               shareInside= shareInside,
+                               shareInside= 1,
                                tariffPre=tariffPre,
                                tariffPost=tariffPost,
                                insideSize = insideSize,
