@@ -22,16 +22,19 @@
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param bargpowerPre A length k vector of pre-merger bargaining power parameters. Values
 #' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
-#' though must be calibrated from additional margin and share data. Default is 0.5. Ignored if \sQuote{demand} not equal
+#' though must be calibrated from additional margin and share data. Default is 0.5. Ignored if \sQuote{supply} not equal
 #' to "bargaining".
 #' @param bargpowerPost A length k vector of post-merger bargaining power parameters. Values
 #' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
 #' though must be calibrated from additional margin and share data. Default is \sQuote{bargpowerPre}.
-#' Ignored if \sQuote{demand} not equal to "bargaining".
+#' Ignored if \sQuote{supply} not equal to "bargaining".
 #' @param subset A vector of length k where each element equals TRUE if
 #'   the product indexed by that element should be included in the
 #'   post-merger simulation and FALSE if it should be excluded.Default is a
 #'   length k vector of TRUE.
+#' @param insideSize A length 1 vector equal to total units sold if \sQuote{demand} equals "logit", or total revenues if
+#' \sQuote{demand} equals "ces".
+#' @param priceStart A length k vector of starting values us
 #' @param priceOutside A length 1 vector indicating the price of the
 #'   outside good. This option only applies to the \sQuote{Logit} class and its child classes
 #'   Default for \sQuote{Logit},\sQuote{LogitNests}, and \sQuote{LogitCap} is 0,
@@ -131,6 +134,7 @@ sim <- function(prices,
                 tariffPre=rep(0,length(prices)),
                 tariffPost,
                 subset=rep(TRUE,length(prices)),
+                insideSize=1,
                 priceOutside,
                 priceStart,
                 bargpowerPre=rep(0.5,length(prices)),
@@ -142,7 +146,7 @@ sim <- function(prices,
   nprods <- length(prices)
 
   mcDelta= (tariffPost - tariffPre)/(1 - tariffPost)
-  insideSize <- NA_real_
+
 
   if(is.null(owner)){
 
@@ -184,6 +188,7 @@ sim <- function(prices,
     }
 
     if(demand %in% c("logit")){
+
 
       ## An outside option is assumed to exist if all mean valuations are non-zero
       if(all(demand.param$meanval!=0)){
@@ -397,6 +402,9 @@ sim <- function(prices,
   ## Solve Non-Linear System for Price Changes
   result@pricePre  <- calcPrices(result,TRUE,...)
   result@pricePost <- calcPrices(result,FALSE,subset=subset,...)
+
+  if(demand=="logit"){result@mktSize <- insideSize/sum(calcShares(result))}
+  else if ( demand =="ces"){result@mktSize <- insideSize*(1+result@slopes$alpha)}
 
 
   return(result)

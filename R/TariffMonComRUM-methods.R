@@ -1,9 +1,11 @@
 #'@title Additional methods for TariffMonComLogit, TariffMonComCES Classes
-#'@description Producer Surplus methods for the \code{TariffMonComLogit} and \code{TariffMonComCES} classes
+#'@description \code{calcSlopes}, \code{Prices}, \code{Margins} methods for the \code{TariffMonComLogit} and \code{TariffMonComCES} classes
 #' @name TariffMonComRUM-methods
 #' @param object an instance of class \code{TariffMonComLogit} or class  \code{TariffMonComCES}
 #' @param preMerger when TRUE, computes result  under the existing tariff regime. When FALSE, calculates
 #' tariffs under the new tariff regime. Default is TRUE.
+#' @param level when TRUE, computes margins in dollars. When FALSE, calculates
+#' margins as a proportion of prices. Default is FALSE.
 #' @return \code{calcSlopes} return a  \code{TariffMonComLogit} or  \code{TariffMonComCES} object containing estimated slopes. \code{CalcQuantities} returns
 #' a matrix of equilbrium quantities under either the current or new tariff.
 #'@include TariffClasses.R
@@ -185,12 +187,14 @@ return(object)
 setMethod(
   f= "calcMargins",
   signature= "TariffMonComLogit",
-  definition=function(object,preMerger=TRUE){
+  definition=function(object,preMerger=TRUE,level=FALSE){
 
     if(preMerger){prices <- object@pricePre}
     else{ prices <- object@pricePost}
 
     result <- -1/(object@slopes$alpha * prices)
+
+    if(level)result <- result*prices
     names(result) <- object@labels
     return(result)
   })
@@ -200,10 +204,19 @@ setMethod(
 setMethod(
   f= "calcMargins",
   signature= "TariffMonComCES",
-  definition=function(object,preMerger=TRUE){
+  definition=function(object,preMerger=TRUE,level=FALSE){
 
     labels <- object@labels
     result <- rep(1/(object@slopes$gamma), length(labels))
+
+
+
+    if(level){
+      if(preMerger){prices <- object@pricePre}
+      else{ prices <- object@pricePost}
+
+      result <- result*prices
+    }
     names(result) <- labels
 
     return(result)
