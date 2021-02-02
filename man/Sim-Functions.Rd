@@ -14,6 +14,7 @@ sim(
   tariffPre = rep(0, length(prices)),
   tariffPost,
   subset = rep(TRUE, length(prices)),
+  insideSize = 1,
   priceOutside,
   priceStart,
   bargpowerPre = rep(0.5, length(prices)),
@@ -49,6 +50,9 @@ the product indexed by that element should be included in the
 post-merger simulation and FALSE if it should be excluded.Default is a
 length k vector of TRUE.}
 
+\item{insideSize}{A length 1 vector equal to total units sold if \sQuote{demand} equals "logit", or total revenues if
+\sQuote{demand} equals "ces".}
+
 \item{priceOutside}{A length 1 vector indicating the price of the
 outside good. This option only applies to the \sQuote{Logit} class and its child classes
 Default for \sQuote{Logit},\sQuote{LogitNests}, and \sQuote{LogitCap} is 0,
@@ -60,13 +64,13 @@ demand except for \sQuote{AIDS}, which is set equal to a vector of 0s.}
 
 \item{bargpowerPre}{A length k vector of pre-merger bargaining power parameters. Values
 must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
-though must be calibrated from additional margin and share data. Default is 0.5. Ignored if \sQuote{demand} not equal
+though must be calibrated from additional margin and share data. Default is 0.5. Ignored if \sQuote{supply} not equal
 to "bargaining".}
 
 \item{bargpowerPost}{A length k vector of post-merger bargaining power parameters. Values
 must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
 though must be calibrated from additional margin and share data. Default is \sQuote{bargpowerPre}.
-Ignored if \sQuote{demand} not equal to "bargaining".}
+Ignored if \sQuote{supply} not equal to "bargaining".}
 
 \item{labels}{A k-length vector of labels. Default is \dQuote{Prod#}, where
 \sQuote{#} is a number between 1 and the length of \sQuote{prices}.}

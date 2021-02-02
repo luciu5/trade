@@ -17,7 +17,7 @@ setMethod(
   signature= "TariffMonComLogit",
   definition=function(object){
 
-    ## Uncover Demand Coefficents
+    ## Uncover Demand Coefficients
 
 
     ownerPre     <-  object@ownerPre
@@ -56,10 +56,11 @@ setMethod(
     minD <- function(alpha){
 
 
-      if(!is.na(mktElast)){
+      if(!is.na(mktElast) && shareInside < 1 ){
         shareInside <-   1 - mktElast/( alpha * avgPrice )
 
       }
+      else{shareInside <- NA_real_}
 
       marginsCand <- -1/(alpha* prices)
 
@@ -71,7 +72,11 @@ setMethod(
     }
 
     alphaBounds <- c(-1e6,0)
-    if(!is.na(mktElast)){ alphaBounds[2] <- mktElast/ avgPrice}
+    if(!is.na(mktElast)){
+
+      alphaBounds[2] <- mktElast/ avgPrice
+      alphaBounds[1] <- alphaBounds[2]/1e-4
+      }
 
     minAlpha <- optimize(minD, alphaBounds,
                          tol=object@control.slopes$reltol)$minimum
@@ -81,6 +86,9 @@ setMethod(
 
       object@shareInside <-    1 - mktElast/(minAlpha * avgPrice )
       idxShare <-  1 - object@shareInside
+      idxPrice <- object@priceOutside
+      object@normIndex <- NA_integer_
+
 
     }
 
@@ -120,9 +128,10 @@ margins      <-  object@margins
 prices       <-  object@prices
 idx          <-  object@normIndex
 shareInside  <-  object@shareInside
-sOut <- 1-shareInside
+
 mktElast     <-  object@mktElast
 
+mktSize     <-  object@mktSize
 insideSize   <-  object@insideSize
 
 ## uncover Numeraire Coefficients
@@ -147,25 +156,48 @@ nprods <- length(shares)
 
 
 
-avgPrice <- sum(shares * prices, na.rm=TRUE) / sum(shares)
+#avgPrice <- sum(shares * prices, na.rm=TRUE) / sum(shares)
 
 
 ## Minimize the distance between observed and predicted margins
 minD <- function(gamma){
 
+  if(!is.na(mktElast) && shareInside < 1 ){
+    sOut <- (mktElast + 1)/(1-gamma)
+  }
+
+  else{sOut <- NA_real_}
 
   marginsCand <- 1/(gamma)
 
   m1 <- margins - marginsCand
-  m2 <- mktElast/(( 1 - gamma ) * avgPrice )  -   sOut
+  m2 <- (1-shareInside) - sOut
   measure <- sum(c(m1, m2 )^2,na.rm=TRUE)
 
   return(measure)
 }
 
-minGamma <- optimize(minD,c(1,1e6),
+
+gammaBounds <- c(1,1e6)
+if(!is.na(mktElast) && mktElast < -1){
+  gammaBounds[1] <- -mktElast
+  gammaBounds[2] <-  1 - (mktElast+1)/1e-4
+  }
+
+
+minGamma <- optimize(minD,gammaBounds,
                      tol=object@control.slopes$reltol)$minimum
 
+
+if(!is.na(mktElast) && mktElast < -1){
+
+
+  object@shareInside <-    1 - (mktElast + 1)/(1-minGamma )
+  idxShare <-  1 - object@shareInside
+  idxPrice <- object@priceOutside
+  object@normIndex <- NA_integer_
+
+}
 
 meanval <- log(shares) - log(idxShare) + (minGamma - 1) * (log(prices) - log(idxPrice))
 meanval <- exp(meanval)

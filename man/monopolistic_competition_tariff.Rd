@@ -26,7 +26,7 @@ monopolistic_competition_tariff(
 
 \item{margins}{A length k vector of product margins. All margins must be either be between 0 and 1, or NA.}
 
-\item{mktElast}{A negative number equal to the industry pre-tariff price elasticity. Default is NA .}
+\item{mktElast}{A negative number no greater than -1 equal to the industry pre-tariff price elasticity. Default is NA .}
 
 \item{mktSize}{A positive number equal to the industry pre-tariff market size. Market size equals total quantity sold,\emph{including sales to the outside good}.}
 
