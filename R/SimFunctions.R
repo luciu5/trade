@@ -21,12 +21,10 @@
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param bargpowerPre A length k vector of pre-merger bargaining power parameters. Values
-#' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
-#' though must be calibrated from additional margin and share data. Default is 0.5. Ignored if \sQuote{supply} not equal
+#' must be between 0 (sellers have the power) and 1 (buyers the power). Ignored if \sQuote{supply} not equal
 #' to "bargaining".
 #' @param bargpowerPost A length k vector of post-merger bargaining power parameters. Values
-#' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
-#' though must be calibrated from additional margin and share data. Default is \sQuote{bargpowerPre}.
+#' must be between 0 (sellers have the power) and 1 (buyers the power). Default is \sQuote{bargpowerPre}.
 #' Ignored if \sQuote{supply} not equal to "bargaining".
 #' @param subset A vector of length k where each element equals TRUE if
 #'   the product indexed by that element should be included in the
