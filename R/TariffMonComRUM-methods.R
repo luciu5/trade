@@ -6,6 +6,8 @@
 #' tariffs under the new tariff regime. Default is TRUE.
 #' @param level when TRUE, computes margins in dollars. When FALSE, calculates
 #' margins as a proportion of prices. Default is FALSE.
+#' @param ... harmlessly pass the arguments used in other calcPrices methods to
+#' methods for \code{TariffMonComLogit} and \code{TariffMonComCES}.
 #' @return \code{calcSlopes} return a  \code{TariffMonComLogit} or  \code{TariffMonComCES} object containing estimated slopes. \code{CalcQuantities} returns
 #' a matrix of equilbrium quantities under either the current or new tariff.
 #'@include TariffClasses.R

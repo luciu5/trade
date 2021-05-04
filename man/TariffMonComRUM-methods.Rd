@@ -30,6 +30,9 @@ tariffs under the new tariff regime. Default is TRUE.}
 
 \item{level}{when TRUE, computes margins in dollars. When FALSE, calculates
 margins as a proportion of prices. Default is FALSE.}
+
+\item{...}{harmlessly pass the arguments used in other calcPrices methods to
+methods for \code{TariffMonComLogit} and \code{TariffMonComCES}.}
 }
 \value{
 \code{calcSlopes} return a  \code{TariffMonComLogit} or  \code{TariffMonComCES} object containing estimated slopes. \code{CalcQuantities} returns
