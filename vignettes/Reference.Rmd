@@ -618,6 +618,120 @@ Currently, `cournot` allows users to specify that product demand is either linea
 <!-- The Cournot model has a `CV` method which may be used to -->
 <!-- calculate the change in consumer surplus from a merger. -->
 
+<!-- # 2nd Score Auction with Logit Demand -->
+<!-- *IN PROGRESS* -->
+<!-- Here, we describe a 2nd score procurement auction where the features of the products -- including cost -- are both horizontally and vertically differentiated. This section is largely based on @Brannman2000 and @miller2014. This auction model may be executed using `trade`'s `auction2nd.logit` function. -->
+
+<!-- ### The Game -->
+<!-- Suppose that a buyer is interested in either purchasing a single unit of a -->
+<!-- differentiated product from one of $K$ firms, each of whom manufacture  $J_k,k\in K$ variants of the product, -->
+<!-- or in supplying the product herself. Let $J=\bigcup_k^KJ_k$ denote the set of all products produced by any of the $K$ firms. Not only do each of the variants have different characteristics, the cost of producing these products may also differ. In particular, suppose that variant $J_k,k\in K$  uses constant marginal -->
+<!-- cost technology $c_{J_k}\ge 0$ to produce the product.^[Throughout, we abuse the notation slightly by -->
+<!--   treating variables like $K$ as both the set of firms as well as the -->
+<!--   number of firms.]   -->
+
+<!-- Let the utility that a buyer receives from product $j\in J$ with offer $p_j$ equal  to  -->
+<!-- \begin{align*} -->
+<!--   V_j(p_j)=& \overline{V}_j(p_j) + \epsilon_j &\\ -->
+<!--  \overline{V}_j(p_j) =& \delta_j + \alpha p_j,&\alpha<0,\\ -->
+<!-- \end{align*} -->
+
+<!-- where $\overline{V}_j$ represents an index of "vertical" quality differentiation that is decomposed into a non-offer component $\delta_j$ and an offer component $\alpha p_j$.  In addition, $\epsilon_j$ represents a buyer-specific idiosyncratic shock to utility (i.e. "horizontal" quality differentiation). Without loss of generality, we will assume that these  shocks are independently drawn from  the distribution $F$, with mean 0 and variance 1.^[Equivalently, $-\frac{V_j(p_j)}{\alpha}$ is a random variable with location $-\frac{\overline{V}_j(p_j)}{\alpha}$ and scale $-\frac{1}{\alpha}$.] We will also assume that at the start of the auction, $\epsilon_j$ is known to $j$'s manufacturer but is not known to  any other sellers. -->
+
+<!-- The buyer is assumed to employ a 2nd score auction to determine which product she will purchase. In this auction -->
+<!-- format, each firm submits an offer and the firm with the highest score (which may be the buyer if the buyer self-supplies)  wins the auction -->
+<!-- but pays the difference between the value of the highest scoring product and the value of the next-highest scoring product, less that seller's offer on that product. It can be shown that it is a *dominant strategy for each firm to offer the product with the highest surplus in its portfolio to the buyer at cost*.   -->
+
+<!-- Let $z_A=\max_{k\in A}{V_k(c_k)}$ denote the the maximum surplus available from any product $k\in A\subseteq J$. It can be shown that the following must hold when firm $k\in K$ wins with variant $j\in J_k$ -->
+
+
+<!-- - the probability that $j$ wins is -->
+<!-- \begin{align} -->
+<!--  s_j &\equiv 1-Pr(V_j < z_{k \not\in J_k}); -->
+<!--   (\#eq:auc21) -->
+<!-- \end{align} -->
+
+<!-- - the expected price conditional on $j$ winning is -->
+<!-- \begin{align} -->
+<!--  E[p_j|\text{$j$ wins}]= c_j + E[z_J|\text{$j$ wins}] - E[z_{k \not\in J_k}|\text{$j$ wins}];  -->
+<!--  (\#eq:auc22) -->
+<!-- \end{align} -->
+
+<!-- - subtracting $c_j$ from both sides of \@ref(eq:auc22) yields the expected profit margin conditional on $j$ winning: -->
+<!-- \begin{align} -->
+<!--  E[m_j|\text{$j$ wins}]=& E[z_J|\text{$j$ wins}] - E[z_{k \not\in J_k}|\text{$j$ wins}]  -->
+<!--  (\#eq:auc23) -->
+<!-- \end{align} -->
+
+<!-- #### Merger analysis {-} -->
+<!-- Suppose that firm $k\in K$ acquires a portfolio of products $J_r$ produced by firm $r\in K$.^[Note that $k$ could either acquire $r$'s entire product line or just a subset.]  -->
+
+<!-- **Retention of all products.** If post-merger $k$ does not discontinue any of $r$'s products, then it can be shown that it is still a dominant strategy for $k$ to only offer a buyer the highest surplus product, and that consequently, the acquisition does not affect which product will ultimately be selected *ex-ante*. Consequently,  the merger does not decrease *ex-ante* output and therefore leaves total surplus unchanged. The merger will, absent variable cost efficiencies, lead to a price increase that exactly equals the  decrease in consumer surplus. The *ex-ante* magnitude of the price increase (and corresponding decrease in consumer surplus) when $j\in J_k \cup J_r$ win the auction is: -->
+
+
+<!-- \begin{align} -->
+<!-- E[\Delta p_j|\text{j wins}] = E[m_j^{post}|\text{j wins}] - E[m_j^{pre}|\text{j wins}]. -->
+<!--  (\#eq:auc2pricedeltacond) -->
+<!-- \end{align} -->
+
+<!-- The expected change in consumer surplus-- which, absent efficiencies  also equals the weighted average price effect-- may be calculated by taking the share-weighted average of equation \@ref(eq:auc2pricedeltacond): -->
+
+<!-- \begin{align} -->
+<!-- E[\Delta p] = \sum\limits_{j\in J_k\cup J_r}s_jE[\Delta p_j|\text{$j$ wins}] -->
+<!-- (\#eq:auc2pricedelta) -->
+<!-- \end{align} -->
+
+<!-- where $s_j$ is given by \@ref(eq:auc22) -->
+
+
+<!-- ### Calibrating Model Demand and Cost Parameters -->
+<!-- For this model, we will assume that users observe firm shares, -->
+<!-- prices, and *some* margin information. From the user's perspective, the unknowns are the buyers'  distribution of valuations ($F$), the constant marginal costs ($c_j$) and the components of a buyer's mean valuation (i.e. the $\delta_j$s and $\alpha$). -->
+
+<!-- In order to calibrate this model with the limited information available, we will need to assume a functional form for $F$. Currently, `antitrust` assumes that $F$ follows a [Gumbel](http://en.wikipedia.org/wiki/Gumbel\_distribution) distribution. Under this distributional assumption,  -->
+
+<!-- - the probability that $j$ wins is -->
+<!-- \begin{align} -->
+<!--  s_j = \frac{\exp(\overline{V}_j(c_j))}{\sum\limits_{k \in J}\exp(\overline{V}_k(c_k))} -->
+<!--  (\#eq:auc24) -->
+<!-- \end{align} -->
+
+<!-- - the expected value of the maximum for products in $A \subseteq J$ is -->
+<!-- \begin{align} -->
+<!--  E[z_A]=-\alpha^{-1}\log\sum\limits_{j\in A}\exp(\overline{V}_j(c_j)) -->
+<!--  (\#eq:auc25) -->
+<!-- \end{align} -->
+
+<!-- First, note that for product $h\ne j$, equation \@ref(eq:auc24) indicates -->
+<!-- \begin{align} -->
+<!--  \log s_j - \log s_k &= \overline{V}_j(c_j) - \overline{V}_h(c_h)\\ -->
+<!--                      &= \delta_j-\delta_h - \alpha(c_j -c_h)  -->
+<!--                      (\#eq:auc26) -->
+<!-- \end{align} -->
+
+<!-- Equation \@ref(eq:auc24) implies that at least one of the $V_j$s is not separately identified. Therefore, one product must be selected as the *numeraire* so that all the other valuations are *relative* to the normalized product.^[Specifically, suppose $k$ is the *numeriare* product, and that $V_k=\delta_k +\alpha p_k$. When supplied 'shares' sum to 1, the first product is by default set to be the numeraire product. This may be changed with the 'normIndex' option.]   -->
+
+<!-- Next, substituting equation \@ref(eq:auc25) into equation \@ref(eq:auc23) yields the following closed form expression for margins: -->
+
+<!-- \begin{align} -->
+<!--  E[m_j|V_j(c_j) > z_{k \not\in J_k}]= -\frac{1}{\alpha\sum\limits_{r\in J_k}s_r}\log\left(\frac{1}{1-\sum\limits_{r\in J_k}s_r}\right)  -->
+<!--  (\#eq:auc27) -->
+<!-- \end{align} -->
+
+<!-- Equations \@ref(eq:auc26) and \@ref(eq:auc27) form the basis of the calibration strategy. All the model parameters may be calibrated with just a single margin and market shares. Product prices only need to to be supplied for products whose marginal costs are assumed to change post-merger (i.e. products for which 'mcDelta' is not equal to 0).  -->
+
+<!-- For example, suppose that the margin for product $j\in J_k$ is known. Equation \@ref(eq:auc27) implies that $\alpha$ may be recovered using only $j$'s margin as well as the sum of the shares for all of firm $j$'s products. This estimate of $\alpha$, in conjunction with equation \@ref(eq:auc27) may then be used to estimate margins for all the other products in the market. Absent post-merger cost changes, these margin estimates, along with equation \@ref(eq:auc26), may then be used to estimate each products' non-offer mean valuations ($\delta$s).  -->
+
+<!-- When post-merger cost changes are included in the model, it becomes necessary to estimate marginal costs, *but only for the products whose costs are changing due to the merger*.^[This occurs because in a 2nd score auction, it is a dominant strategy to bid costs. Consequently, if product $j$'s costs do not change, then $V_j$ is the same for product $j$ both pre- and post-merger. This is in contrast to the Nash-Bertrand pricing game described in section \@ref(nblogit), where a firm's pricing strategy for product $j$ depends on the pricing behavior of all other products, making it necessary to use pricing information to decompose $V_j$  into its price and non-price components.] This is accomplished by including price information for these products. Products whose costs are not assumed to change do not require pricing data (i.e. 'prices' may be NA for products where 'mcDelta' is 0).  -->
+
+<!-- In some instances, there may be more than one margin available. In these cases a minimum distance algorithm  is used to find the value of $\alpha$ that best satisfies all the margin equations \@ref(eq:auc27) for which there is data.  -->
+
+<!-- ### Simulating Merger Effects -->
+<!-- #### Summarizing Results {-} -->
+<!-- The `summary` method for `Auction2ndLogit` is similar to the method described in section \@ref(nbsummary). The main difference is that by default, this method reports changes in levels rather than percentages and output in quantity shares rather than in revenue shares. These alterations were made because prices are not a pre-requisite for this model, but when prices are not supplied, only level changes are identified. Regardless, these defaults can be changed by appropriately setting the method's 'revenue' and 'levels' arguments. -->
+
+<!-- #### Simulating Price Effects With Efficiencies {-} -->
+<!-- `auction2nd.logit`'s 'mcDelta' argument may be used to specify the anticipated proportional change in marginal costs that will likely occur from a merger. See `auction2nd.logit`'s help page for further details. -->
 
 
 `r if (knitr::is_html_output()) '# References {-}'`
