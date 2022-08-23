@@ -78,7 +78,7 @@
 #' \sQuote{demand} argument.
 #' @seealso The S4 class documentation for:  \code{\linkS4class{Logit}} and
 #' \code{\linkS4class{CES}},
-#' @author Charles Taragin \email{ctaragin@ftc.gov}
+#' @author Charles Taragin \email{ctaragin+trader@gmail.com}
 #'
 #' @examples ## Calibration and simulation results from a merger between Budweiser and
 #' ## Old Style. Note that the in the following model there is no outside

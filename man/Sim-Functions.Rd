@@ -162,5 +162,5 @@ The S4 class documentation for:  \code{\linkS4class{Logit}} and
 \code{\linkS4class{CES}},
 }
 \author{
-Charles Taragin \email{ctaragin@ftc.gov}
+Charles Taragin \email{ctaragin+trader@gmail.com}
 }
