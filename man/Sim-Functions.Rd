@@ -95,7 +95,7 @@ firms are playing a differentiated products pricing game.
 
 If \sQuote{demand} equals \sQuote{Logit}  then
 \sQuote{demand.param} must equal a list containing
-\itemize{
+\describe{
   \item{alpha}{The price coefficient.}
   \item{meanval}{A length-k vector of mean valuations \sQuote{meanval}. If
     none of the values of \sQuote{meanval} are zero, an outside good is assumed
@@ -104,7 +104,7 @@ If \sQuote{demand} equals \sQuote{Logit}  then
 If demand equals \sQuote{CES}  then
 \sQuote{demand.param} must equal a list containing
 
-\itemize{
+\describe{
   \item{gamma}{ The price coefficient,}
   \item{alpha}{The coefficient on the numeraire good. May instead be
     calibrated using \sQuote{shareInside},}
@@ -158,8 +158,8 @@ CV(sim.logit)              #calculate representative agent compensating variatio
 
 }
 \seealso{
-The S4 class documentation for:  \code{\linkS4class{Logit}} and
-\code{\linkS4class{CES}},
+The S4 class documentation for:  \code{\link[antitrust:Logit-class]{Logit}} and
+\code{\link[antitrust:CES-class]{CES}},
 }
 \author{
 Charles Taragin \email{ctaragin+trader@gmail.com}

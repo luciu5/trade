@@ -52,7 +52,7 @@
 
 #' If \sQuote{demand} equals \sQuote{Logit}  then
 #' \sQuote{demand.param} must equal a list containing
-#' \itemize{
+#' \describe{
 #'   \item{alpha}{The price coefficient.}
 #'   \item{meanval}{A length-k vector of mean valuations \sQuote{meanval}. If
 #'     none of the values of \sQuote{meanval} are zero, an outside good is assumed
@@ -61,7 +61,7 @@
 #' If demand equals \sQuote{CES}  then
 #' \sQuote{demand.param} must equal a list containing
 #'
-#' \itemize{
+#' \describe{
 #'   \item{gamma}{ The price coefficient,}
 #'   \item{alpha}{The coefficient on the numeraire good. May instead be
 #'     calibrated using \sQuote{shareInside},}
@@ -76,8 +76,8 @@
 #'
 #' @return \code{sim} returns an instance of the class specified by the
 #' \sQuote{demand} argument.
-#' @seealso The S4 class documentation for:  \code{\linkS4class{Logit}} and
-#' \code{\linkS4class{CES}},
+#' @seealso The S4 class documentation for:  \code{\link[antitrust:Logit-class]{Logit}} and
+#' \code{\link[antitrust:CES-class]{CES}},
 #' @author Charles Taragin \email{ctaragin+trader@gmail.com}
 #'
 #' @examples ## Calibration and simulation results from a merger between Budweiser and

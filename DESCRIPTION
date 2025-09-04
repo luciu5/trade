@@ -1,9 +1,11 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.8.1
-Date: 2022-08-23
-Author: Charles Taragin
+Version: 0.8.2
+Date: 2025-09-03
+Authors@R: c(person("Charles", "Taragin", email = "ctaragin+antitrustr@gmail.com",
+                  role = c("aut", "cre"))
+                  )
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 Depends: antitrust (>= 0.99.11)
 URL: https://github.com/luciu5/trade
@@ -14,7 +16,6 @@ Description: A collection of tools for trade practitioners, including the abilit
 License: CC0
 Encoding: UTF-8
 LazyLoad: yes
-RoxygenNote: 7.2.0
 Collate: 
     'TariffClasses.R'
     'ps-methods.R'
@@ -37,3 +38,4 @@ NeedsCompilation: no
 Packaged: 2019-06-25 18:47:45 UTC; ctaragin
 Repository: CRAN
 Date/Publication: 2019-06-26 10:20:03 UTC
+RoxygenNote: 7.3.2
