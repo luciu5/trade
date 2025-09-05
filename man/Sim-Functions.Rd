@@ -144,17 +144,17 @@ sim.logit <- sim(price,demand="logit",supply="bertrand", demand.param,
 print(sim.logit)           # return predicted price change
 summary(sim.logit)         # summarize merger simulation
 
-elast(sim.logit,TRUE)      # returns premerger elasticities
-elast(sim.logit,FALSE)     # returns postmerger elasticities
+antitrust::elast(sim.logit,TRUE)      # returns premerger elasticities
+antitrust::elast(sim.logit,FALSE)     # returns postmerger elasticities
 
-diversion(sim.logit,TRUE)  # return premerger diversion ratios
-diversion(sim.logit,FALSE) # return postmerger diversion ratios
+antitrust::diversion(sim.logit,TRUE)  # return premerger diversion ratios
+antitrust::diversion(sim.logit,FALSE) # return postmerger diversion ratios
 
 
-cmcr(sim.logit)            #calculate compensating marginal cost reduction
-upp(sim.logit)             #calculate Upwards Pricing Pressure Index
+antitrust::cmcr(sim.logit)            #calculate compensating marginal cost reduction
+antitrust::upp(sim.logit)             #calculate Upwards Pricing Pressure Index
 
-CV(sim.logit)              #calculate representative agent compensating variation
+antitrust::CV(sim.logit)              #calculate representative agent compensating variation
 
 }
 \seealso{
