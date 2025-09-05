@@ -3,7 +3,7 @@ Type: Package
 Title: Tools for Trade Practitioners
 Version: 0.8.2
 Date: 2025-09-03
-Authors@R: c(person("Charles", "Taragin", email = "ctaragin+antitrustr@gmail.com",
+Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
                   role = c("aut", "cre"))
                   )
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
