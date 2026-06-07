@@ -7,12 +7,12 @@
 \usage{
 sim(
   prices,
-  supply = c("moncom", "bertrand", "auction", "bargaining"),
+  supply = c("moncom", "bertrand", "auction2nd", "bargaining"),
   demand = c("logit", "ces"),
   demand.param,
   owner,
   tariffPre = rep(0, length(prices)),
-  tariffPost,
+  tariffPost = rep(0, length(prices)),
   subset = rep(TRUE, length(prices)),
   insideSize = 1,
   priceOutside,
@@ -36,7 +36,7 @@ logit (\sQuote{Logit}) or ces (\sQuote{CES}).}
 
 \item{demand.param}{See Below.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff
+\item{owner}{Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff
 OR a k x k matrix of pre-merger ownership shares.}
 
 \item{tariffPre}{A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
@@ -144,17 +144,17 @@ sim.logit <- sim(price,demand="logit",supply="bertrand", demand.param,
 print(sim.logit)           # return predicted price change
 summary(sim.logit)         # summarize merger simulation
 
-antitrust::elast(sim.logit,TRUE)      # returns premerger elasticities
-antitrust::elast(sim.logit,FALSE)     # returns postmerger elasticities
+elast(sim.logit,TRUE)      # returns premerger elasticities
+elast(sim.logit,FALSE)     # returns postmerger elasticities
 
-antitrust::diversion(sim.logit,TRUE)  # return premerger diversion ratios
-antitrust::diversion(sim.logit,FALSE) # return postmerger diversion ratios
+diversion(sim.logit,TRUE)  # return premerger diversion ratios
+diversion(sim.logit,FALSE) # return postmerger diversion ratios
 
 
 antitrust::cmcr(sim.logit)            #calculate compensating marginal cost reduction
 antitrust::upp(sim.logit)             #calculate Upwards Pricing Pressure Index
 
-antitrust::CV(sim.logit)              #calculate representative agent compensating variation
+CV(sim.logit)                         #calculate representative agent compensating variation
 
 }
 \seealso{

@@ -26,10 +26,6 @@ setClass("QuotaCournot", contains = "Cournot",
            ){
            stop("'quotaPre' and 'quotaPost' must have the same dimensions as 'quantities'")
            }
-           if(isTRUE(all.equal(object@quotaPre,object@quotaPost))){
-             stop("'quotaPre' and 'quotaPost' are equal")
-           }
-
            if(any(is.na(object@quotaPre)) ||
               any(is.na(object@quotaPost)) ){
              stop("'quotaPre' and 'quotaPost' elements should be Inf rather than NA")
@@ -43,10 +39,6 @@ setClass("QuotaLogit", contains = "LogitCapALM",
            quotaPre       = "numeric",
            quotaPost       = "numeric"),
          validity = function(object){
-
-           if(isTRUE(all.equal(object@quotaPre,object@quotaPost))){
-             stop("'quotaPre' and 'quotaPost' are equal")
-           }
 
            if(!isTRUE(all.equal(length(object@quotaPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@quotaPost), length(object@shares)))

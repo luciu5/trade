@@ -1,5 +1,10 @@
-^.*\.Rproj$
+^\.agents$
+^\.codex$
+^\.github$
+^\.gitignore$
+^\.Rhistory$
 ^\.Rproj\.user$
+^.*\.Rproj$
 ^cran-comments\.md$
 ^CRAN-RELEASE$
-^\.github$
+^vignettes/.*[.]html$

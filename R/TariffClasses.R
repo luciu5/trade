@@ -14,6 +14,21 @@
 #'@name Tariff-classes
 NULL
 
+.validTariffVector <- function(object) {
+  if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
+     !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
+  ){
+    stop("'tariffPre' and 'tariffPost' must have the same dimensions as 'quantities'")
+  }
+
+  if(any(is.na(object@tariffPre)) ||
+     any(is.na(object@tariffPost)) ){
+    stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
+  }
+
+  TRUE
+}
+
 #'@rdname Tariff-classes
 #' @export
 setClass("TariffCournot", contains = "Cournot",
@@ -28,10 +43,6 @@ setClass("TariffCournot", contains = "Cournot",
            ){
            stop("'tariffPre' and 'tariffPost' must have the same dimensions as 'quantities'")
            }
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
-
            if(any(is.na(object@tariffPre)) ||
               any(is.na(object@tariffPost)) ){
              stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
@@ -46,10 +57,6 @@ setClass("Tariff2ndLogit", contains = "Auction2ndLogitALM",
            tariffPre       = "numeric",
            tariffPost       = "numeric"),
          validity = function(object){
-
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
 
            if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
@@ -75,10 +82,6 @@ setClass("TariffBargainingLogit", contains = "BargainingLogit",
            tariffPost       = "numeric"),
          validity = function(object){
 
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
-
            if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
            ){
@@ -100,9 +103,41 @@ setClass("TariffLogit", contains = "LogitALM",
            tariffPost       = "numeric"),
          validity = function(object){
 
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
+           .validTariffVector(object)
+         })
+
+#'@rdname Tariff-classes
+#' @export
+setClass("TariffLogitCournot", contains = "LogitCournot",
+         representation=representation(
+           tariffPre       = "numeric",
+           tariffPost       = "numeric"),
+         validity = function(object){
+
+           .validTariffVector(object)
+         })
+
+#'@rdname Tariff-classes
+#' @export
+setClass("TariffLogitCournotALM", contains = "LogitCournotALM",
+         representation=representation(
+           tariffPre       = "numeric",
+           tariffPost       = "numeric"),
+         validity = function(object){
+
+           .validTariffVector(object)
+         })
+
+#'@rdname Tariff-classes
+#' @export
+setClass("TariffMonComLogit", contains = "Logit",
+         representation=representation(
+           tariffPre       = "numeric",
+           tariffPost       = "numeric"),
+         prototype=list(
+         control.slopes=list(reltol=.Machine$double.eps^0.25)
+           ),
+         validity = function(object){
 
            if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
@@ -118,31 +153,6 @@ setClass("TariffLogit", contains = "LogitALM",
 
 #'@rdname Tariff-classes
 #' @export
-setClass("TariffMonComLogit", contains = "Logit",
-         representation=representation(
-           tariffPre       = "numeric",
-           tariffPost       = "numeric"),
-         prototype=list(
-         control.slopes=list(reltol=.Machine$double.eps^0.25)
-           ),
-         validity = function(object){
-
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
-
-           if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
-              !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
-           ){
-             stop("'tariffPre' and 'tariffPost' must have the same dimensions as 'quantities'")
-           }
-
-           if(any(is.na(object@tariffPre)) ||
-              any(is.na(object@tariffPost)) ){
-             stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
-           }
-         })
-
 setClass("TariffMonComCES", contains = "CES",
          representation=representation(
            tariffPre       = "numeric",
@@ -151,10 +161,6 @@ setClass("TariffMonComCES", contains = "CES",
            control.slopes=list(reltol=.Machine$double.eps^0.25)
          ),
          validity = function(object){
-
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
 
            if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
@@ -176,10 +182,6 @@ setClass("TariffCES", contains = "CESALM",
            tariffPost       = "numeric"),
          validity = function(object){
 
-            if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
-
            if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
            ){
@@ -199,10 +201,6 @@ setClass("TariffAIDS", contains = "AIDS",
            tariffPost       = "numeric"),
          validity = function(object){
 
-           if(isTRUE(all.equal(object@tariffPre,object@tariffPost))){
-             stop("'tariffPre' and 'tariffPost' are equal")
-           }
-
            if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
               !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
            ){
@@ -218,4 +216,7 @@ setClass("TariffAIDS", contains = "AIDS",
 #' @export
 setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES","Tariff2ndLogit","TariffBargainingLogit"))
 
+#'@rdname Tariff-classes
+#' @export
+setClassUnion("TariffLogitCournotModels", c("TariffLogitCournot", "TariffLogitCournotALM"))
 

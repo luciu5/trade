@@ -14,7 +14,7 @@
 #'   to be used in the merger simulation. Supported demand systems are
 #'   logit (\sQuote{Logit}) or ces (\sQuote{CES}).
 #' @param demand.param  See Below.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff
+#' @param owner Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff
 #' OR a k x k matrix of pre-merger ownership shares.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
@@ -106,17 +106,17 @@
 #' print(sim.logit)           # return predicted price change
 #' summary(sim.logit)         # summarize merger simulation
 #'
-#' antitrust::elast(sim.logit,TRUE)      # returns premerger elasticities
-#' antitrust::elast(sim.logit,FALSE)     # returns postmerger elasticities
+#' elast(sim.logit,TRUE)      # returns premerger elasticities
+#' elast(sim.logit,FALSE)     # returns postmerger elasticities
 #'
-#' antitrust::diversion(sim.logit,TRUE)  # return premerger diversion ratios
-#' antitrust::diversion(sim.logit,FALSE) # return postmerger diversion ratios
+#' diversion(sim.logit,TRUE)  # return premerger diversion ratios
+#' diversion(sim.logit,FALSE) # return postmerger diversion ratios
 #'
 #'
 #' antitrust::cmcr(sim.logit)            #calculate compensating marginal cost reduction
 #' antitrust::upp(sim.logit)             #calculate Upwards Pricing Pressure Index
 #'
-#' antitrust::CV(sim.logit)              #calculate representative agent compensating variation
+#' CV(sim.logit)                         #calculate representative agent compensating variation
 #'
 #' @include bargaining_tariff.R
 NULL
@@ -125,12 +125,12 @@ NULL
 #'@rdname Sim-Functions
 #'@export
 sim <- function(prices,
-                supply=c("moncom","bertrand","auction","bargaining"),
+                supply=c("moncom","bertrand","auction2nd","bargaining"),
                 demand=c("logit","ces"),
                 demand.param,
                 owner,
                 tariffPre=rep(0,length(prices)),
-                tariffPost,
+                tariffPost=rep(0,length(prices)),
                 subset=rep(TRUE,length(prices)),
                 insideSize=1,
                 priceOutside,
@@ -139,30 +139,24 @@ sim <- function(prices,
                 bargpowerPost=bargpowerPre,
                 labels=paste("Prod",1:length(prices),sep=""),...){
 
+  if(!missing(supply) && length(supply) == 1 && supply == "auction"){
+    warning("'auction' is deprecated; use 'auction2nd' instead")
+    supply <- "auction2nd"
+  }
   supply <- match.arg(supply)
   demand <- match.arg(demand)
   nprods <- length(prices)
 
-  mcDelta= (tariffPost - tariffPre)/(1 - tariffPost)
+  tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
+  tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
+  mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
 
-  if(is.null(owner)){
+  owner <- .owner_to_matrix(owner, nprods,
+                            "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
-    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
-    ownerPre <-  diag(nprods)
-
-  }
-
-
-  else if(!is.matrix(owner)){
-
-    owner <- factor(owner, levels = unique(owner))
-    owner = model.matrix(~-1+owner)
-    owner = tcrossprod(owner)
-
-
-
-  }
+  ownerPreTariff <- .apply_tariff_to_owner(owner, tariffPre)
+  ownerPostTariff <- .apply_tariff_to_owner(owner, tariffPost)
 
   if(missing(priceStart)){priceStart <- prices}
 
@@ -279,8 +273,9 @@ sim <- function(prices,
                          "bertrand" =
                            new("TariffLogit",prices=prices, shares=shares,
                                margins=margins,
-                               ownerPre=owner*(1-tariffPre),
-                               ownerPost=owner*(1-tariffPost),
+                               weights=rep(1,nprods),
+                               ownerPre=ownerPreTariff,
+                               ownerPost=ownerPostTariff,
                                mcDelta=mcDelta,
                                subset=subset,
                                priceOutside=priceOutside,
@@ -295,6 +290,7 @@ sim <- function(prices,
                          "auction2nd" =
                            new("Tariff2ndLogit",prices=prices, shares=shares,
                                margins=margins,
+                               weights=rep(1,nprods),
                                ownerPre=owner,
                                ownerPost=owner,
                                mcDelta=mcDelta,
@@ -312,8 +308,9 @@ sim <- function(prices,
                            new("TariffBargainingLogit",
                                prices=prices, shares=shares,
                                margins=margins,
-                               ownerPre=owner*(1-tariffPre),
-                               ownerPost=owner*(1-tariffPost),
+                               weights=rep(1,nprods),
+                               ownerPre=ownerPreTariff,
+                               ownerPost=ownerPostTariff,
                                mcDelta=mcDelta,
                                subset=subset,
                                priceOutside=priceOutside,
@@ -330,6 +327,7 @@ sim <- function(prices,
                            new("TariffMonComLogit",
                                prices=prices, shares=shares,
                                margins=margins,
+                               weights=rep(1,nprods),
                                ownerPre=owner,
                                ownerPost=owner,
                                mcDelta=mcDelta,
@@ -348,8 +346,9 @@ sim <- function(prices,
                          "bertrand" =
                            new("TariffCES",prices=prices, shares=shares,
                                margins=margins,
-                               ownerPre=owner*(1-tariffPre),
-                               ownerPost=owner*(1-tariffPost),
+                               weights=rep(1,nprods),
+                               ownerPre=ownerPreTariff,
+                               ownerPost=ownerPostTariff,
                                mcDelta=mcDelta,
                                subset=subset,
                                priceOutside=priceOutside,
@@ -364,6 +363,7 @@ sim <- function(prices,
                          "moncom" =
                            new("TariffMonComCES",prices=prices, shares=shares,
                                margins=margins,
+                               weights=rep(1,nprods),
                                ownerPre=owner,
                                ownerPost=owner,
                                mcDelta=mcDelta,
@@ -380,6 +380,10 @@ sim <- function(prices,
 
   )
 
+
+  if(is.null(result)){
+    stop("'supply' = '", supply, "' is not supported with 'demand' = '", demand, "'")
+  }
 
 
   result@slopes=demand.param
@@ -399,7 +403,12 @@ sim <- function(prices,
 
   ## Solve Non-Linear System for Price Changes
   result@pricePre  <- calcPrices(result,TRUE,...)
-  result@pricePost <- calcPrices(result,FALSE,subset=subset,...)
+  if(supply=="auction2nd"){
+    result@pricePost <- calcPrices(result,FALSE,...)
+  }
+  else{
+    result@pricePost <- calcPrices(result,FALSE,subset=subset,...)
+  }
 
   if(demand=="logit"){result@mktSize <- insideSize/sum(calcShares(result))}
   else if ( demand =="ces"){result@mktSize <- insideSize*(1+result@slopes$alpha)}

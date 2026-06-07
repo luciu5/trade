@@ -6,7 +6,7 @@
 #' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
+#' @param owner Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-tariff ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
@@ -64,6 +64,7 @@
 #'
 #' print(result.logit)           # return predicted price change
 #' summary(result.logit)         # summarize merger simulation
+#' calcDiagnostics(result.logit) # compare calibrated and observed inputs
 #' }
 #' @include ps-methods.R summary-methods.R
 #' @export
@@ -97,32 +98,16 @@ insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*qua
 
 subset= rep(TRUE,nprods)
 
-tariffPre[is.na(tariffPre)] <- 0
-tariffPost[is.na(tariffPost)] <- 0
+tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
+tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
-if(is.null(owner)){
+owner <- .owner_to_matrix(owner, nprods,
+                          "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
-    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
-  ownerPre <-  diag(nprods)
+ownerPost <- .apply_tariff_to_owner(owner, tariffPost)
+ownerPre <- .apply_tariff_to_owner(owner, tariffPre)
 
-}
-
-
-else if(!is.matrix(owner)){
-
-  owner <- factor(owner, levels = unique(owner))
-  owner = model.matrix(~-1+owner)
-  owner = tcrossprod(owner)
-
-
-
-}
-
-
-ownerPost <- owner*(1-tariffPost)
-ownerPre <- owner*(1-tariffPre)
-
-mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
+mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
 
 shares_revenue <- shares_quantity <- quantities/sum(quantities)
 
@@ -191,6 +176,7 @@ result <-   switch(demand,
 
          logit=  new("TariffLogit",prices=prices, shares=shares_quantity,
                      margins=margins,
+                     weights=rep(1,nprods),
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
                      mktElast = mktElast,
@@ -208,6 +194,7 @@ result <-   switch(demand,
 
          ces = new("TariffCES",prices=prices, shares=shares_revenue,
                    margins=margins,
+                   weights=rep(1,nprods),
                    ownerPre=ownerPre,
                    ownerPost=ownerPost,
                    mktElast = mktElast,

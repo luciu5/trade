@@ -3,11 +3,22 @@
 \name{summary-methods}
 \alias{summary-methods}
 \alias{summary,TariffBertrand-method}
+\alias{summary,TariffLogitCournotModels-method}
 \alias{summary,QuotaBertrand-method}
 \alias{summary,TariffCournot-method}
 \title{Summary Methods}
 \usage{
 \S4method{summary}{TariffBertrand}(
+  object,
+  revenue = FALSE,
+  levels = FALSE,
+  parameters = FALSE,
+  market = FALSE,
+  insideOnly = TRUE,
+  digits = 2
+)
+
+\S4method{summary}{TariffLogitCournotModels}(
   object,
   revenue = FALSE,
   levels = FALSE,
@@ -37,7 +48,7 @@
 )
 }
 \arguments{
-\item{object}{an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, or \code{TariffCournot}}
+\item{object}{an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, \code{TariffLogitCournotModels}, or \code{TariffCournot}}
 
 \item{revenue}{When TRUE, returns revenues, when FALSE returns quantitities. Default is FALSE.}
 
@@ -58,5 +69,5 @@ Default is FALSE}
 Prints either market or product/plant-level summary and invisibly returns a data frame containing the same information.
 }
 \description{
-Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, and \code{TariffCournot} classes
+Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, \code{TariffLogitCournotModels}, and \code{TariffCournot} classes
 }

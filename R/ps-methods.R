@@ -7,6 +7,36 @@
 #' @return product-level (or in the case of Cournot, plant-level) producer surplus
 #'@include TariffClasses.R
 NULL
+
+.calcProducerSurplusTariffDifferentiated <- function(object, preMerger = TRUE) {
+
+  if( preMerger) {
+    prices <- object@pricePre
+    mc     <- object@mcPre
+    tariff <-  object@tariffPre
+  }
+  else{prices <- object@pricePost
+  mc     <- object@mcPost
+  tariff <-  object@tariffPost
+  }
+
+
+  output <- calcQuantities(object,preMerger)
+
+  if (all(is.na(output))){
+    warning("'calcQuantities' yielded all NAs. Using 'calcShares' instead")
+    output <- calcShares(object,preMerger,revenue=FALSE)
+  }
+
+  ps <- (prices - mc) * output
+
+  ps <- ps * (1 - tariff)
+
+  names(ps) <- object@labels
+
+  return(ps)
+}
+
 #' @rdname ps-methods
 #' @export
 setMethod(
@@ -15,33 +45,21 @@ setMethod(
   signature= "TariffBertrand",
   definition=function(object,preMerger=TRUE){
 
+    .calcProducerSurplusTariffDifferentiated(object, preMerger)
 
+  }
 
-    if( preMerger) {
-      prices <- object@pricePre
-      mc     <- object@mcPre
-      tariff <-  object@tariffPre
-    }
-    else{prices <- object@pricePost
-    mc     <- object@mcPost
-    tariff <-  object@tariffPost
-    }
+)
 
+#' @rdname ps-methods
+#' @export
+setMethod(
 
-    output <- calcQuantities(object,preMerger)
+  f= "calcProducerSurplus",
+  signature= "TariffLogitCournotModels",
+  definition=function(object,preMerger=TRUE){
 
-    if (all(is.na(output))){
-      warning("'calcQuantities' yielded all NAs. Using 'calcShares' instead")
-      output <- calcShares(object,preMerger,revenue=FALSE)
-    }
-
-    ps <- (prices - mc) * output
-
-    ps <- ps * (1 - tariff)
-
-    names(ps) <- object@labels
-
-    return(ps)
+    .calcProducerSurplusTariffDifferentiated(object, preMerger)
 
   }
 

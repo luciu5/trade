@@ -6,16 +6,15 @@
 #' @param prices  A length k vector product prices.
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
+#' @param owner Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-tariff ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
-#' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
-#' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-#'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
+#' @param parmStart A vector of starting values for demand calibration.
+#' @param priceStart A vector of length k whose elements equal initial guesses for prices. Default is \code{prices}.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
 #' @param labels A k-length vector of labels.
@@ -26,15 +25,15 @@
 #' Let k denote the number of products produced by all firms.
 #' Using price, and quantity, information for all products
 #'in each market, as well as margin information for at least
-#' one products in each market, \code{auction2ndtariff} is able to
-#' recover the slopes and intercepts of a Logit, CES, demand
-#' system. These parameters are then used to simulate the price
+#' one products in each market, \code{auction2nd_tariff} is able to
+#' recover the slopes and intercepts of a Logit demand system.
+#' These parameters are then used to simulate the price
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 #' 2nd score auction.
 #'
 #' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game and \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
-#' @return \code{auction2ndtariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
+#' @return \code{auction2nd_tariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
@@ -94,31 +93,16 @@ insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*qua
 
 subset= rep(TRUE,nprods)
 
-tariffPre[is.na(tariffPre)] <- 0
-tariffPost[is.na(tariffPost)] <- 0
+tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
+tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
-if(is.null(owner)){
-
-    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
-  ownerPre <-  diag(nprods)
-
-}
-
-
-if(!is.matrix(owner)){
-
-  owner <- factor(owner, levels = unique(owner))
-  owner = model.matrix(~-1+owner)
-  owner = tcrossprod(owner)
-
-
-
-}
+owner <- .owner_to_matrix(owner, nprods,
+                          "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
 ownerPre <- ownerPost <- owner
 
 
-mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
+mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
 
 shares_revenue <- shares_quantity <- quantities/sum(quantities)
 
@@ -180,6 +164,7 @@ result <-   switch(demand,
 
          logit=  new("Tariff2ndLogit",prices=prices, shares=shares_quantity,
                      margins=margins,
+                     weights=rep(1,nprods),
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
                      mktElast = mktElast,

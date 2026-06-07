@@ -7,10 +7,14 @@
 \alias{Tariff2ndLogit-class}
 \alias{TariffBargainingLogit-class}
 \alias{TariffLogit-class}
+\alias{TariffLogitCournot-class}
+\alias{TariffLogitCournotALM-class}
 \alias{TariffMonComLogit-class}
+\alias{TariffMonComCES-class}
 \alias{TariffCES-class}
 \alias{TariffAIDS-class}
 \alias{TariffBertrand-class}
+\alias{TariffLogitCournotModels-class}
 \title{S4 classes to model tariffs}
 \description{
 Extend classes from the \pkg{antitrust} package to accomodate tariffs.

@@ -33,7 +33,7 @@ bertrand_tariff(
 
 \item{margins}{A length k vector of product margins. All margins must be either be between 0 and 1, or NA.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.}
+\item{owner}{Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-tariff ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
 
@@ -103,6 +103,7 @@ result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantit
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
+calcDiagnostics(result.logit) # compare calibrated and observed inputs
 }
 }
 \references{

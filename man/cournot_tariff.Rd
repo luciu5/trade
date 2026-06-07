@@ -70,7 +70,7 @@ If empty (the default), assumes quadratic costs.}
 
 \item{productsPost}{An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals 'productsPre'.}
 
-\item{owner}{EITHER a vector of length n whose values indicate which plants are commonly owned OR an n x n matrix of ownership shares.}
+\item{owner}{Required. EITHER a vector of length n whose values indicate which plants are commonly owned OR an n x n matrix of ownership shares.}
 
 \item{mktElast}{A length k vector of product elasticities. Default is a length k vector of NAs}
 

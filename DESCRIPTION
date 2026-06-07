@@ -6,10 +6,12 @@ Date: 2025-09-05
 Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
                   role = c("aut", "cre"))
                   )
+Author: Charles Taragin [aut, cre]
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
-Imports: antitrust (>= 0.99.11), methods, stats
-Suggests: BB,competitiontoolbox,rmarkdown,bookdown,knitr
+Imports: antitrust (>= 0.99.32), methods, stats
+Suggests: BB,competitiontoolbox,rmarkdown,bookdown,knitr,testthat
+Config/testthat/edition: 3
 VignetteBuilder: knitr
 Description: A collection of tools for trade practitioners, including the ability to calibrate different consumer demand systems and simulate the effects of tariffs and quotas under different competitive regimes. These tools are derived from Anderson et al. (2001) <doi:10.1016/S0047-2727(00)00085-2> and Froeb et al. (2003) <doi:10.1016/S0304-4076(02)00166-5>.
 License: CC0
@@ -30,11 +32,14 @@ Collate:
     'bertrand_tariff.R'
     'cournot_tariff.R'
     'initialize-methods.R'
+    'logit_cournot_tariff.R'
     'monopolistic_competition_tariff.R'
+    'reexports.R'
     'trade-deprecated.R'
+    'trade-utils.R'
     'trade_shiny.R'
 NeedsCompilation: no
 Packaged: 2019-06-25 18:47:45 UTC; ctaragin
 Repository: CRAN
 Date/Publication: 2019-06-26 10:20:03 UTC
-RoxygenNote: 7.3.2
+Config/roxygen2/version: 8.0.0

@@ -31,7 +31,7 @@ auction2nd_tariff(
 
 \item{margins}{A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.}
+\item{owner}{Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-tariff ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
 
@@ -43,10 +43,9 @@ auction2nd_tariff(
 \item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
 
-\item{priceStart}{For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
+\item{priceStart}{A vector of length k whose elements equal initial guesses for prices. Default is \code{prices}.}
 
-\item{parmStart}{\code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.}
+\item{parmStart}{A vector of starting values for demand calibration.}
 
 \item{control.slopes}{A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
 
@@ -57,7 +56,7 @@ The default is to draw k random elements from a [0,1] uniform distribution. For 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
 }
 \value{
-\code{auction2ndtariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
+\code{auction2nd_tariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
 }
 \description{
 Simulate the effect of tariffs when firms play a second score procurement auction game and consumer demand is Logit.
@@ -66,9 +65,9 @@ Simulate the effect of tariffs when firms play a second score procurement auctio
 Let k denote the number of products produced by all firms.
 Using price, and quantity, information for all products
 in each market, as well as margin information for at least
-one products in each market, \code{auction2ndtariff} is able to
-recover the slopes and intercepts of a Logit, CES, demand
-system. These parameters are then used to simulate the price
+one products in each market, \code{auction2nd_tariff} is able to
+recover the slopes and intercepts of a Logit demand system.
+These parameters are then used to simulate the price
 effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 2nd score auction.
 }

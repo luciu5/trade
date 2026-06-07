@@ -13,7 +13,7 @@ bertrand_quota(
   mktElast = NA_real_,
   diversions,
   quotaPre = rep(Inf, length(quantities)),
-  quotaPost,
+  quotaPost = rep(Inf, length(quantities)),
   priceOutside = ifelse(demand == "logit", 0, 1),
   priceStart,
   isMax = FALSE,
@@ -25,7 +25,7 @@ bertrand_quota(
 )
 }
 \arguments{
-\item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
+\item{demand}{A character vector indicating which demand system to use. Currently allows logit (default).}
 
 \item{prices}{A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.}
 
@@ -33,7 +33,7 @@ bertrand_quota(
 
 \item{margins}{A length k vector of product margins. All margins must be either be between 0 and 1, or NA.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.}
+\item{owner}{Required. EITHER a vector of length k whose values indicate which firm produced a product before the quota OR a k x k matrix of pre-quota ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
 
@@ -45,14 +45,13 @@ imposed on each product. Default is Inf, which assumes no quota.}
 \item{quotaPost}{A vector of length k where each element equals the \strong{new}  quota
 (expressed as a proportion of pre-merger quantities) imposed on each product. Default is Inf, which assumes no quota.}
 
-\item{priceOutside}{price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.}
+\item{priceOutside}{price of the outside good. Equals 0 for logit.}
 
-\item{priceStart}{For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.}
+\item{priceStart}{A vector of length k whose elements equal initial guesses for prices.}
 
 \item{isMax}{If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.}
 
-\item{parmStart}{\code{aids} only. A vector of length 2 who elements equal to an initial guess for "known" element of the diagonal of the demand matrix and the market elasticity.}
+\item{parmStart}{A vector of starting values for demand calibration.}
 
 \item{control.slopes}{A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
 
@@ -66,7 +65,7 @@ The default is to draw k random elements from a [0,1] uniform distribution. For 
 \code{bertrand_quota} returns an instance of class \code{\linkS4class{QuotaLogit}}.
 }
 \description{
-Simulate the effect of quotas when firms play a Bertrand pricing game and consumer demand is either Logit, CES, or AIDS
+Simulate the effect of quotas when firms play a Bertrand pricing game and consumer demand is Logit.
 }
 \details{
 Let k denote the number of products produced by all firms.

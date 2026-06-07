@@ -31,7 +31,7 @@
 #' @return \code{monopolistic_competition_tariff} returns an instance of class \code{\linkS4class{TariffMonComLogit}} , depending upon the value of the ``demand'' argument.
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
-#' Anderson, Simon P., and André De Palma. Economic distributions and primitive distributions in monopolistic competition. Centre for Economic Policy Research, 2015.
+#' Anderson, Simon P., and Andre De Palma. Economic distributions and primitive distributions in monopolistic competition. Centre for Economic Policy Research, 2015.
 #' @examples
 #' ## Calibration and simulation results from a 10% tariff on non-US beers "OTHER-LITE"
 #' ## and "OTHER-REG"
@@ -98,13 +98,13 @@ if(length(mktSize)>1) stop("'mktSize' must be length 1")
 
 subset= rep(TRUE,nprods)
 
-tariffPre[is.na(tariffPre)] <- 0
-tariffPost[is.na(tariffPost)] <- 0
+tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
+tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
 
 owner <-  diag(nprods)
 
-mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
+mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
 
 if(demand == "logit"){ shares <-  quantities/mktSize}
 else {shares <- prices*quantities/mktSize}
@@ -121,6 +121,7 @@ result <-   switch(demand,
 
          logit=  new("TariffMonComLogit",prices=prices, shares=shares,
                      margins=margins,
+                     weights=rep(1,nprods),
                      ownerPre=owner,
                      ownerPost=owner,
                      mktElast = mktElast,
@@ -137,6 +138,7 @@ result <-   switch(demand,
                      labels=labels),
          ces=  new("TariffMonComCES",prices=prices, shares=shares,
                      margins=margins,
+                     weights=rep(1,nprods),
                      ownerPre=owner,
                      ownerPost=owner,
                      mktElast = mktElast,

@@ -90,7 +90,7 @@ summary(result.ces)         # summarize merger simulation
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
-Anderson, Simon P., and André De Palma. Economic distributions and primitive distributions in monopolistic competition. Centre for Economic Policy Research, 2015.
+Anderson, Simon P., and Andre De Palma. Economic distributions and primitive distributions in monopolistic competition. Centre for Economic Policy Research, 2015.
 }
 \seealso{
 \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game.

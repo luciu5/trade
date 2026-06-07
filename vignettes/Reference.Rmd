@@ -514,6 +514,70 @@ Because  all firms are manufacturing an identical version of the product, this v
   model does not accommodate non-linear pricing, such as is used in 2nd
   or 3rd degree price discrimination.]
 
+## Differentiated-Product Logit Cournot
+
+`trade` also includes `logit_cournot_tariff`, a differentiated-product Cournot model with Logit demand. This model is distinct from `cournot_tariff`: each product is differentiated, each product has a constant marginal cost, and firms choose product quantities while consumer substitution is governed by the Logit demand system described above. The implementation subclasses the `LogitCournot` and `LogitCournotALM` classes from `antitrust`, so the demand calibration and equilibrium conditions match those classes.
+
+Under Logit Cournot, the calibrated level margin for product $i$ is based on the Logit price coefficient $\alpha$, product shares, and the total share of products controlled by the firm setting product $i$'s quantity. With an outside good indexed by $0$, the corresponding antitrust implementation uses
+
+\begin{align*}
+  p_i - c_i = -\frac{1 + S_f / s_0}{\alpha},
+\end{align*}
+
+where $S_f$ is the quantity share of products controlled by the firm. If one inside product is used as the normalization good instead of an outside good, that product's share replaces $s_0$ in the denominator. A tariff changes the same two objects as in the differentiated-product Bertrand tariff model: the conduct matrix row for product $i$ is multiplied by $1-t_i$, and marginal cost is updated using $(t_i^{post}-t_i^{pre})/(1-t_i^{post})$. In code this corresponds to `owner * (1 - tariff)`, which scales rows of the ownership matrix by the tariff on the product whose first order condition is being evaluated.
+
+The `LogitCournot` calibration can use observed diversion ratios. The `LogitCournotALM` calibration treats the outside share as unobserved and uses additional margin and/or aggregate elasticity information to estimate it.
+
+The main inputs to `logit_cournot_tariff` are product prices, product quantities or shares, product margins, ownership, and the current and proposed tariff vectors. When quantities are supplied, `trade` converts them to quantity shares and uses total quantity as the inside market size. This is the same data layout used by the differentiated-product tariff functions, not the plant-by-product quantity matrix used by `cournot_tariff`.
+
+For example, the beer data used throughout this vignette can be simulated under differentiated-product Logit Cournot as follows:
+
+```r
+prodNames <- c("BUD", "OLD STYLE", "MILLER", "MILLER-LITE",
+               "OTHER-LITE", "OTHER-REG")
+owner <- c("BUD", "OLD STYLE", "MILLER", "MILLER",
+           "OTHER-LITE", "OTHER-REG")
+price <- c(.0441, .0328, .0409, .0396, .0387, .0497)
+quantities <- c(.066, .172, .253, .187, .099, .223) * 100
+margins <- c(.3830, .5515, .5421, .5557, .4453, .3769)
+tariff <- c(0, 0, 0, 0, .1, .1)
+
+result.logit.cournot <- logit_cournot_tariff(
+  prices = price,
+  quantities = quantities,
+  margins = margins,
+  owner = owner,
+  tariffPost = tariff,
+  labels = prodNames
+)
+
+print(result.logit.cournot)
+summary(result.logit.cournot)
+calcDiagnostics(result.logit.cournot)
+```
+
+If the outside share is not observed, users can instead use the ALM calibration by supplying an aggregate market elasticity and setting `calibration = "alm"`:
+
+```r
+result.logit.cournot.alm <- logit_cournot_tariff(
+  prices = price,
+  quantities = quantities,
+  margins = margins,
+  owner = owner,
+  mktElast = -1.5,
+  calibration = "alm",
+  tariffPost = tariff,
+  labels = prodNames
+)
+
+summary(result.logit.cournot.alm, market = TRUE)
+CV(result.logit.cournot.alm)
+elast(result.logit.cournot.alm, preMerger = TRUE)
+diversion(result.logit.cournot.alm, preMerger = TRUE)
+```
+
+The `calibration = "auto"` default uses the ALM path when `mktElast` is supplied and diversion data are missing; otherwise it uses the diversion-ratio calibration. In either case, the reported price and welfare results are tariff simulations, not ownership-change merger simulations.
+
 ## The Game
 
 

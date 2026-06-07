@@ -3,10 +3,13 @@
 \name{ps-methods}
 \alias{ps-methods}
 \alias{calcProducerSurplus,TariffBertrand-method}
+\alias{calcProducerSurplus,TariffLogitCournotModels-method}
 \alias{calcProducerSurplus,TariffCournot-method}
 \title{Methods To Calculate Producer Surplus}
 \usage{
 \S4method{calcProducerSurplus}{TariffBertrand}(object, preMerger = TRUE)
+
+\S4method{calcProducerSurplus}{TariffLogitCournotModels}(object, preMerger = TRUE)
 
 \S4method{calcProducerSurplus}{TariffCournot}(object, preMerger = TRUE)
 }

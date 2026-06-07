@@ -6,7 +6,7 @@
 #' @param prices  A length k vector product prices.
 #' @param shares A length k vector of product shares. Values must be between 0 and 1.
 #' @param margins A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
+#' @param owner Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-tariff ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
 #' @param insideSize An integer equal to total pre-merger units sold.
@@ -110,32 +110,17 @@ nprods <- length(shares)
 
 subset= rep(TRUE,nprods)
 
-tariffPre[is.na(tariffPre)] <- 0
-tariffPost[is.na(tariffPost)] <- 0
+tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
+tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
-if(is.null(owner)){
+owner <- .owner_to_matrix(owner, nprods,
+                          "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
-    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
-  ownerPre <-  diag(nprods)
-
-}
-
-
-else if(!is.matrix(owner)){
-
-  owner <- factor(owner, levels = unique(owner))
-  owner = model.matrix(~-1+owner)
-  owner = tcrossprod(owner)
+ownerPost <- .apply_tariff_to_owner(owner, tariffPost)
+ownerPre <- .apply_tariff_to_owner(owner, tariffPre)
 
 
-
-}
-
-ownerPost <- owner*(1-tariffPost)
-ownerPre <- owner*(1-tariffPre)
-
-
-mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
+mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
 
 shares_revenue <- shares_quantity <- shares #quantities/sum(quantities)
 
@@ -197,6 +182,7 @@ result <-   switch(demand,
                      prices=prices,
                      shares=shares_quantity,
                      margins=margins,
+                     weights=rep(1,nprods),
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
                      mktElast = mktElast,

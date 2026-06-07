@@ -3,7 +3,7 @@
 \name{trade-deprecated}
 \alias{trade-deprecated}
 \alias{trade_shiny}
-\title{Deprecated functions in package \pkg{trade}.}
+\title{Deprecated functions in package \pkg{trade}}
 \usage{
 trade_shiny()
 }

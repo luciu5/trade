@@ -12,7 +12,7 @@
 #' @param cost A length k character vector equal to "linear" if a plant's marginal cost curve is assumed to be linear or
 #'  "constant" if a plant's marginal curve is assumed to be constant. Returns an error if a multi-plant firm with constant
 #'   marginal costs does not have capacity constraints.
-#' @param owner EITHER a vector of length n whose values indicate which plants are commonly owned OR an n x n matrix of ownership shares.
+#' @param owner Required. EITHER a vector of length n whose values indicate which plants are commonly owned OR an n x n matrix of ownership shares.
 #' @param mktElast A length k vector of product elasticities. Default is a length k vector of NAs
 #' @param tariffPre  An n x k matrix  where each element equals the \strong{current } \emph{ad valorem} tariff (expressed as a proportion of consumer price) imposed
 #'  on each product. Default is 0, which assumes no tariff.
@@ -137,23 +137,8 @@ cournot_tariff <- function(
   }
 
 
-  if(is.null(owner)){
-
-    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
-    owner <-  diag(nprods)
-
-  }
-
-
-  else if(!is.matrix(owner)){
-
-    owner <- factor(owner, levels = unique(owner))
-    owner = model.matrix(~-1+owner)
-    owner = tcrossprod(owner)
-
-
-
-  }
+  owner <- .owner_to_matrix(owner, nrow(quantities),
+                            "'owner' must be supplied as a length-n plant vector or n x n plant ownership matrix")
 
 
   ownerPre <- owner

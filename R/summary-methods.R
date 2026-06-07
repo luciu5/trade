@@ -1,7 +1,7 @@
 #'@title Summary Methods
-#'@description Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, and \code{TariffCournot} classes
+#'@description Summary methods for the \code{TariffBertrand}, \code{QuotaBertrand}, \code{TariffLogitCournotModels}, and \code{TariffCournot} classes
 #' @name summary-methods
-#' @param object an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, or \code{TariffCournot}
+#' @param object an instance of class  \code{TariffBertrand}, \code{QuotaBertrand}, \code{TariffLogitCournotModels}, or \code{TariffCournot}
 #' @param revenue When TRUE, returns revenues, when FALSE returns quantitities. Default is FALSE.
 #' @param levels When TRUE returns changes in levels rather than percents and quantities rather than shares, when FALSE, returns
 #' changes as a parcent and shares rather than quantities. Default is FALSE.
@@ -180,6 +180,26 @@ setMethod(
 
 
     return(invisible(results))
+
+  })
+
+
+#' @rdname summary-methods
+#' @export
+setMethod(
+  f= "summary",
+  signature= "TariffLogitCournotModels",
+  definition=function(object,revenue=FALSE,levels=FALSE, parameters = FALSE, market=FALSE,insideOnly = TRUE,digits=2){
+
+    tariffSummary <- selectMethod("summary", "TariffBertrand")
+
+    tariffSummary(object,
+                  revenue=revenue,
+                  levels=levels,
+                  parameters=parameters,
+                  market=market,
+                  insideOnly=insideOnly,
+                  digits=digits)
 
   })
 

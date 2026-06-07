@@ -1,22 +1,21 @@
 #'quota Simulation With A Bertrand Pricing Game
 #'
-#' Simulate the effect of quotas when firms play a Bertrand pricing game and consumer demand is either Logit, CES, or AIDS
+#' Simulate the effect of quotas when firms play a Bertrand pricing game and consumer demand is Logit.
 #'
-#' @param demand A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.
+#' @param demand A character vector indicating which demand system to use. Currently allows logit (default).
 #' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.
+#' @param owner Required. EITHER a vector of length k whose values indicate which firm produced a product before the quota OR a k x k matrix of pre-quota ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
 #' @param quotaPre  A vector of length k where each element equals the \strong{current}  quota (expressed as a proportion of pre-merger quantities)
 #'                  imposed on each product. Default is Inf, which assumes no quota.
 #' @param quotaPost  A vector of length k where each element equals the \strong{new}  quota
 #' (expressed as a proportion of pre-merger quantities) imposed on each product. Default is Inf, which assumes no quota.
-#' @param parmStart \code{aids} only. A vector of length 2 who elements equal to an initial guess for "known" element of the diagonal of the demand matrix and the market elasticity.
-#' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-#'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
-#' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
+#' @param parmStart A vector of starting values for demand calibration.
+#' @param priceStart A vector of length k whose elements equal initial guesses for prices.
+#' @param priceOutside price of the outside good. Equals 0 for logit.
 #' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
@@ -75,7 +74,7 @@ bertrand_quota <- function(
   mktElast = NA_real_,
   diversions,
   quotaPre=rep(Inf,length(quantities)),
-  quotaPost,
+  quotaPost=rep(Inf,length(quantities)),
   priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
   isMax=FALSE,
@@ -95,19 +94,14 @@ subset= rep(TRUE,nprods)
 
 insideSize = sum(quantities,na.rm=TRUE)
 
-quotaPre[is.na(quotaPre)] <- Inf
-quotaPost[is.na(quotaPost)] <- Inf
+quotaPre <- .normalize_quota(quotaPre, nprods, "quotaPre")
+quotaPost <- .normalize_quota(quotaPost, nprods, "quotaPost")
 
 capacitiesPre <- quotaPre*quantities
 capacitiesPost <- quotaPost*quantities
 
-if(is.null(owner)){
-
-    warning("'owner' is NULL. Assuming each product is owned by a single firm.")
-  ownerPre <-  diag(nprods)
-
-}
-
+owner <- .owner_to_matrix(owner, nprods,
+                          "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
 ownerPre <- ownerPost <- owner
 
@@ -119,35 +113,13 @@ shares_revenue <- shares_quantity <- quantities/sum(quantities)
 
 if(all(!is.na(prices))) shares_revenue <- prices*shares_quantity/sum(prices*shares_quantity)
 
-if(demand == "aids"){
-
-  if(missing(prices)){ prices <- rep(NA_real_,nprods)}
-
-  if(missing(parmStart)) parmStart <- rep(NA_real_,2)
-
-  if(missing(priceStart)) priceStart <- runif(nprods)
-
-  if(missing(diversions)){
-    diversions <- tcrossprod(1/(1-shares_revenue),shares_revenue)
-    diag(diversions) <- -1
-
-
-  }
-
+if(missing(parmStart)){
+  parmStart <- rep(.1,2)
+  nm <- which(!is.na(margins))[1]
+  parmStart[1] <- -1/(margins[nm]*prices[nm]*(1-shares_quantity[nm])) #ballpark alpha for starting values
 }
 
-else if (demand %in% c("logit","ces")){
-
-  if(missing(parmStart)){
-    parmStart <- rep(.1,2)
-    nm <- which(!is.na(margins))[1]
-    if(demand == "logit"){
-    parmStart[1] <- -1/(margins[nm]*prices[nm]*(1-shares_quantity[nm])) #ballpark alpha for starting values
-    }
-    else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
-    }
-  if(missing(priceStart)) priceStart <- prices
-}
+if(missing(priceStart)) priceStart <- prices
 
 
 
@@ -155,17 +127,9 @@ else if (demand %in% c("logit","ces")){
 
 
 result <-   switch(demand,
-         aids=new("QuotaAIDS",shares=shares_revenue,mcDelta=mcDelta,subset=subset,
-                  margins=margins, prices=prices, quantities=shares_revenue,  mktElast = mktElast,
-                  insideSize = insideSize,
-                  ownerPre=ownerPre,ownerPost=ownerPost, parmStart=parmStart,
-                  diversion=diversions,
-                  capacitiesPre=capacitiesPre,
-                  capacitiesPost=capacitiesPost,
-                  priceStart=priceStart,labels=labels),
-
          logit=  new("QuotaLogit",prices=prices, shares=shares_quantity,
                      margins=margins,
+                     weights=rep(1,nprods),
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
                      mktElast = mktElast,
@@ -180,23 +144,7 @@ result <-   switch(demand,
                      quotaPre = quotaPre,
                      quotaPost= quotaPost,
                      insideSize = insideSize,
-                     labels=labels),
-
-         ces = new("QuotaCES",prices=prices, shares=shares_revenue,
-                   margins=margins,
-                   ownerPre=ownerPre,
-                   ownerPost=ownerPost,
-                   mktElast = mktElast,
-                   mcDelta=mcDelta,
-                   subset=subset,
-                   priceOutside=priceOutside,
-                   priceStart=priceStart,
-                   shareInside=sum(shares_revenue),
-                   parmsStart=parmStart,
-                   insideSize =insideSize,
-                   capacitiesPre=capacitiesPre,
-                   capacitiesPost=capacitiesPost,
-                   labels=labels)
+                     labels=labels)
   )
 
 
@@ -219,12 +167,6 @@ result@ownerPost <- ownerToMatrix(result,FALSE)
 
 ## Calculate Demand Slope Coefficients
 result <- calcSlopes(result)
-
-## Solve Non-Linear System for Price Changes (AIDS only)
-if (demand == "aids"){
-result@priceDelta <- calcPriceDelta(result,isMax=isMax,subset=subset,...)
-}
-
 
 ## Calculate marginal cost
 result@mcPre <-  calcMC(result,TRUE)
