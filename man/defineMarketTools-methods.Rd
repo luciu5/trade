@@ -42,7 +42,7 @@ Hypothetical Monopolist Test determines whether a profit-maximizing
 Hypothetical Monopolist who controls the products indexed by
 \sQuote{prodIndex} would increase the price of at least one of the products in \sQuote{prodIndex} by a
 small, significant, and non-transitory amount (i.e. impose a SSNIP). The  main difference between this implementation and
-\code{\link[antitrust:HypoMonTest]{antitrust::HypoMonTest()}} is this implementation does not check to see if \sQuote{prodIndex} contains a merging party's product.
+\code{\link[antitrust]{HypoMonTest}} is this implementation does not check to see if \sQuote{prodIndex} contains a merging party's product.
 }
 \references{
 U.S. Department of Justice and Federal Trade Commission,
