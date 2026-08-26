@@ -1,5 +1,5 @@
-## Submission Summary (v0.8.4)
-This is a patch release updating documentation anchors for R-devel compatibility (`\code{\link[stats]{optim}}`) and updating submission metadata for alignment with antitrust 0.99.32.
+## Submission Summary (v0.8.5)
+This is a patch release updating documentation anchors for R-devel compatibility (`\code{\link[stats]{optim}}`, `\code{\link[antitrust]{HypoMonTest}}`) and updating submission metadata for alignment with antitrust 0.99.33.
 
 ## Test Environments
 * Local Ubuntu 22.04.5 LTS, R 4.6.1
