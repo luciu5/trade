@@ -29,7 +29,7 @@
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
 #' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
-#' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
+#' @param control.slopes A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
 #' @param labels A k-length vector of labels.
 #' @param ... Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.

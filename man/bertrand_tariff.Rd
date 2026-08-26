@@ -54,7 +54,7 @@ The default is to draw k random elements from a [0,1] uniform distribution. For 
 
 \item{parmStart}{\code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.}
 
-\item{control.slopes}{A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
+\item{control.slopes}{A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
 
 \item{control.equ}{A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).}
 

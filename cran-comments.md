@@ -1,20 +1,15 @@
+## Submission Summary (v0.8.4)
+This is a patch release updating documentation anchors for R-devel compatibility (`\code{\link[stats]{optim}}`) and updating submission metadata for alignment with antitrust 0.99.32.
 
-## Purpose
-Update maintainer email address
+## Test Environments
+* Local Ubuntu 22.04.5 LTS, R 4.6.1
+* Local R-devel (`R Under development (unstable) 2026-06-06 r90114`)
 
+## R CMD check Results
+There were 0 ERRORS and 0 WARNINGS.
 
-## Test environments
-I tested on the default environments specified in
+There was 1 NOTE:
+* Standard local environment note regarding missing system 'tidy' utility.
 
-*devtools::check_win_devel 
-
-## Issues
-* checking CRAN incoming feasibility ... [11s] NOTE
-Maintainer: 'Charles Taragin <ctaragin+trader@gmail.com>'
-
-New maintainer:
-  Charles Taragin <ctaragin+trader@gmail.com>
-Old maintainer(s):
-  Charles Taragin <ctaragin@ftc.gov>
-  
-  I am switching jobs and will shortly not have access to the ftc email address.
+## Downstream Dependencies
+None affected.

@@ -31,7 +31,7 @@
 #'@param productsPre An n x k matrix that equals TRUE if under the current tariff regime, a plant produces a product. Default is TRUE if 'quantities' is not NA.
 #'@param productsPost An n x k matrix that equals TRUE if under the new tariff regime, a plant produces a product. Default equals 'productsPre'.
 #'@param quantityStart A length k vector of quantities used as the initial guess in the nonlinear equation solver. Default is 'quantities'.
-#'@param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer
+#'@param control.slopes A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer
 #'  (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver
 #'  (typically the \code{calcPrices} method).

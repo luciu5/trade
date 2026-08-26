@@ -49,7 +49,7 @@
 #' @param parmsStart A length 2 vector whose first element equals an initial
 #'   guess of the price coefficient and whose second element equals an initial
 #'   guess of the outside share. Used only for \code{calibration = "alm"}.
-#' @param control.slopes A list of \code{\link{optim}} control parameters
+#' @param control.slopes A list of \code{\link[stats]{optim}} control parameters
 #'   passed to the calibration routine optimizer.
 #' @param control.equ A list of \code{\link[BB]{BBsolve}} control parameters
 #'   passed to the non-linear equation solver.

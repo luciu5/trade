@@ -8,3 +8,5 @@
 ^cran-comments\.md$
 ^CRAN-RELEASE$
 ^vignettes/.*[.]html$
+^trade_.*[.]tar[.]gz$
+^\.Rcheck$

@@ -95,7 +95,7 @@ FALSE.}
 guess of the price coefficient and whose second element equals an initial
 guess of the outside share. Used only for \code{calibration = "alm"}.}
 
-\item{control.slopes}{A list of \code{\link{optim}} control parameters
+\item{control.slopes}{A list of \code{\link[stats]{optim}} control parameters
 passed to the calibration routine optimizer.}
 
 \item{control.equ}{A list of \code{\link[BB]{BBsolve}} control parameters

@@ -47,7 +47,7 @@ auction2nd_tariff(
 
 \item{parmStart}{A vector of starting values for demand calibration.}
 
-\item{control.slopes}{A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
+\item{control.slopes}{A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).}
 
 \item{control.equ}{A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).}
 
