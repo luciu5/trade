@@ -19,14 +19,15 @@ Encoding: UTF-8
 LazyLoad: yes
 Collate: 
     'TariffClasses.R'
+    'TradeModelRegistry.R'
     'ps-methods.R'
     'HypoMonMethods.R'
     'QuotaClasses.R'
-    'summary-methods.R'
     'bargaining_tariff.R'
     'SimFunctions.R'
     'TariffCournot-methods.R'
     'TariffMonComRUM-methods.R'
+    'summary-methods.R'
     'auction2nd_tariff.R'
     'bertrand_quota.R'
     'bertrand_tariff.R'
