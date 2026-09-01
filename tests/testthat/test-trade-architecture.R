@@ -78,7 +78,7 @@ test_that("specify and simulate preserve the supplied-parameter sim path", {
     owner = x$owner
   )
   old <- suppressWarnings(
-    sim(
+    .sim_legacy(
       prices = x$prices,
       demand = "logit",
       supply = "bertrand",
@@ -90,6 +90,47 @@ test_that("specify and simulate preserve the supplied-parameter sim path", {
 
   expect_equal(fit@diagnostics$route, "specify")
   expect_trade_result_parity(simulate(fit, tariffPost = x$tariff), old)
+})
+
+test_that("migrated sim paths remain numerically compatible", {
+  x <- trade_fit_data()
+  parameters <- list(
+    logit = list(alpha = -48.0457,
+      meanval = c(0, .4149233, 1.1899885, .8252482, .1460183, 1.4865730)),
+    ces = list(gamma = 2.2, alpha = .2,
+      meanval = c(.8, .9, 1.1, 1.2, 1.3, 1.4))
+  )
+
+  cases <- list(
+    c("logit", "bertrand"),
+    c("ces", "bertrand"),
+    c("logit", "moncom"),
+    c("ces", "moncom"),
+    c("logit", "auction2nd"),
+    c("logit", "bargaining")
+  )
+
+  for (case in cases) {
+    demand <- case[[1L]]
+    supply <- case[[2L]]
+    old <- suppressWarnings(.sim_legacy(
+      prices = x$prices,
+      supply = supply,
+      demand = demand,
+      demand.param = parameters[[demand]],
+      owner = x$owner,
+      tariffPost = x$tariff
+    ))
+    new <- suppressWarnings(sim(
+      prices = x$prices,
+      supply = supply,
+      demand = demand,
+      demand.param = parameters[[demand]],
+      owner = x$owner,
+      tariffPost = x$tariff
+    ))
+    expect_trade_result_parity(new, old)
+  }
 })
 
 test_that("CES uses its complete legacy calibration and simulation path", {

@@ -257,7 +257,7 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   arguments <- list(...)
   .trade_reject_post_arguments(arguments)
   arguments <- .trade_specify_arguments(spec, prices, parameters, arguments)
-  captured <- .trade_capture_conditions(do.call(sim, arguments))
+  captured <- .trade_capture_conditions(do.call(.sim_legacy, arguments))
 
   .trade_fit(spec, captured$value, arguments, captured, route = "specify")
 }
@@ -293,7 +293,7 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 }
 
 .trade_recalculate_tariff <- function(fit, tariffPost, subset, priceStart,
-                                      isMax, arguments) {
+                                      bargpowerPost, isMax, arguments) {
   model <- fit@model
   n <- length(model@shares)
   tariffPre <- model@tariffPre
@@ -308,17 +308,28 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 
   delta <- .tariff_mc_delta(tariffPre, tariffPost)
   if (is(model, "Tariff2ndLogit")) {
+    # Preserve the legacy auction sequence: the initial object stores the
+    # tariff ratio, calculates mcPost, and only then replaces mcDelta with the
+    # level change used by the post-policy price calculation.
+    model@mcDelta <- delta
+    model@mcPost <- calcMC(model, preMerger = FALSE)
     model@mcDelta <- model@mcPre * delta
   } else if (is(model, "TariffBargainingLogit") ||
              is(model, "TariffBargainingCES")) {
+    # bargaining_tariff has the same historical two-step assignment.
+    model@mcDelta <- delta
+    model@mcPost <- calcMC(model, preMerger = FALSE)
     model@mcDelta <- model@mcPre * delta
   } else {
     model@mcDelta <- delta
+    model@mcPost <- calcMC(model, preMerger = FALSE)
   }
   model@subset <- subset
+  if (!is.null(bargpowerPost) &&
+      (is(model, "TariffBargainingLogit") || is(model, "TariffBargainingCES"))) {
+    model@bargpowerPost <- bargpowerPost
+  }
   if (!is.null(priceStart)) model@priceStart <- priceStart
-  model@mcPost <- calcMC(model, preMerger = FALSE)
-
   if (is(model, "Tariff2ndLogit")) {
     model@pricePost <- calcPrices(model, preMerger = FALSE)
   } else {
@@ -391,7 +402,7 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' @rdname trade-architecture
 #' @export
 simulate <- function(fit, tariffPost, quotaPost, subset, priceStart,
-                     isMax = FALSE, ...) {
+                     bargpowerPost, isMax = FALSE, ...) {
   if (!is(fit, "TradeFit")) stop("'fit' must be a TradeFit object")
   spec <- fit@spec
   entry <- .trade_registry_entry(spec)
@@ -422,6 +433,7 @@ simulate <- function(fit, tariffPost, quotaPost, subset, priceStart,
     } else {
       .trade_recalculate_tariff(fit, tariffPost, subset,
                                 if (missing(priceStart)) NULL else priceStart,
+                                if (missing(bargpowerPost)) NULL else bargpowerPost,
                                 isMax, arguments)
     }
   } else {

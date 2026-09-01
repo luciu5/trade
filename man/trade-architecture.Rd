@@ -18,7 +18,7 @@ specify(demand, conduct = NULL, prices, parameters,
   variant = "standard", policy = "tariff", ...)
 
 simulate(fit, tariffPost, quotaPost, subset, priceStart,
-  isMax = FALSE, ...)
+  bargpowerPost, isMax = FALSE, ...)
 }
 \arguments{
   \item{demand}{A demand-system name or a normalized model specification.}
@@ -34,6 +34,8 @@ simulate(fit, tariffPost, quotaPost, subset, priceStart,
   \item{quotaPost}{A post-policy quota vector.}
   \item{subset}{A logical vector selecting products in the post-policy market.}
   \item{priceStart}{Optional post-policy price starting values.}
+  \item{bargpowerPost}{Optional post-policy bargaining-power vector for
+    bargaining models.}
   \item{isMax}{Whether to request the legacy local-maximum check where
     supported.}
   \item{...}{Baseline inputs, scenario inputs, or solver options accepted by

@@ -124,7 +124,7 @@ NULL
 
 #'@rdname Sim-Functions
 #'@export
-sim <- function(prices,
+.sim_legacy <- function(prices,
                 supply=c("moncom","bertrand","auction2nd","bargaining"),
                 demand=c("logit","ces"),
                 demand.param,
@@ -415,4 +415,86 @@ sim <- function(prices,
 
 
   return(result)
+}
+
+#' Compatibility wrapper for supplied-parameter tariff simulations
+#'
+#' Parameterized paths that have a registered `specify()` and `simulate()`
+#' implementation use that boundary. Other historical `sim()` paths continue
+#' through the original implementation.
+#'
+#' @rdname Sim-Functions
+#' @export
+sim <- function(prices,
+                supply=c("moncom","bertrand","auction2nd","bargaining"),
+                demand=c("logit","ces"),
+                demand.param,
+                owner,
+                tariffPre=rep(0,length(prices)),
+                tariffPost=rep(0,length(prices)),
+                subset=rep(TRUE,length(prices)),
+                insideSize=1,
+                priceOutside,
+                priceStart,
+                bargpowerPre=rep(0.5,length(prices)),
+                bargpowerPost=bargpowerPre,
+                labels=paste("Prod",1:length(prices),sep=""),...){
+
+  if(!missing(supply) && length(supply) == 1 && supply == "auction"){
+    warning("'auction' is deprecated; use 'auction2nd' instead")
+    supply <- "auction2nd"
+  }
+  supply <- match.arg(supply)
+  demand <- match.arg(demand)
+
+  entry <- try(.trade_registry_entry(
+    model_spec(demand, supply, policy = "tariff")
+  ), silent = TRUE)
+
+  if (inherits(entry, "try-error") || !isTRUE(entry$specify) ||
+      !isTRUE(entry$simulate)) {
+    legacy_arguments <- list(
+      prices = prices,
+      supply = supply,
+      demand = demand,
+      demand.param = demand.param,
+      owner = owner,
+      tariffPre = tariffPre,
+      tariffPost = tariffPost,
+      subset = subset,
+      insideSize = insideSize,
+      bargpowerPre = bargpowerPre,
+      bargpowerPost = bargpowerPost,
+      labels = labels
+    )
+    if (!missing(priceOutside)) legacy_arguments$priceOutside <- priceOutside
+    if (!missing(priceStart)) legacy_arguments$priceStart <- priceStart
+    legacy_arguments <- c(legacy_arguments, list(...))
+    return(do.call(.sim_legacy, legacy_arguments))
+  }
+
+  fit_arguments <- list(
+    demand = demand,
+    conduct = supply,
+    prices = prices,
+    parameters = demand.param,
+    owner = owner,
+    tariffPre = tariffPre,
+    insideSize = insideSize,
+    bargpowerPre = bargpowerPre,
+    labels = labels
+  )
+  if (!missing(priceOutside)) fit_arguments$priceOutside <- priceOutside
+  if (!missing(priceStart)) fit_arguments$priceStart <- priceStart
+  fit_arguments <- c(fit_arguments, list(...))
+  fit <- do.call(specify, fit_arguments)
+
+  simulation_arguments <- list(
+    fit = fit,
+    tariffPost = tariffPost,
+    subset = subset,
+    bargpowerPost = bargpowerPost
+  )
+  simulation_arguments <- c(simulation_arguments, list(...))
+  do.call(simulate, simulation_arguments)
 }
