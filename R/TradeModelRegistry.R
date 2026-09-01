@@ -65,7 +65,7 @@ NULL
     list(id = "ces::bargaining", demand = "ces", conduct = "bargaining",
          variant = "standard", policy = "tariff", class = "TariffBargainingCES",
          legacy_calibrator = "bargaining_tariff", calibrate = TRUE,
-         specify = TRUE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
     list(id = "logit::bertrand::quota", demand = "logit", conduct = "bertrand",
          variant = "standard", policy = "quota", class = "QuotaLogit",
          legacy_calibrator = "bertrand_quota", calibrate = TRUE,

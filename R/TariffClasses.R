@@ -214,9 +214,29 @@ setClass("TariffAIDS", contains = "AIDS",
 
 #'@rdname Tariff-classes
 #' @export
-setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES","Tariff2ndLogit","TariffBargainingLogit"))
+setClass("TariffBargainingCES", contains = "BargainingCES",
+         representation=representation(
+           tariffPre       = "numeric",
+           tariffPost       = "numeric"),
+         validity = function(object){
+
+           if(!isTRUE(all.equal(length(object@tariffPre), length(object@shares))) ||
+              !isTRUE(all.equal(length(object@tariffPost), length(object@shares)))
+           ){
+             stop("'tariffPre' and 'tariffPost' must have the same dimensions as 'shares'")
+           }
+
+           if(any(is.na(object@tariffPre)) ||
+              any(is.na(object@tariffPost)) ){
+             stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
+           }
+
+         })
+
+#'@rdname Tariff-classes
+#' @export
+setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES","Tariff2ndLogit","TariffBargainingLogit","TariffBargainingCES"))
 
 #'@rdname Tariff-classes
 #' @export
 setClassUnion("TariffLogitCournotModels", c("TariffLogitCournot", "TariffLogitCournotALM"))
-

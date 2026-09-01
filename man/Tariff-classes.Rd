@@ -6,6 +6,7 @@
 \alias{TariffCournot-class}
 \alias{Tariff2ndLogit-class}
 \alias{TariffBargainingLogit-class}
+\alias{TariffBargainingCES-class}
 \alias{TariffLogit-class}
 \alias{TariffLogitCournot-class}
 \alias{TariffLogitCournotALM-class}

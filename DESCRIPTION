@@ -20,6 +20,7 @@ LazyLoad: yes
 Collate: 
     'TariffClasses.R'
     'TradeModelRegistry.R'
+    'TradeArchitecture.R'
     'ps-methods.R'
     'HypoMonMethods.R'
     'QuotaClasses.R'
