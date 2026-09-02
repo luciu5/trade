@@ -196,3 +196,47 @@ supportedModels <- function() {
   names(result) <- fields
   as.data.frame(result, stringsAsFactors = FALSE)
 }
+
+
+## Respecification is intentionally narrower than model registration. These
+## transitions have a complete supplied-parameter path in the legacy package:
+## demand primitives can be retained while the distinct Bertrand and
+## monopolistic-competition state is reconstructed. Cournot is not listed
+## because trade has no supplied-parameter constructor for that model.
+.trade_transition_registry <- local({
+  entries <- list(
+    list(from = "logit::bertrand", to = "logit::moncom",
+         retain = c("alpha", "meanval"),
+         recompute = c("marginal costs", "monopolistic-competition state"),
+         invalidate = c("Bertrand margins"),
+         calibration_required = FALSE),
+    list(from = "logit::moncom", to = "logit::bertrand",
+         retain = c("alpha", "meanval"),
+         recompute = c("marginal costs", "Bertrand state"),
+         invalidate = c("monopolistic-competition margins"),
+         calibration_required = FALSE),
+    list(from = "ces::bertrand", to = "ces::moncom",
+         retain = c("alpha", "gamma", "meanval"),
+         recompute = c("marginal costs", "monopolistic-competition state"),
+         invalidate = c("Bertrand margins"),
+         calibration_required = FALSE),
+    list(from = "ces::moncom", to = "ces::bertrand",
+         retain = c("alpha", "gamma", "meanval"),
+         recompute = c("marginal costs", "Bertrand state"),
+         invalidate = c("monopolistic-competition margins"),
+         calibration_required = FALSE)
+  )
+  function() entries
+})
+
+.trade_transition_entry <- function(from, to) {
+  entries <- .trade_transition_registry()
+  matches <- Filter(function(entry) {
+    identical(entry$from, from$id) && identical(entry$to, to$id)
+  }, entries)
+  if (!length(matches)) {
+    stop("respecify() transition from '", from$id, "' to '",
+         to$id, "' is not supported; use update() to recalibrate the target model")
+  }
+  matches[[1L]]
+}

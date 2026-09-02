@@ -117,7 +117,8 @@ setClass(
   result
 }
 
-.trade_fit <- function(spec, model, arguments, conditions, route) {
+.trade_fit <- function(spec, model, arguments, conditions, route,
+                       calibration_args = NULL, specification_args = NULL) {
   observed <- arguments
   observed$tariffPost <- NULL
   observed$quotaPost <- NULL
@@ -139,6 +140,8 @@ setClass(
     diagnostics = list(
       route = route,
       legacy_class = class(model)[1],
+      calibration_args = calibration_args,
+      specification_args = specification_args,
       warnings = conditions$warnings,
       messages = conditions$messages
     )
@@ -195,12 +198,18 @@ calibrate <- function(demand, conduct = NULL, variant = "standard",
   }
 
   arguments <- list(...)
+  calibration_args <- c(
+    list(demand = spec$demand, conduct = spec$conduct,
+         variant = spec$variant, policy = spec$policy),
+    arguments
+  )
   .trade_reject_post_arguments(arguments)
   arguments <- .trade_calibrate_arguments(spec, arguments)
   calibrator <- .trade_legacy_function(entry$legacy_calibrator)
   captured <- .trade_capture_conditions(do.call(calibrator, arguments))
 
-  .trade_fit(spec, captured$value, arguments, captured, route = "calibrate")
+  .trade_fit(spec, captured$value, arguments, captured, route = "calibrate",
+             calibration_args = calibration_args)
 }
 
 .trade_specify_arguments <- function(spec, prices, parameters, arguments) {
@@ -255,11 +264,18 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   }
 
   arguments <- list(...)
+  specification_args <- c(
+    list(demand = spec$demand, conduct = spec$conduct,
+         variant = spec$variant, policy = spec$policy,
+         prices = prices, parameters = parameters),
+    arguments
+  )
   .trade_reject_post_arguments(arguments)
   arguments <- .trade_specify_arguments(spec, prices, parameters, arguments)
   captured <- .trade_capture_conditions(do.call(.sim_legacy, arguments))
 
-  .trade_fit(spec, captured$value, arguments, captured, route = "specify")
+  .trade_fit(spec, captured$value, arguments, captured, route = "specify",
+             specification_args = specification_args)
 }
 
 .trade_normalize_policy_vector <- function(value, n, name, quota = FALSE) {
@@ -443,4 +459,174 @@ simulate <- function(fit, tariffPost, quotaPost, subset, priceStart,
                              if (missing(priceStart)) NULL else priceStart,
                              isMax, arguments)
   }
+}
+
+
+#' Recalibrate a fitted trade model
+#'
+#' `update()` rebuilds the stored baseline call and invokes `calibrate()`
+#' again. Post-policy arguments remain simulation-only.
+#'
+#' @param object A `TradeFit` returned by `calibrate()`.
+#' @param ... Baseline data, model-specification arguments, or model-specific
+#'   calibration options to replace.
+#' @param evaluate If `FALSE`, return the reconstructed calibration call.
+#' @return A newly calibrated `TradeFit`, or a call when `evaluate` is
+#'   `FALSE`.
+#' @rdname trade-architecture
+#' @export
+#' @exportS3Method stats::update TradeFit
+update.TradeFit <- function(object, ..., evaluate = TRUE) {
+  if (!is(object, "TradeFit")) {
+    stop("'object' must be a TradeFit returned by calibrate()")
+  }
+  calibration_args <- object@diagnostics$calibration_args
+  if (!is.list(calibration_args) || is.null(names(calibration_args))) {
+    stop("this fit does not retain a calibration call; update() requires a fit created by calibrate()")
+  }
+
+  replacements <- list(...)
+  if (length(replacements)) {
+    if (is.null(names(replacements)) || any(!nzchar(names(replacements)))) {
+      stop("update() arguments must be named calibration or model-specification arguments")
+    }
+    calibration_args[names(replacements)] <- replacements
+  }
+
+  target <- model_spec(
+    calibration_args$demand,
+    calibration_args$conduct,
+    variant = if (is.null(calibration_args$variant)) {
+      "standard"
+    } else {
+      calibration_args$variant
+    },
+    policy = if (is.null(calibration_args$policy)) {
+      "tariff"
+    } else {
+      calibration_args$policy
+    }
+  )
+  if (target$conduct == "moncom") calibration_args$owner <- NULL
+  if (target$policy == "quota") {
+    calibration_args$tariffPre <- NULL
+  } else {
+    calibration_args$quotaPre <- NULL
+  }
+
+  if (!isTRUE(evaluate)) {
+    return(as.call(c(list(quote(calibrate)), calibration_args)))
+  }
+  do.call(calibrate, calibration_args)
+}
+
+
+.trade_structural_parameters <- function(fit) {
+  model <- fit@model
+  if (.trade_has_slot(model, "slopes") && is.list(model@slopes)) {
+    return(model@slopes)
+  }
+  if (is.list(fit@parameters) && !is.null(fit@parameters$slopes) &&
+      is.list(fit@parameters$slopes)) {
+    return(fit@parameters$slopes)
+  }
+  stop("source fit does not expose portable demand parameters")
+}
+
+.trade_respecify_arguments <- function(fit, target, parameters) {
+  model <- fit@model
+  observed <- fit@observed
+  owner <- observed$owner
+  if (is.null(owner)) owner <- .trade_slot(model, "ownerPre")
+  if (is.null(owner)) {
+    stop("source fit does not retain the ownership input needed for respecify()")
+  }
+  prices <- observed$prices
+  if (is.null(prices)) prices <- .trade_slot(model, "prices")
+  if (is.null(prices)) {
+    stop("source fit does not retain prices needed for respecify()")
+  }
+
+  arguments <- list(
+    demand = target$demand,
+    conduct = target$conduct,
+    variant = target$variant,
+    policy = target$policy,
+    prices = prices,
+    parameters = parameters,
+    owner = owner
+  )
+  for (name in c("tariffPre", "insideSize", "priceOutside", "labels")) {
+    value <- observed[[name]]
+    if (is.null(value)) value <- .trade_slot(model, name)
+    if (!is.null(value)) arguments[[name]] <- value
+  }
+  arguments
+}
+
+#' Respecify a fitted trade model
+#'
+#' Only transitions with a complete supplied-parameter path are permitted.
+#' Demand primitives are retained and the target conduct state is reconstructed
+#' through `specify()`; source margins are not used to recalibrate them.
+#'
+#' @param fit A `TradeFit` returned by `calibrate()` or `specify()`.
+#' @param demand Optional target demand-system name.
+#' @param conduct Optional target conduct name.
+#' @param variant Optional target model variant.
+#' @param ... Reserved for future transition-specific options.
+#' @return A newly constructed `TradeFit` under the target specification.
+#' @rdname trade-architecture
+#' @export
+respecify <- function(fit, demand = NULL, conduct = NULL,
+                      variant = NULL, ...) {
+  if (!is(fit, "TradeFit")) {
+    stop("'fit' must be a TradeFit returned by calibrate() or specify()")
+  }
+  if (length(list(...))) {
+    stop("respecify() does not accept transition-specific arguments yet")
+  }
+
+  source <- fit@spec
+  target <- model_spec(
+    demand = if (is.null(demand)) source$demand else demand,
+    conduct = if (is.null(conduct)) source$conduct else conduct,
+    variant = if (is.null(variant)) source$variant else variant,
+    policy = source$policy
+  )
+  if (identical(source$id, target$id)) {
+    stop("respecify() requires a different registered model specification")
+  }
+  transition <- .trade_transition_entry(source, target)
+  parameters <- .trade_structural_parameters(fit)
+  missing_parameters <- setdiff(transition$retain, names(parameters))
+  if (length(missing_parameters)) {
+    stop("source fit does not contain portable parameter(s): ",
+         paste(missing_parameters, collapse = ", "))
+  }
+  parameters <- parameters[transition$retain]
+
+  result <- do.call(specify, .trade_respecify_arguments(
+    fit, target, parameters
+  ))
+  result@parameters <- fit@parameters
+  result@observed <- fit@observed
+  result@diagnostics$source <- "respecify"
+  result@diagnostics$route <- "respecify"
+  result@diagnostics$transition <- list(
+    from = source$id,
+    to = target$id,
+    retained = transition$retain,
+    recomputed = transition$recompute,
+    invalidated = transition$invalidate,
+    calibration_required = transition$calibration_required
+  )
+  if (is.list(fit@diagnostics$calibration_args)) {
+    result@diagnostics$calibration_args <- fit@diagnostics$calibration_args
+    result@diagnostics$calibration_args$demand <- target$demand
+    result@diagnostics$calibration_args$conduct <- target$conduct
+    result@diagnostics$calibration_args$variant <- target$variant
+    result@diagnostics$calibration_args$policy <- target$policy
+  }
+  result
 }

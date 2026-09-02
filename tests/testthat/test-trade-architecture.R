@@ -175,3 +175,60 @@ test_that("post-policy inputs are kept at the simulation boundary", {
     "belong in simulate"
   )
 })
+
+test_that("update genuinely recalibrates a stored trade baseline", {
+  x <- trade_fit_data()
+  fit <- calibrate("logit", "bertrand", prices = x$prices,
+    quantities = x$quantities, margins = x$margins, owner = x$owner)
+
+  unchanged <- update(fit)
+  expect_equal(unchanged@model@slopes, fit@model@slopes, tolerance = 1e-9)
+  expect_equal(unchanged@model@mcPre, fit@model@mcPre, tolerance = 1e-9)
+
+  new_margins <- x$margins * .9
+  changed <- update(fit, margins = new_margins)
+  direct <- calibrate("logit", "bertrand", prices = x$prices,
+    quantities = x$quantities, margins = new_margins, owner = x$owner)
+  expect_equal(changed@model@slopes, direct@model@slopes, tolerance = 1e-9)
+  expect_false(isTRUE(all.equal(changed@model@slopes,
+                                fit@model@slopes)))
+  expect_true(is.call(update(fit, evaluate = FALSE)))
+})
+
+test_that("trade update changes calibration conduct and respecify retains demand", {
+  x <- trade_fit_data()
+  fit <- calibrate("logit", "bertrand", prices = x$prices,
+    quantities = x$quantities, margins = x$margins, owner = x$owner)
+
+  updated <- update(fit, conduct = "moncom")
+  direct <- calibrate("logit", "moncom", prices = x$prices,
+    quantities = x$quantities, margins = x$margins)
+  expect_equal(updated@model@slopes, direct@model@slopes, tolerance = 1e-9)
+
+  respecified <- respecify(fit, conduct = "moncom")
+  expect_equal(respecified@model@slopes, fit@model@slopes, tolerance = 0)
+  expect_equal(respecified@diagnostics$transition$from,
+               "logit::bertrand")
+  expect_equal(respecified@diagnostics$transition$to,
+               "logit::moncom")
+  expect_false(isTRUE(all.equal(updated@model@mcPre,
+                                respecified@model@mcPre)))
+  expect_equal(fit@spec$conduct, "bertrand")
+})
+
+test_that("trade respecification rejects nonportable demand and Cournot transitions", {
+  x <- trade_fit_data()
+  fit <- calibrate("logit", "bertrand", prices = x$prices,
+    quantities = x$quantities, margins = x$margins, owner = x$owner)
+  expect_error(respecify(fit, demand = "ces"),
+    "not supported.*use update")
+  expect_error(respecify(fit, conduct = "cournot"),
+    "not supported.*use update")
+
+  specified <- specify("logit", "bertrand", prices = x$prices,
+    parameters = list(alpha = -48.0457,
+      meanval = c(0, .4149233, 1.1899885, .8252482, .1460183, 1.4865730)),
+    owner = x$owner)
+  expect_error(update(specified), "requires a fit created by calibrate")
+  expect_equal(fit@model@slopes, fit@model@slopes, tolerance = 0)
+})

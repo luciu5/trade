@@ -1,0 +1,47 @@
+# `trade` refactor migration report
+
+## Current status
+
+The branch contains the registry, normalized model specification, `TradeFit`,
+`calibrate()`, `specify()`, `simulate()`, compatibility `sim()` routing, and
+explicit `update()`/`respecify()` operations. Existing tariff and quota S4
+classes remain the result API.
+
+## Registered paths
+
+| Demand | Conduct | Policy | Calibration | Specify | Simulation |
+|---|---|---|---:|---:|---:|
+| Logit | Bertrand | tariff | yes | yes | yes |
+| CES | Bertrand | tariff | yes | yes | yes |
+| AIDS | Bertrand | tariff | yes | no | yes |
+| Logit/CES | monopolistic competition | tariff | yes | yes | yes |
+| Logit | Cournot | tariff | yes | no | yes |
+| Linear/LogLin | homogeneous Cournot | tariff | yes | no | yes |
+| Logit | second-score auction | tariff | yes | yes | yes |
+| Logit/CES | bargaining | tariff | yes | Logit only | yes |
+| Logit | Bertrand | quota | yes | no | yes |
+
+## Tests and compatibility
+
+Behavioral oracle tests cover representative legacy tariff, quota, and supplied
+parameter calls. Architecture tests compare calibrated/specified simulation
+results with the original constructors and verify repeated simulations do not
+mutate the fit. The compatibility `sim()` wrapper routes only registered
+supplied-parameter paths and preserves the legacy implementation elsewhere.
+The full test suite and `R CMD check --no-manual --no-vignettes` pass for the
+current phase, with only the repository's pre-existing vignette-output
+warnings.
+
+`update()` is tested for no-op and changed-margin recalibration. `respecify()`
+is tested for Logit Bertrand↔monopolistic-competition parameter retention,
+target-state reconstruction, unsupported Cournot/cross-demand transitions,
+and source-fit immutability.
+
+## Preserved or unsupported behavior
+
+Tariff incidence, marginal-cost recovery, quota capacity treatment, bargaining
+conventions, and all solver behavior remain delegated to the existing model
+implementations. Logit↔CES, nested-demand, and Cournot respecification are not
+inferred because trade currently lacks a validated common structural parameter
+path for those conversions. They require `update()` or a separately reviewed
+model-specific loader.
