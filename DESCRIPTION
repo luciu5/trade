@@ -21,6 +21,7 @@ Collate:
     'TariffClasses.R'
     'TradeModelRegistry.R'
     'TradeArchitecture.R'
+    'TradeModelTranslations.R'
     'ps-methods.R'
     'HypoMonMethods.R'
     'QuotaClasses.R'

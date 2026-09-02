@@ -34,14 +34,17 @@ warnings.
 
 `update()` is tested for no-op and changed-margin recalibration. `respecify()`
 is tested for Logit Bertrand↔monopolistic-competition parameter retention,
-target-state reconstruction, unsupported Cournot/cross-demand transitions,
-and source-fit immutability.
+target-state reconstruction, flat Logit↔CES local translations, unsupported
+Cournot/nested transitions, and source-fit immutability. Flat Logit↔CES
+translations match target baseline shares analytically and report local
+elasticity-distance diagnostics; they are not treated as a global demand
+equivalence.
 
 ## Preserved or unsupported behavior
 
 Tariff incidence, marginal-cost recovery, quota capacity treatment, bargaining
 conventions, and all solver behavior remain delegated to the existing model
-implementations. Logit↔CES, nested-demand, and Cournot respecification are not
-inferred because trade currently lacks a validated common structural parameter
-path for those conversions. They require `update()` or a separately reviewed
+implementations. Nested-demand and Cournot respecification remain unsupported
+because trade currently lacks a validated common supplied-parameter path for
+those conversions. They require `update()` or a separately reviewed
 model-specific loader.

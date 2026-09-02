@@ -523,8 +523,8 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 
 .trade_structural_parameters <- function(fit) {
   model <- fit@model
-  if (.trade_has_slot(model, "slopes") && is.list(model@slopes)) {
-    return(model@slopes)
+  if (.trade_has_slot(model, "slopes") && is.list(methods::slot(model, "slopes"))) {
+    return(methods::slot(model, "slopes"))
   }
   if (is.list(fit@parameters) && !is.null(fit@parameters$slopes) &&
       is.list(fit@parameters$slopes)) {
@@ -567,8 +567,12 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 #' Respecify a fitted trade model
 #'
 #' Only transitions with a complete supplied-parameter path are permitted.
-#' Demand primitives are retained and the target conduct state is reconstructed
-#' through `specify()`; source margins are not used to recalibrate them.
+#' Same-demand primitives are retained and the target conduct state is
+#' reconstructed through `specify()`. Registered flat Logit/CES transitions
+#' instead translate the demand locally by matching baseline shares and
+#' minimizing baseline elasticity distance; source margins are not used to
+#' recalibrate translated demand. This is not a global equivalence claim
+#' between price-level Logit and log-price CES.
 #'
 #' @param fit A `TradeFit` returned by `calibrate()` or `specify()`.
 #' @param demand Optional target demand-system name.
@@ -576,6 +580,7 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 #' @param variant Optional target model variant.
 #' @param ... Reserved for future transition-specific options.
 #' @return A newly constructed `TradeFit` under the target specification.
+#' @seealso [`specify()`], [`update.TradeFit()`]
 #' @rdname trade-architecture
 #' @export
 respecify <- function(fit, demand = NULL, conduct = NULL,
@@ -598,6 +603,41 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     stop("respecify() requires a different registered model specification")
   }
   transition <- .trade_transition_entry(source, target)
+
+  if (identical(transition$kind, "local-demand-translation")) {
+    translated <- .translate_trade_demand(fit, target)
+    result <- translated$fit
+    result@parameters <- .trade_parameters(result@model)
+    result@observed <- fit@observed
+    result@observed$demand <- target$demand
+    result@diagnostics$source <- "respecify"
+    result@diagnostics$route <- "respecify"
+    result@diagnostics$transition <- list(
+      from = source$id,
+      to = target$id,
+      kind = transition$kind,
+      retained = transition$retain,
+      recomputed = transition$recompute,
+      invalidated = transition$invalidate,
+      calibration_required = transition$calibration_required
+    )
+    result@diagnostics$local_translation <- translated$diagnostics
+    result@diagnostics$source_calibration_args <-
+      fit@diagnostics$calibration_args
+    if (is.list(fit@diagnostics$calibration_args)) {
+      target_calibration <- fit@diagnostics$calibration_args
+      target_calibration$demand <- target$demand
+      target_calibration$conduct <- target$conduct
+      target_calibration$variant <- target$variant
+      target_calibration$policy <- target$policy
+      target_calibration$tariffPre <- translated$state$model@tariffPre
+      target_calibration$tariffPost <- NULL
+      target_calibration$quotaPre <- NULL
+      result@diagnostics$calibration_args <- target_calibration
+    }
+    return(result)
+  }
+
   parameters <- .trade_structural_parameters(fit)
   missing_parameters <- setdiff(transition$retain, names(parameters))
   if (length(missing_parameters)) {
@@ -609,7 +649,7 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   result <- do.call(specify, .trade_respecify_arguments(
     fit, target, parameters
   ))
-  result@parameters <- fit@parameters
+  result@parameters <- .trade_parameters(result@model)
   result@observed <- fit@observed
   result@diagnostics$source <- "respecify"
   result@diagnostics$route <- "respecify"
