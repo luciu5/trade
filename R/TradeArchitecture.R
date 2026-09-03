@@ -401,13 +401,105 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   model
 }
 
+## Trade's tariff/quota mechanics are fundamentally different from
+## antitrust's ownership/cost mechanics: calcMC() for every tariff-scaled
+## class resets `pricePre` back to the immutable calibration-time `prices`
+## slot on every call, so `mcPre`/`pricePre` can never be usefully promoted
+## -- `tariffPre`/`quotaPre` must likewise stay pinned at their calibrated
+## value forever (the legacy `.tariff_mc_delta(tariffPre, tariffPost)` wedge
+## is defined relative to that immutable baseline, not to any intermediate
+## step). What DOES need to persist across steps is: (a) the currently
+## active post-policy level, used as the next step's default when a step
+## doesn't specify one, so an untouched policy field doesn't silently reset
+## to the calibrated baseline; (b) the exit mask (`subset`); and (c), for
+## quality-supported classes, the compounding `meanval` shock. All three
+## persist automatically by passing the previous step's raw result forward
+## as the next step's starting state -- no slot promotion is required or
+## correct here.
+
+## Solve one equilibrium for `model` (which may be a previous step's result,
+## not necessarily `fit@model`) by temporarily substituting it into a copy
+## of `fit` and delegating to the existing, already-tested
+## `.trade_recalculate_*` helpers unchanged.
+.trade_simulate_step <- function(fit, model, tariffPost = NULL, quotaPost = NULL,
+                                 exit = NULL, subset = NULL, priceStart = NULL,
+                                 bargpowerPost = NULL, isMax = FALSE, arguments = list()) {
+  spec <- fit@spec
+  step_fit <- fit
+  step_fit@model <- model
+
+  n <- length(model@shares)
+  current_subset <- .trade_slot(model, "subset", rep(TRUE, n))
+  if (length(current_subset) != n) current_subset <- rep(TRUE, n)
+  if (!is.null(exit)) {
+    subset <- current_subset & .counterfactual_subset(exit, n, .trade_slot(model, "labels"))
+  }
+  if (is.null(subset)) subset <- current_subset
+  if (!is.logical(subset) || length(subset) != n || !any(subset)) {
+    stop("'subset' must be a logical vector the same length as the fitted products with at least one TRUE value")
+  }
+
+  if (spec$policy == "tariff") {
+    if (!is.null(quotaPost)) stop("'quotaPost' is not supported by a tariff fit")
+    ## Default to the currently active tariff level (not tariffPre) so an
+    ## untouched tariff field persists across steps instead of resetting to
+    ## the calibrated baseline; at the very first step tariffPost==tariffPre
+    ## (both set from calibration), so single-shot behavior is unchanged.
+    if (is.null(tariffPost)) tariffPost <- model@tariffPost
+
+    if (is(model, "TariffCournot")) {
+      .trade_recalculate_cournot(step_fit, tariffPost, subset, arguments)
+    } else {
+      .trade_recalculate_tariff(step_fit, tariffPost, subset,
+                                priceStart, bargpowerPost, isMax, arguments)
+    }
+  } else {
+    if (!is.null(tariffPost)) stop("'tariffPost' is not supported by a quota fit")
+    if (is.null(quotaPost)) quotaPost <- model@quotaPost
+    .trade_recalculate_quota(step_fit, quotaPost, subset, priceStart, isMax, arguments)
+  }
+}
+
+## Solve every step of a multi-step Counterfactual in order. The previous
+## step's raw result becomes the next step's starting state directly (see
+## note above on why no slot promotion is applied) -- this is what keeps
+## the exit mask and quality shock persistent without resetting tariff/
+## quota mechanics that are defined relative to the immutable calibration
+## baseline.
+.trade_simulate_steps <- function(fit, initial_model, steps) {
+  state <- initial_model
+  results <- vector("list", length(steps))
+  for (i in seq_along(steps)) {
+    step <- steps[[i]]
+    changes <- step@changes
+    if (!is.null(changes$quality)) state <- .apply_quality(state, changes$quality)
+    arguments <- list()
+    if (!is.null(changes$products)) arguments$productsPost <- changes$products
+    result <- .trade_simulate_step(
+      fit, state,
+      tariffPost = changes$tariff, quotaPost = changes$quota,
+      exit = changes$exit, arguments = arguments
+    )
+    results[[i]] <- result
+    state <- result
+  }
+  results
+}
+
 #' Simulate a policy counterfactual from a fitted trade model
 #'
-#' The fitted baseline is cloned and the selected legacy policy-aware methods
-#' are called for one post-policy equilibrium. A fit can therefore be reused
-#' for repeated tariff or quota scenarios without recalibration.
+#' For a one-step `Counterfactual` (or the equivalent direct legacy scenario
+#' arguments), `simulate()` returns the existing trade S4 result object
+#' unchanged, exactly as before -- a fit can be reused for repeated tariff
+#' or quota scenarios without recalibration. For a multi-step
+#' `Counterfactual` (built with [add_step()]), each step is solved in turn,
+#' promoting the previous step's solved equilibrium into the next step's
+#' starting state, and a `CounterfactualPath` recording every step's result
+#' is returned. `fit` may also be a `CounterfactualPath`, in which case
+#' simulation resumes from that path's final solved state.
 #'
-#' @param fit A `TradeFit` returned by [calibrate()] or [specify()].
+#' @param fit A `TradeFit` returned by [calibrate()] or [specify()], or a
+#'   `CounterfactualPath` to resume from.
 #' @param tariffPost A post-policy ad valorem tariff vector for tariff models,
 #' or a `Counterfactual` object.
 #' @param quotaPost A post-policy quota vector for quota models.
@@ -415,21 +507,46 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' @param priceStart Optional price starting values for the post-policy solve.
 #' @param isMax Passed to legacy price solvers where supported.
 #' @param ... Additional model-specific solver or post-state arguments.
-#' @return The existing trade S4 result object, not a new result hierarchy.
+#' @return For a one-step counterfactual, the existing trade S4 result
+#'   object, not a new result hierarchy. For a multi-step counterfactual, a
+#'   `CounterfactualPath`.
 #' @rdname trade-architecture
 #' @export
 simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
                      priceStart = NULL, bargpowerPost = NULL,
                      isMax = FALSE, ...) {
-  if (!is(fit, "TradeFit")) stop("'fit' must be a TradeFit object")
+  resume_path <- if (is(fit, "CounterfactualPath")) fit else NULL
+  if (!is.null(resume_path)) fit <- NULL
+
+  arguments <- list(...)
+  cf <- if (inherits(tariffPost, "Counterfactual")) tariffPost else NULL
+
+  if (!is.null(resume_path)) {
+    if (is.null(cf)) {
+      stop("simulate() on a CounterfactualPath requires a Counterfactual as its second argument.")
+    }
+    base_fit <- resume_path@diagnostics$fit
+    if (is.null(base_fit)) {
+      stop("'fit' CounterfactualPath does not retain enough diagnostics to resume simulation.")
+    }
+    .validate_counterfactual(cf, base_fit@spec)
+    results <- .trade_simulate_steps(base_fit, final_result(resume_path), cf@steps)
+    return(new(
+      "CounterfactualPath",
+      initial = resume_path@initial,
+      steps = c(resume_path@steps, cf@steps),
+      results = c(resume_path@results, results),
+      diagnostics = list(fit = base_fit)
+    ))
+  }
+
+  if (!is(fit, "TradeFit")) stop("'fit' must be a TradeFit object, or a CounterfactualPath.")
   spec <- fit@spec
   entry <- .trade_registry_entry(spec)
   if (!isTRUE(entry$simulate)) {
     stop("simulate() is not supported for trade model '", spec$id, "'")
   }
 
-  arguments <- list(...)
-  cf <- if (inherits(tariffPost, "Counterfactual")) tariffPost else NULL
   if (!is.null(cf)) {
     .validate_counterfactual(cf, spec)
     conflicts <- c(
@@ -443,49 +560,48 @@ simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
       stop("cannot combine a Counterfactual with legacy scenario argument(s): ",
            paste(unique(conflicts), collapse = ", "))
     }
-    tariffPost <- cf$tariff
-    quotaPost <- cf$quota
-    exit <- cf$exit
-    if (!is.null(cf$products)) arguments$productsPost <- cf$products
-  } else {
-    exit <- NULL
-    fields <- list(tariff = tariffPost, quota = quotaPost, exit = subset)
-    fields <- fields[!vapply(fields, is.null, logical(1))]
-    cf <- do.call(counterfactual, fields)
+
+    if (length(cf@steps) > 1L) {
+      results <- .trade_simulate_steps(fit, fit@model, cf@steps)
+      return(new(
+        "CounterfactualPath",
+        initial = fit@model,
+        steps = cf@steps,
+        results = results,
+        diagnostics = list(fit = fit)
+      ))
+    }
+
+    step <- cf@steps[[1L]]
+    changes <- step@changes
+    model <- fit@model
+    if (!is.null(changes$quality)) model <- .apply_quality(model, changes$quality)
+    step_arguments <- arguments
+    if (!is.null(changes$products)) step_arguments$productsPost <- changes$products
+    result <- .trade_simulate_step(
+      fit, model,
+      tariffPost = changes$tariff, quotaPost = changes$quota,
+      exit = changes$exit, priceStart = priceStart,
+      bargpowerPost = bargpowerPost, isMax = isMax, arguments = step_arguments
+    )
+    return(.counterfactual_attach(result, fit, cf))
   }
+
   if (any(c("tariffPre", "quotaPre", "ownerPost", "mcDelta") %in% names(arguments))) {
     bad <- intersect(names(arguments), c("tariffPre", "quotaPre", "ownerPost", "mcDelta"))
     stop("scenario argument(s) ", paste(bad, collapse = ", "),
          " cannot replace the fitted baseline")
   }
 
-  model <- fit@model
-  n <- length(model@shares)
-  if (!is.null(exit)) subset <- .counterfactual_subset(
-    exit, n, .trade_slot(model, "labels")
+  fields <- list(tariff = tariffPost, quota = quotaPost, exit = subset)
+  fields <- fields[!vapply(fields, is.null, logical(1))]
+  cf <- do.call(counterfactual, fields)
+  result <- .trade_simulate_step(
+    fit, fit@model,
+    tariffPost = tariffPost, quotaPost = quotaPost, subset = subset,
+    priceStart = priceStart, bargpowerPost = bargpowerPost, isMax = isMax,
+    arguments = arguments
   )
-  if (is.null(subset)) subset <- rep(TRUE, n)
-  if (!is.logical(subset) || length(subset) != n || !any(subset)) {
-    stop("'subset' must be a logical vector the same length as the fitted products with at least one TRUE value")
-  }
-
-  if (spec$policy == "tariff") {
-    if (!is.null(quotaPost)) stop("'quotaPost' is not supported by a tariff fit")
-    if (is.null(tariffPost)) tariffPost <- model@tariffPre
-
-    if (is(model, "TariffCournot")) {
-      result <- .trade_recalculate_cournot(fit, tariffPost, subset, arguments)
-    } else {
-      result <- .trade_recalculate_tariff(fit, tariffPost, subset,
-                                          priceStart, bargpowerPost,
-                                          isMax, arguments)
-    }
-  } else {
-    if (!is.null(tariffPost)) stop("'tariffPost' is not supported by a quota fit")
-    if (is.null(quotaPost)) quotaPost <- model@quotaPre
-    result <- .trade_recalculate_quota(fit, quotaPost, subset, priceStart,
-                                       isMax, arguments)
-  }
   .counterfactual_attach(result, fit, cf)
 }
 

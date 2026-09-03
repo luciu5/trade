@@ -6,7 +6,6 @@
 \alias{TariffCournot-class}
 \alias{Tariff2ndLogit-class}
 \alias{TariffBargainingLogit-class}
-\alias{TariffBargainingCES-class}
 \alias{TariffLogit-class}
 \alias{TariffLogitCournot-class}
 \alias{TariffLogitCournotALM-class}
@@ -14,6 +13,7 @@
 \alias{TariffMonComCES-class}
 \alias{TariffCES-class}
 \alias{TariffAIDS-class}
+\alias{TariffBargainingCES-class}
 \alias{TariffBertrand-class}
 \alias{TariffLogitCournotModels-class}
 \title{S4 classes to model tariffs}

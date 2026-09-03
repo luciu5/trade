@@ -18,11 +18,8 @@ License: CC0
 Encoding: UTF-8
 LazyLoad: yes
 Collate: 
-    'TariffClasses.R'
-    'TradeModelRegistry.R'
-    'TradeArchitecture.R'
-    'TradeModelTranslations.R'
     'Counterfactual.R'
+    'TariffClasses.R'
     'ps-methods.R'
     'HypoMonMethods.R'
     'QuotaClasses.R'
@@ -30,6 +27,9 @@ Collate:
     'SimFunctions.R'
     'TariffCournot-methods.R'
     'TariffMonComRUM-methods.R'
+    'TradeArchitecture.R'
+    'TradeModelRegistry.R'
+    'TradeModelTranslations.R'
     'summary-methods.R'
     'auction2nd_tariff.R'
     'bertrand_quota.R'
@@ -47,3 +47,4 @@ Packaged: 2019-06-25 18:47:45 UTC; ctaragin
 Repository: CRAN
 Date/Publication: 2019-06-26 10:20:03 UTC
 Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.2

@@ -209,7 +209,16 @@ supportedModels <- function() {
     leader = FALSE,
     products = spec$conduct == "cournot",
     tariff = isTRUE(entry$tariff),
-    quota = isTRUE(entry$quota)
+    quota = isTRUE(entry$quota),
+    ## Verified only for the two registry entries whose legacy class is
+    ## exactly bare antitrust::Logit/CES (logit::moncom::tariff,
+    ## ces::moncom::tariff); every other trade class is an ALM/LogitCap/
+    ## Cournot/auction/bargaining descendant that has not been audited.
+    quality = entry$class %in% c("TariffMonComLogit", "TariffMonComCES"),
+    ## Entry is not implemented for trade in this release: an entrant's
+    ## tariff/quota treatment is an economically substantive primitive not
+    ## specified by the existing policy state.
+    entry = FALSE
   )
 }
 
