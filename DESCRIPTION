@@ -22,6 +22,7 @@ Collate:
     'TradeModelRegistry.R'
     'TradeArchitecture.R'
     'TradeModelTranslations.R'
+    'Counterfactual.R'
     'ps-methods.R'
     'HypoMonMethods.R'
     'QuotaClasses.R'

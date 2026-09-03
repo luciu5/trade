@@ -51,6 +51,15 @@ log-price CES.
 
 ## Policy boundary
 
+`counterfactual()` is a lightweight reusable container for post-calibration
+policy changes. Trade currently maps `tariff`, `quota`, and product `exit`
+through the registry capabilities; ownership, cost, capacity, bargaining,
+leadership, and other fields fail early unless a complete trade model entry
+supports them. `simulate(fit, cf)` applies all supplied fields to one copied
+legacy model and invokes the existing tariff/quota equilibrium machinery.
+Legacy `tariffPost`, `quotaPost`, and `subset` arguments remain supported.
+Counterfactual metadata is attached to results and fits are not mutated.
+
 Tariffs and quotas remain model-specific policy state. Tariff scenarios are
 translated into the legacy tariff slots and marginal-cost conventions;
 homogeneous Cournot retains its plant-by-product tariff matrix. Quotas use the

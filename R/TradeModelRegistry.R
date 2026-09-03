@@ -197,6 +197,22 @@ supportedModels <- function() {
   as.data.frame(result, stringsAsFactors = FALSE)
 }
 
+.trade_counterfactual_capabilities <- function(spec) {
+  entry <- .trade_registry_entry(spec)
+  if (is.null(entry)) return(setNames(logical(), character()))
+  c(
+    ownership = FALSE,
+    costs = FALSE,
+    exit = TRUE,
+    capacity = FALSE,
+    bargaining = FALSE,
+    leader = FALSE,
+    products = spec$conduct == "cournot",
+    tariff = isTRUE(entry$tariff),
+    quota = isTRUE(entry$quota)
+  )
+}
+
 
 ## Respecification is intentionally narrower than model registration. These
 ## transitions have a complete supplied-parameter path in the legacy package:

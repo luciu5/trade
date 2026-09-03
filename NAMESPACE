@@ -2,6 +2,8 @@
 
 S3method(update,TradeFit)
 export(CV)
+export(combine_counterfactuals)
+export(counterfactual)
 export(auction2nd_tariff)
 export(bargaining_tariff)
 export(bertrand_quota)

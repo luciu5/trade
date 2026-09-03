@@ -42,6 +42,13 @@ equivalence.
 
 ## Preserved or unsupported behavior
 
+`Counterfactual` and `combine_counterfactuals()` now provide a reusable policy
+boundary. Tariff, quota, and exit fields are validated against the registered
+trade model before translation to legacy policy slots. Unsupported ownership,
+cost, capacity, bargaining, and leadership fields fail explicitly. Legacy
+policy arguments remain compatible, simultaneous fields are applied in one
+model-specific solve, and result metadata identifies the supplied scenario.
+
 Tariff incidence, marginal-cost recovery, quota capacity treatment, bargaining
 conventions, and all solver behavior remain delegated to the existing model
 implementations. Nested-demand and Cournot respecification remain unsupported

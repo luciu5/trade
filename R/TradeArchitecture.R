@@ -408,7 +408,8 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' for repeated tariff or quota scenarios without recalibration.
 #'
 #' @param fit A `TradeFit` returned by [calibrate()] or [specify()].
-#' @param tariffPost A post-policy ad valorem tariff vector for tariff models.
+#' @param tariffPost A post-policy ad valorem tariff vector for tariff models,
+#' or a `Counterfactual` object.
 #' @param quotaPost A post-policy quota vector for quota models.
 #' @param subset A logical vector selecting products in the post-policy market.
 #' @param priceStart Optional price starting values for the post-policy solve.
@@ -417,8 +418,9 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' @return The existing trade S4 result object, not a new result hierarchy.
 #' @rdname trade-architecture
 #' @export
-simulate <- function(fit, tariffPost, quotaPost, subset, priceStart,
-                     bargpowerPost, isMax = FALSE, ...) {
+simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
+                     priceStart = NULL, bargpowerPost = NULL,
+                     isMax = FALSE, ...) {
   if (!is(fit, "TradeFit")) stop("'fit' must be a TradeFit object")
   spec <- fit@spec
   entry <- .trade_registry_entry(spec)
@@ -427,6 +429,30 @@ simulate <- function(fit, tariffPost, quotaPost, subset, priceStart,
   }
 
   arguments <- list(...)
+  cf <- if (inherits(tariffPost, "Counterfactual")) tariffPost else NULL
+  if (!is.null(cf)) {
+    .validate_counterfactual(cf, spec)
+    conflicts <- c(
+      if (!is.null(quotaPost)) "quotaPost",
+      if (!is.null(subset)) "subset",
+      if (!is.null(priceStart)) "priceStart",
+      if (!is.null(bargpowerPost)) "bargpowerPost",
+      if (length(arguments)) names(arguments)
+    )
+    if (length(conflicts)) {
+      stop("cannot combine a Counterfactual with legacy scenario argument(s): ",
+           paste(unique(conflicts), collapse = ", "))
+    }
+    tariffPost <- cf$tariff
+    quotaPost <- cf$quota
+    exit <- cf$exit
+    if (!is.null(cf$products)) arguments$productsPost <- cf$products
+  } else {
+    exit <- NULL
+    fields <- list(tariff = tariffPost, quota = quotaPost, exit = subset)
+    fields <- fields[!vapply(fields, is.null, logical(1))]
+    cf <- do.call(counterfactual, fields)
+  }
   if (any(c("tariffPre", "quotaPre", "ownerPost", "mcDelta") %in% names(arguments))) {
     bad <- intersect(names(arguments), c("tariffPre", "quotaPre", "ownerPost", "mcDelta"))
     stop("scenario argument(s) ", paste(bad, collapse = ", "),
@@ -435,30 +461,32 @@ simulate <- function(fit, tariffPost, quotaPost, subset, priceStart,
 
   model <- fit@model
   n <- length(model@shares)
-  if (missing(subset)) subset <- rep(TRUE, n)
+  if (!is.null(exit)) subset <- .counterfactual_subset(
+    exit, n, .trade_slot(model, "labels")
+  )
+  if (is.null(subset)) subset <- rep(TRUE, n)
   if (!is.logical(subset) || length(subset) != n || !any(subset)) {
     stop("'subset' must be a logical vector the same length as the fitted products with at least one TRUE value")
   }
 
   if (spec$policy == "tariff") {
-    if (!missing(quotaPost)) stop("'quotaPost' is not supported by a tariff fit")
-    if (missing(tariffPost)) tariffPost <- model@tariffPre
+    if (!is.null(quotaPost)) stop("'quotaPost' is not supported by a tariff fit")
+    if (is.null(tariffPost)) tariffPost <- model@tariffPre
 
     if (is(model, "TariffCournot")) {
-      .trade_recalculate_cournot(fit, tariffPost, subset, arguments)
+      result <- .trade_recalculate_cournot(fit, tariffPost, subset, arguments)
     } else {
-      .trade_recalculate_tariff(fit, tariffPost, subset,
-                                if (missing(priceStart)) NULL else priceStart,
-                                if (missing(bargpowerPost)) NULL else bargpowerPost,
-                                isMax, arguments)
+      result <- .trade_recalculate_tariff(fit, tariffPost, subset,
+                                          priceStart, bargpowerPost,
+                                          isMax, arguments)
     }
   } else {
-    if (!missing(tariffPost)) stop("'tariffPost' is not supported by a quota fit")
-    if (missing(quotaPost)) quotaPost <- model@quotaPre
-    .trade_recalculate_quota(fit, quotaPost, subset,
-                             if (missing(priceStart)) NULL else priceStart,
-                             isMax, arguments)
+    if (!is.null(tariffPost)) stop("'tariffPost' is not supported by a quota fit")
+    if (is.null(quotaPost)) quotaPost <- model@quotaPre
+    result <- .trade_recalculate_quota(fit, quotaPost, subset, priceStart,
+                                       isMax, arguments)
   }
+  .counterfactual_attach(result, fit, cf)
 }
 
 
