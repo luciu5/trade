@@ -3,8 +3,27 @@
 \name{Sim-Functions}
 \alias{Sim-Functions}
 \alias{sim}
+\alias{.sim_legacy}
 \title{Tariff Simulation With User-Supplied Demand Parameters}
 \usage{
+.sim_legacy(
+  prices,
+  supply = c("moncom", "bertrand", "auction2nd", "bargaining"),
+  demand = c("logit", "ces"),
+  demand.param,
+  owner,
+  tariffPre = rep(0, length(prices)),
+  tariffPost = rep(0, length(prices)),
+  subset = rep(TRUE, length(prices)),
+  insideSize = 1,
+  priceOutside,
+  priceStart,
+  bargpowerPre = rep(0.5, length(prices)),
+  bargpowerPost = bargpowerPre,
+  labels = paste("Prod", 1:length(prices), sep = ""),
+  ...
+)
+
 sim(
   prices,
   supply = c("moncom", "bertrand", "auction2nd", "bargaining"),
@@ -87,6 +106,10 @@ assumption that all firms in the market are playing either a
 differentiated products Bertrand pricing game, 2nd price auction, or bargaining game.
 
 Let k denote the number of products produced by all firms below.
+
+Parameterized paths that have a registered `specify()` and `simulate()`
+implementation use that boundary. Other historical `sim()` paths continue
+through the original implementation.
 }
 \details{
 Using user-supplied demand parameters,
