@@ -12,6 +12,8 @@
 #' @param party If TRUE, report a party-level result when supported.
 #' @param isMax If TRUE, run the underlying local maximum check when supported.
 #' @param index Price index to use for aggregate price changes.
+#' @param path A `CounterfactualPath` object.
+#' @param i A single step index, for `result_at()`.
 #' @param ... Additional arguments passed to the underlying \pkg{antitrust}
 #'   method.
 #'
@@ -67,3 +69,13 @@ antitrust::ownerToMatrix
 #' @export
 #' @importFrom antitrust ownerToVec
 antitrust::ownerToVec
+
+#' @rdname antitrust-reexports
+#' @export
+#' @importFrom antitrust final_result
+antitrust::final_result
+
+#' @rdname antitrust-reexports
+#' @export
+#' @importFrom antitrust result_at
+antitrust::result_at

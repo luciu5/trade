@@ -12,6 +12,8 @@
 \alias{calcDiagnostics}
 \alias{ownerToMatrix}
 \alias{ownerToVec}
+\alias{final_result}
+\alias{result_at}
 \title{Re-exported antitrust diagnostics and accessors}
 \usage{
 calcPriceDelta(
@@ -41,6 +43,10 @@ calcDiagnostics(object, ...)
 ownerToMatrix(object, ...)
 
 ownerToVec(object, ...)
+
+final_result(path)
+
+result_at(path, i)
 }
 \arguments{
 \item{object}{An instance of a supported simulation class.}
@@ -58,6 +64,10 @@ proportional changes.}
 
 \item{...}{Additional arguments passed to the underlying \pkg{antitrust}
 method.}
+
+\item{path}{A `CounterfactualPath` object.}
+
+\item{i}{A single step index, for `result_at()`.}
 }
 \description{
 These functions are implemented in \pkg{antitrust} and re-exported by
