@@ -66,7 +66,9 @@ test_that("trade translations require target curvature", {
   expect_error(respecify(ces, demand = "logit"),
                "requires explicit target primitive.*alpha")
   expect_error(respecify(fit, demand = "ces", gamma = 0),
-               "trade CES 'gamma'.*positive")
+               "trade CES 'gamma'.*greater than 1")
+  expect_error(respecify(fit, demand = "ces", gamma = 1),
+               "trade CES 'gamma'.*greater than 1")
   expect_error(respecify(ces, demand = "logit", alpha = 0),
                "trade Logit 'alpha'.*negative")
 })

@@ -74,8 +74,8 @@
 
 .trade_translation_validate_gamma <- function(gamma) {
   if (!is.numeric(gamma) || length(gamma) != 1L ||
-      !is.finite(gamma) || gamma <= 0) {
-    stop("target trade CES 'gamma' must be a finite, positive scalar")
+      !is.finite(gamma) || gamma <= 1) {
+    stop("target trade CES 'gamma' must be a finite scalar greater than 1 for the output-market CES path")
   }
   as.numeric(gamma)
 }
