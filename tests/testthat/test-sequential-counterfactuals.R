@@ -1,12 +1,7 @@
 ## Tests for sequential (multi-step) trade counterfactual composition:
-## tariff sequencing, quality sequencing (moncom only), interactions with
-## exit, and the explicit rejections (ownership unsupported, entry
-## unsupported). Quota sequencing is written but skipped: `bertrand_quota()`
-## / `calibrate(..., policy = "quota")` are pre-existing broken on this
-## branch (`'capacitiesPre' values must be positive numbers`, because the
-## default `quotaPre = Inf` produces `Inf * quantities` for `capacitiesPre`,
-## which fails LogitCap's finiteness validity check) -- confirmed present
-## on an unmodified checkout, unrelated to this work; see final report.
+## tariff sequencing, quota sequencing, quality sequencing (moncom only),
+## interactions with exit, and the explicit rejections (ownership
+## unsupported, entry unsupported).
 
 .trade_seq_fit_data <- function() {
     list(
@@ -152,8 +147,35 @@ test_that("entry is rejected outright for trade in this release", {
     )), "not supported for trade")
 })
 
-## ---- Quota (skipped: pre-existing broken constructor on this branch) ------
+## ---- Quota --------------------------------------------------------------
+
+.trade_seq_quota_fit <- function() {
+    x <- .trade_seq_fit_data()
+    calibrate("logit", "bertrand", policy = "quota", prices = x$prices,
+             quantities = x$quantities, margins = x$margins, owner = x$owner)
+}
 
 test_that("sequential quota -> quota resolves to the same level as a direct one-shot quota", {
-    skip("bertrand_quota()/calibrate(..., policy = 'quota') is pre-existing broken on this branch: default quotaPre = Inf produces a non-finite capacitiesPre, failing LogitCap's validity check even without any Counterfactual involved. See final report.")
+    fit <- .trade_seq_quota_fit()
+    cf <- counterfactual(quota = c(rep(Inf, 5), .8))
+    cf <- add_step(cf, quota = c(rep(Inf, 5), .6))
+    path <- simulate(fit, cf)
+
+    expect_s4_class(path, "CounterfactualPath")
+    step2 <- result_at(path, 2)
+    reference <- simulate(fit, quotaPost = c(rep(Inf, 5), .6))
+    ## Quotas are absolute target levels (not deltas), so a sequential path
+    ## that ends at 0.6 must match a direct one-shot 0.6 quota exactly.
+    expect_equal(step2@capacitiesPost, reference@capacitiesPost, tolerance = 1e-8)
+    expect_equal(step2@pricePost, reference@pricePost, tolerance = 1e-8)
+})
+
+test_that("an unspecified quota persists at its current active level across steps", {
+    fit <- .trade_seq_quota_fit()
+    cf <- counterfactual(quota = c(rep(Inf, 5), .8))
+    cf <- add_step(cf, exit = 1L)
+    path <- simulate(fit, cf)
+
+    step2 <- result_at(path, 2)
+    expect_equal(step2@quotaPost, c(rep(Inf, 5), .8), tolerance = 1e-10)
 })
