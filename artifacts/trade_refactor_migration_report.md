@@ -28,13 +28,12 @@ parameter calls. Architecture tests compare calibrated/specified simulation
 results with the original constructors and verify repeated simulations do not
 mutate the fit. The compatibility `sim()` wrapper routes only registered
 supplied-parameter paths and preserves the legacy implementation elsewhere.
-With the previously installed `antitrust` dependency, the full test suite
-passes; the current dependency audit against antitrust refactor `32ca0c2`
-exposes four quota failures because antitrust's current `LogitCap` validity
-check rejects the `Inf` capacity sentinel used by trade's long-standing
-no-quota path. This is a cross-package compatibility blocker, not a trade
-model refactor failure. The package check otherwise reports the repository's
-pre-existing vignette-output warnings plus the same quota test failures.
+The full test suite and package check pass against antitrust refactor
+`c8a9979`, including the quota paths. This required antitrust to preserve its
+documented `+Inf` unbounded-capacity sentinel and apply complementarity only
+to finite capacities. The remaining package-check warnings are the existing
+`antitrust::simulate`/`stats::simulate` import masking and vignette-source/
+output warnings.
 
 `update()` is tested for no-op and changed-margin recalibration. `respecify()`
 is tested for Logit Bertrand↔monopolistic-competition parameter retention,
