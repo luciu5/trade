@@ -28,9 +28,12 @@ parameter calls. Architecture tests compare calibrated/specified simulation
 results with the original constructors and verify repeated simulations do not
 mutate the fit. The compatibility `sim()` wrapper routes only registered
 supplied-parameter paths and preserves the legacy implementation elsewhere.
-The full test suite and `R CMD check --no-manual --no-vignettes` pass for the
-current phase, with only the repository's pre-existing vignette-output
-warnings.
+The full test suite and package check pass against antitrust refactor
+`c8a9979`, including the quota paths. This required antitrust to preserve its
+documented `+Inf` unbounded-capacity sentinel and apply complementarity only
+to finite capacities. The remaining package-check warnings are the existing
+`antitrust::simulate`/`stats::simulate` import masking and vignette-source/
+output warnings.
 
 `update()` is tested for no-op and changed-margin recalibration. `respecify()`
 is tested for Logit Bertrand↔monopolistic-competition parameter retention,
@@ -42,6 +45,13 @@ not treated as a global demand equivalence. A respecified fit retains the
 source calibration call only as provenance and has no current calibration
 call, so `update(respecified_fit)` fails instead of recalibrating from source
 margins.
+
+The target `TariffCES` supplied-parameter path inherits the ordinary
+output-market `CESALM` convention, whose admissible curvature region is
+`gamma > 1`. Trade `respecify(..., demand = "ces")` now validates this domain
+explicitly. The legacy `sim()` path is unchanged; it historically accepts
+nonnegative `gamma` values while using the supplied value directly, so this
+stricter check is limited to deterministic output-market respecification.
 
 ## Preserved or unsupported behavior
 
