@@ -36,9 +36,9 @@ warnings.
 is tested for Logit Bertrand↔monopolistic-competition parameter retention,
 target-state reconstruction, flat Logit↔CES local translations, unsupported
 Cournot/nested transitions, and source-fit immutability. Flat Logit↔CES
-translations match target baseline shares analytically and report local
-elasticity-distance diagnostics; they are not treated as a global demand
-equivalence.
+translations require explicit target curvature, match target baseline shares
+analytically, and report deterministic local elasticity diagnostics; they are
+not treated as a global demand equivalence.
 
 ## Preserved or unsupported behavior
 

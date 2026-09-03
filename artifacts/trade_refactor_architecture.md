@@ -34,20 +34,18 @@ calls `calibrate()` again. It is a genuine recalibration and never a class
 coercion. Specified-only fits reject `update()` because they do not contain an
 observed-data identifying call.
 
-`respecify(fit, ...)` uses an explicit transition registry. The current
-portable transitions are same-demand Logit or CES Bertrand↔monopolistic
-competition. Demand primitives are retained and the target state is rebuilt
-through `specify()` without using source margins to recalibrate them. Trade has
-no validated supplied-parameter Cournot path, and Logit↔CES or nested-demand
-transitions have no common structural parameter interpretation, so nested and
-Cournot transitions remain unsupported and should use `update()`. Flat
-Logit↔CES translations are supported for Bertrand and monopolistic
-competition. They preserve baseline prices, quantities, and trade accounting,
-match target baseline shares analytically, select curvature using baseline
-elasticity distance, and rebuild the target state through `specify()` without
-using source margins to recalibrate demand. This is a local demand
-translation, not a global equivalence claim between price-level Logit and
-log-price CES.
+`respecify(fit, ...)` uses an explicit transition registry. Same-demand
+Bertrand↔monopolistic-competition transitions retain portable primitives and
+rebuild the target state through `specify()`. Flat Logit↔CES translations are
+supported for Bertrand and monopolistic competition, but require target
+curvature (`gamma` or `alpha`) explicitly. They preserve baseline prices,
+quantities, and trade accounting, match target baseline shares analytically,
+and rebuild the target state without using source margins to recalibrate
+demand. This is a local demand translation, not a global equivalence claim
+between price-level Logit and log-price CES. Trade has no validated nested
+demand systems or supplied-parameter Cournot path, so those transitions remain
+unsupported and should use `update()` or a separately reviewed model-specific
+loader.
 
 ## Policy boundary
 

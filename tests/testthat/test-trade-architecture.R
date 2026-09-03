@@ -220,7 +220,7 @@ test_that("trade respecification rejects nonportable demand and Cournot transiti
   x <- trade_fit_data()
   fit <- calibrate("logit", "bertrand", prices = x$prices,
     quantities = x$quantities, margins = x$margins, owner = x$owner)
-  expect_s4_class(respecify(fit, demand = "ces"), "TradeFit")
+  expect_s4_class(respecify(fit, demand = "ces", gamma = 1.2), "TradeFit")
   expect_error(respecify(fit, conduct = "cournot"),
     "not supported.*use update")
 

@@ -222,48 +222,52 @@ supportedModels <- function() {
 .trade_transition_registry <- local({
   entries <- list(
     list(from = "logit::bertrand", to = "logit::moncom",
+         kind = "structural-restriction", required_arguments = character(),
          retain = c("alpha", "meanval"),
          recompute = c("marginal costs", "monopolistic-competition state"),
          invalidate = c("Bertrand margins"),
          calibration_required = FALSE),
     list(from = "logit::moncom", to = "logit::bertrand",
+         kind = "structural-restriction", required_arguments = character(),
          retain = c("alpha", "meanval"),
          recompute = c("marginal costs", "Bertrand state"),
          invalidate = c("monopolistic-competition margins"),
          calibration_required = FALSE),
     list(from = "ces::bertrand", to = "ces::moncom",
+         kind = "structural-restriction", required_arguments = character(),
          retain = c("alpha", "gamma", "meanval"),
          recompute = c("marginal costs", "monopolistic-competition state"),
          invalidate = c("Bertrand margins"),
          calibration_required = FALSE),
     list(from = "ces::moncom", to = "ces::bertrand",
+         kind = "structural-restriction", required_arguments = character(),
          retain = c("alpha", "gamma", "meanval"),
          recompute = c("marginal costs", "Bertrand state"),
          invalidate = c("monopolistic-competition margins"),
          calibration_required = FALSE),
     list(from = "logit::bertrand", to = "ces::bertrand",
-         kind = "local-demand-translation",
+         kind = "algebraic-translation", required_arguments = c("gamma"),
          retain = c("prices", "ownership", "conduct"),
          recompute = c("CES demand parameters", "marginal costs",
                        "Bertrand state"),
          invalidate = c("Logit demand parameters"),
          calibration_required = FALSE),
     list(from = "ces::bertrand", to = "logit::bertrand",
-         kind = "local-demand-translation",
+         kind = "algebraic-translation", required_arguments = c("alpha"),
          retain = c("prices", "ownership", "conduct"),
          recompute = c("Logit demand parameters", "marginal costs",
                        "Bertrand state"),
          invalidate = c("CES demand parameters"),
          calibration_required = FALSE),
     list(from = "logit::moncom", to = "ces::moncom",
-         kind = "local-demand-translation",
+         kind = "algebraic-translation", required_arguments = c("gamma"),
          retain = c("prices", "ownership", "conduct"),
          recompute = c("CES demand parameters", "marginal costs",
                        "monopolistic-competition state"),
          invalidate = c("Logit demand parameters"),
          calibration_required = FALSE),
     list(from = "ces::moncom", to = "logit::moncom",
-         kind = "local-demand-translation",
+         kind = "algebraic-translation", required_arguments = c("alpha"),
          retain = c("prices", "ownership", "conduct"),
          recompute = c("Logit demand parameters", "marginal costs",
                        "monopolistic-competition state"),
@@ -282,5 +286,11 @@ supportedModels <- function() {
     stop("respecify() transition from '", from$id, "' to '",
          to$id, "' is not supported; use update() to recalibrate the target model")
   }
-  matches[[1L]]
+  entry <- matches[[1L]]
+  if (is.null(entry$required_arguments)) entry$required_arguments <- character()
+  if (is.null(entry$kind)) entry$kind <- "structural-restriction"
+  if (is.null(entry$derived)) entry$derived <- character()
+  if (is.null(entry$discarded)) entry$discarded <- character()
+  if (is.null(entry$calibration_required)) entry$calibration_required <- FALSE
+  entry
 }

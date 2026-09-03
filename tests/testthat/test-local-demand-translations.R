@@ -19,13 +19,13 @@ expect_trade_translation <- function(source, target, target_demand) {
   expect_equal(unname(target_shares), unname(source_shares), tolerance = 1e-7)
   expect_equal(unname(calcQuantities(target@model, preMerger = TRUE)),
                unname(source_quantities), tolerance = 1e-6)
-  expect_lte(target@diagnostics$local_translation$baseline_share_discrepancy,
+  expect_lte(target@diagnostics$translation$baseline_share_discrepancy,
              1e-8)
-  expect_lte(target@diagnostics$local_translation$baseline_quantity_discrepancy,
+  expect_lte(target@diagnostics$translation$baseline_quantity_discrepancy,
              1e-6)
-  expect_true(is.finite(target@diagnostics$local_translation$elasticity_rmse))
-  expect_equal(target@diagnostics$local_translation$transition_type,
-               "local-demand-translation")
+  expect_true(is.finite(target@diagnostics$translation$elasticity_rmse))
+  expect_equal(target@diagnostics$translation$transition_kind,
+               "algebraic-translation")
   invisible(target)
 }
 
@@ -34,12 +34,12 @@ test_that("trade flat Logit and CES translation preserves quantities", {
   source <- calibrate("logit", "bertrand", prices = x$prices,
                       quantities = x$quantities, margins = x$margins,
                       owner = x$owner)
-  target <- respecify(source, demand = "ces")
+  target <- respecify(source, demand = "ces", gamma = 1.2)
   expect_trade_translation(source, target, "ces")
   expect_s4_class(target@model, "TariffCES")
   expect_false(isTRUE(all.equal(source@model@mcPre, target@model@mcPre)))
 
-  reverse <- respecify(target, demand = "logit")
+  reverse <- respecify(target, demand = "logit", alpha = -25)
   expect_trade_translation(target, reverse, "logit")
   expect_s4_class(reverse@model, "TariffLogit")
 })
@@ -48,17 +48,32 @@ test_that("trade translation works for monopolistic competition", {
   x <- trade_translation_data()
   source <- calibrate("logit", "moncom", prices = x$prices,
                       quantities = x$quantities, margins = x$margins)
-  target <- respecify(source, demand = "ces")
+  target <- respecify(source, demand = "ces", gamma = 1.2)
   expect_trade_translation(source, target, "ces")
   expect_equal(target@spec$conduct, "moncom")
   expect_s4_class(target@model, "TariffMonComCES")
 })
 
-test_that("trade keeps nested demand transitions unavailable until registered", {
+test_that("trade translations require target curvature", {
+  x <- trade_translation_data()
+  fit <- calibrate("logit", "bertrand", prices = x$prices,
+                   quantities = x$quantities, margins = x$margins,
+                   owner = x$owner)
+  expect_error(respecify(fit, demand = "ces"),
+               "requires explicit target primitive.*gamma")
+
+  ces <- respecify(fit, demand = "ces", gamma = 1.2)
+  expect_error(respecify(ces, demand = "logit"),
+               "requires explicit target primitive.*alpha")
+})
+
+test_that("trade keeps unregistered demand transitions unavailable", {
   x <- trade_translation_data()
   fit <- calibrate("logit", "bertrand", prices = x$prices,
                    quantities = x$quantities, margins = x$margins,
                    owner = x$owner)
   expect_error(respecify(fit, demand = "logit_nests"),
                "unsupported demand")
+  expect_error(respecify(fit, demand = "aids"),
+               "not supported")
 })

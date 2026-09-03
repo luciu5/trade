@@ -1,6 +1,9 @@
-# Local flat Logit/CES demand translations for TradeFit objects.
-# Nested demand systems are not currently registered in trade; those
-# transitions remain unavailable here until a complete trade model path exists.
+# Deterministic demand translations for TradeFit objects.
+#
+# Trade currently has complete supplied-parameter paths for flat Logit and CES
+# Bertrand and monopolistic-competition tariff models.  This file therefore
+# implements only those registered transitions.  It does not introduce
+# nested or Cournot parameter paths that the legacy package does not provide.
 
 .trade_translation_market_elasticity <- function(model) {
   value <- try(elast(model, preMerger = TRUE, market = TRUE), silent = TRUE)
@@ -10,35 +13,91 @@
 .trade_translation_state <- function(fit) {
   model <- fit@model
   prices <- as.numeric(model@pricePre)
+  quantities <- as.numeric(calcQuantities(model, preMerger = TRUE))
   qshares <- as.numeric(calcShares(model, preMerger = TRUE, revenue = FALSE))
   rshares <- as.numeric(calcShares(model, preMerger = TRUE, revenue = TRUE))
-  quantities <- as.numeric(calcQuantities(model, preMerger = TRUE))
-  revenues <- as.numeric(calcRevenues(model, preMerger = TRUE))
-  ## The historical parameterized CES path can leave mktSize as numeric(0)
-  ## when shareInside equals one.  Recover the same inside-revenue accounting
-  ## used by the calibrated CES path without changing the legacy constructor.
-  if (identical(fit@spec$demand, "ces") && !length(revenues)) {
-    revenues <- model@insideSize * rshares / sum(rshares)
-    quantities <- revenues / prices
+  if (!all(is.finite(quantities)) && is.numeric(fit@observed$quantities)) {
+    quantities <- as.numeric(fit@observed$quantities)
   }
-  if (any(!is.finite(c(prices, qshares, rshares, quantities, revenues)))) {
+  if (!all(is.finite(quantities))) quantities <- qshares / sum(qshares)
+  if (!all(is.finite(qshares))) qshares <- quantities / sum(quantities)
+  revenues <- quantities * prices
+  if (!all(is.finite(rshares))) rshares <- revenues / sum(revenues)
+  if (any(!is.finite(c(prices, quantities, qshares, rshares, revenues)))) {
     stop("respecify() requires finite baseline prices, shares, and quantities")
   }
   list(
     model = model,
     prices = prices,
+    quantities = quantities,
     quantity_shares = qshares,
     revenue_shares = rshares,
-    quantities = quantities,
     revenues = revenues,
     has_outside_quantity = sum(qshares) < 1 - 1e-8,
     has_outside_revenue = sum(rshares) < 1 - 1e-8,
-    norm_index = if ("normIndex" %in% methods::slotNames(model)) model@normIndex else NA_integer_,
+    price_outside = if (.trade_has_slot(model, "priceOutside")) {
+      model@priceOutside
+    } else {
+      0
+    },
+    norm_index = if (.trade_has_slot(model, "normIndex")) {
+      model@normIndex
+    } else {
+      NA_integer_
+    },
     owner = .trade_raw_owner(fit, model),
-    labels = if ("labels" %in% methods::slotNames(model)) model@labels else names(prices),
+    labels = if (.trade_has_slot(model, "labels")) model@labels else names(prices),
     elasticity = as.matrix(elast(model, preMerger = TRUE)),
     market_elasticity = .trade_translation_market_elasticity(model)
   )
+}
+
+.trade_translation_parameter <- function(fit, name) {
+  slopes <- fit@parameters$slopes
+  if (is.list(slopes) && !is.null(slopes[[name]])) {
+    return(slopes[[name]])
+  }
+  if (.trade_has_slot(fit@model, "slopes") &&
+      is.list(fit@model@slopes) && !is.null(fit@model@slopes[[name]])) {
+    return(fit@model@slopes[[name]])
+  }
+  NULL
+}
+
+.trade_translation_logit_meanval <- function(shares, prices, alpha,
+                                             has_outside, price_outside,
+                                             reference) {
+  if (any(shares <= 0)) stop("demand translation requires strictly positive baseline shares")
+  if (has_outside) {
+    outside <- 1 - sum(shares)
+    if (outside <= 0) stop("the target Logit model has no positive outside share")
+    result <- log(shares / outside) - alpha * (prices - price_outside)
+  } else {
+    result <- log(shares / shares[reference]) -
+      alpha * (prices - prices[reference])
+    result[reference] <- 0
+  }
+  names(result) <- names(shares)
+  result
+}
+
+.trade_translation_ces_meanval <- function(shares, prices, gamma,
+                                           has_outside, price_outside,
+                                           reference) {
+  if (any(shares <= 0)) stop("demand translation requires strictly positive baseline shares")
+  if (has_outside) {
+    outside <- 1 - sum(shares)
+    if (outside <= 0 || price_outside <= 0) {
+      stop("the target CES model requires a positive outside-good price")
+    }
+    result <- (shares / outside) * (price_outside / prices)^(1 - gamma)
+  } else {
+    result <- (shares / shares[reference]) *
+      (prices[reference] / prices)^(1 - gamma)
+    result[reference] <- 1
+  }
+  names(result) <- names(shares)
+  result
 }
 
 .trade_translation_reference <- function(state) {
@@ -46,46 +105,20 @@
   if (is.na(index) || index < 1L || index > length(state$prices)) 1L else index
 }
 
-.trade_translation_logit_meanval <- function(shares, prices, alpha,
-                                             has_outside, reference) {
-  if (any(shares <= 0)) stop("local demand translation requires positive shares")
-  if (has_outside) {
-    outside <- 1 - sum(shares)
-    if (outside <= 0) stop("the target Logit model has no positive outside share")
-    meanval <- log(shares / outside) - alpha * prices
-  } else {
-    meanval <- log(shares / shares[reference]) -
-      alpha * (prices - prices[reference])
-    meanval[reference] <- 0
-  }
-  names(meanval) <- names(shares)
-  meanval
-}
-
-.trade_translation_ces_meanval <- function(shares, prices, gamma,
-                                           has_outside, reference) {
-  if (any(shares <= 0)) stop("local demand translation requires positive shares")
-  if (has_outside) {
-    outside <- 1 - sum(shares)
-    if (outside <= 0) stop("the target CES model has no positive outside share")
-    meanval <- (shares / outside) * prices^(gamma - 1)
-  } else {
-    meanval <- (shares / shares[reference]) *
-      (prices[reference] / prices)^(1 - gamma)
-    meanval[reference] <- 1
-  }
-  names(meanval) <- names(shares)
-  meanval
+.trade_translation_price_outside <- function(state, target, has_outside) {
+  value <- as.numeric(state$price_outside)[1]
+  if (target == "ces" && (!is.finite(value) || value <= 0)) return(1)
+  if (!has_outside) return(if (is.finite(value) && value >= 0) value else 1)
+  if (!is.finite(value) || value < 0) 0 else value
 }
 
 .trade_translation_target_args <- function(state, target, parameters,
-                                           shares, inside_size,
-                                           price_outside, tariff_pre) {
+                                           inside_size, price_outside) {
   list(
     demand = target,
     prices = state$prices,
     parameters = parameters,
-    tariffPre = tariff_pre,
+    tariffPre = state$model@tariffPre,
     owner = state$owner,
     insideSize = inside_size,
     priceOutside = price_outside,
@@ -93,124 +126,110 @@
   )
 }
 
-.trade_translation_build <- function(state, target, parameters, shares,
-                                     inside_size, price_outside, tariff_pre) {
-  args <- .trade_translation_target_args(
-    state, target, parameters, shares, inside_size, price_outside, tariff_pre
-  )
-  result <- do.call(specify, args)
-  if (identical(target$demand, "ces") && "mktSize" %in% methods::slotNames(result@model)) {
-    ## Keep the target CES market-size slot usable for output methods.  This is
-    ## the total revenue implied by the target inside revenue and share.
-    result@model@mktSize <- inside_size / sum(shares)
+.trade_translation_build <- function(state, target, parameters, inside_size,
+                                     price_outside) {
+  result <- do.call(specify, .trade_translation_target_args(
+    state, target, parameters, inside_size, price_outside
+  ))
+  if (target$demand == "ces" && .trade_has_slot(result@model, "mktSize")) {
+    result@model@mktSize <- inside_size / sum(calcShares(
+      result@model, preMerger = TRUE, revenue = TRUE
+    ))
   }
+  validObject(result@model)
   result
 }
 
-.trade_translation_distance <- function(source_elasticity, target_fit) {
-  target_elasticity <- as.matrix(elast(target_fit@model, preMerger = TRUE))
-  difference <- target_elasticity - source_elasticity
-  finite <- is.finite(difference)
-  if (!any(finite)) return(Inf)
-  mean(difference[finite]^2)
-}
-
-.translate_trade_demand <- function(fit, target) {
+.translate_trade_demand <- function(fit, target, transition, supplied) {
   state <- .trade_translation_state(fit)
-  if (!all(c(fit@spec$demand, target$demand) %in% c("logit", "ces"))) {
-    stop("trade currently supports local respecification only between flat Logit and CES")
+  source <- fit@spec$demand
+  target_demand <- target$demand
+  missing <- setdiff(transition$required_arguments, names(supplied))
+  if (length(missing)) {
+    stop("respecify() transition from '", source, "' to '", target_demand,
+         "' requires explicit target primitive(s): ", paste(missing, collapse = ", "))
   }
-  to_ces <- identical(target$demand, "ces")
+  if (!all(c(source, target_demand) %in% c("logit", "ces"))) {
+    stop("trade currently supports deterministic respecification only between flat Logit and CES")
+  }
+
+  to_ces <- target_demand == "ces"
   shares <- if (to_ces) state$revenue_shares else state$quantity_shares
-  inside_size <- if (to_ces) sum(state$revenues) else sum(state$quantities)
   has_outside <- if (to_ces) state$has_outside_revenue else state$has_outside_quantity
-  price_outside <- if (to_ces) 1 else 0
+  price_outside <- .trade_translation_price_outside(
+    state, target_demand, has_outside
+  )
+  inside_size <- if (to_ces) sum(state$revenues) else sum(state$quantities)
   reference <- .trade_translation_reference(state)
-  tariff_pre <- state$model@tariffPre
 
   if (to_ces) {
-    objective_gamma <- function(gamma) {
-      meanval <- try(.trade_translation_ces_meanval(
-        shares, state$prices, gamma, has_outside, reference
-      ), silent = TRUE)
-      if (inherits(meanval, "try-error")) return(1e12)
-      parameters <- list(gamma = gamma, meanval = meanval,
-                         shareInside = sum(shares))
-      candidate <- try(suppressWarnings(.trade_translation_build(
-        state, target, parameters, shares, inside_size, price_outside,
-        tariff_pre
-      )), silent = TRUE)
-      if (inherits(candidate, "try-error")) return(1e12)
-      .trade_translation_distance(state$elasticity, candidate)
+    gamma <- if (source == "ces") {
+      as.numeric(.trade_translation_parameter(fit, "gamma"))[1]
+    } else {
+      as.numeric(supplied$gamma)[1]
     }
-    result <- stats::optimize(objective_gamma, c(1 + 1e-5, 100))
-    gamma <- result$minimum
+    if (!is.finite(gamma)) stop("target 'gamma' must be a finite scalar")
     meanval <- .trade_translation_ces_meanval(
-      shares, state$prices, gamma, has_outside, reference
+      shares, state$prices, gamma, has_outside, price_outside, reference
     )
     parameters <- list(gamma = gamma, meanval = meanval,
                        shareInside = sum(shares))
-    mapping <- list(
-      formula = "mu_j proportional to revenue_share_j * price_j^(gamma - 1)",
-      optimizer = "stats::optimize over gamma"
-    )
+    mapping <- list(formula = "mu_j proportional to revenue_share_j * price_j^(gamma - 1)")
   } else {
-    source_gamma <- state$model@slopes$gamma
-    weighted_price <- sum(state$prices * shares) / sum(shares)
-    objective_alpha <- function(alpha) {
-      meanval <- try(.trade_translation_logit_meanval(
-        shares, state$prices, alpha, has_outside, reference
-      ), silent = TRUE)
-      if (inherits(meanval, "try-error")) return(1e12)
-      parameters <- list(alpha = alpha, meanval = meanval)
-      candidate <- try(suppressWarnings(.trade_translation_build(
-        state, target, parameters, shares, inside_size, price_outside,
-        tariff_pre
-      )), silent = TRUE)
-      if (inherits(candidate, "try-error")) return(1e12)
-      .trade_translation_distance(state$elasticity, candidate)
+    alpha <- if (source == "logit") {
+      as.numeric(.trade_translation_parameter(fit, "alpha"))[1]
+    } else {
+      as.numeric(supplied$alpha)[1]
     }
-    sign <- if (isTRUE(state$model@output)) -1 else 1
-    initial <- sign * max(abs(source_gamma) / weighted_price, 1e-3)
-    bounds <- if (sign < 0) c(-1e6, -1e-5) else c(1e-5, 1e6)
-    result <- stats::optimize(objective_alpha, bounds,
-                              tol = .Machine$double.eps^0.25)
-    alpha <- result$minimum
+    if (!is.finite(alpha)) stop("target 'alpha' must be a finite scalar")
     meanval <- .trade_translation_logit_meanval(
-      shares, state$prices, alpha, has_outside, reference
+      shares, state$prices, alpha, has_outside, price_outside, reference
     )
     parameters <- list(alpha = alpha, meanval = meanval)
-    mapping <- list(
-      formula = "meanval_j = log(quantity_share_j / reference_share) - alpha * price_difference",
-      initial_alpha = initial,
-      optimizer = "stats::optimize over alpha"
-    )
+    mapping <- list(formula = "delta_j = log(quantity_share_j / reference_share) - alpha * price_difference")
   }
 
   target_fit <- .trade_translation_build(
-    state, target, parameters, shares, inside_size, price_outside, tariff_pre
+    state, target, parameters, inside_size, price_outside
   )
-  target_elasticity <- as.matrix(elast(target_fit@model, preMerger = TRUE))
-  target_shares <- as.numeric(calcShares(target_fit@model, TRUE,
-                                         revenue = to_ces))
-  target_quantities <- as.numeric(calcQuantities(target_fit@model, TRUE))
-  share_difference <- target_shares - shares
-  quantity_difference <- target_quantities - state$quantities
-  elasticity_difference <- target_elasticity - state$elasticity
-  diagnostics <- list(
-    source_demand = fit@spec$demand,
-    target_demand = target$demand,
-    transition_type = "local-demand-translation",
-    baseline_share_discrepancy = max(abs(share_difference), na.rm = TRUE),
-    baseline_quantity_discrepancy = max(abs(quantity_difference), na.rm = TRUE),
-    elasticity_rmse = sqrt(mean(elasticity_difference^2, na.rm = TRUE)),
-    maximum_absolute_elasticity_difference = max(abs(elasticity_difference), na.rm = TRUE),
-    source_market_elasticity = state$market_elasticity,
-    target_market_elasticity = .trade_translation_market_elasticity(target_fit@model),
-    parameter_mapping = mapping,
-    optimizer = list(convergence = TRUE, objective = result$objective),
-    target_parameters = parameters
+  target_e <- as.matrix(elast(target_fit@model, preMerger = TRUE))
+  target_market_elasticity <- .trade_translation_market_elasticity(target_fit@model)
+  target_shares <- as.numeric(calcShares(
+    target_fit@model, preMerger = TRUE, revenue = to_ces
+  ))
+  target_q <- as.numeric(calcQuantities(target_fit@model, preMerger = TRUE))
+  source_j <- state$elasticity * outer(state$quantities, 1 / state$prices)
+  target_j <- target_e * outer(target_q, 1 / state$prices)
+  e_diff <- target_e - state$elasticity
+  j_diff <- target_j - source_j
+  list(
+    fit = target_fit,
+    state = state,
+    shares = shares,
+    parameters = parameters,
+    diagnostics = list(
+      source_demand = source,
+      target_demand = target_demand,
+      transition_kind = transition$kind,
+      baseline_price_discrepancy = max(abs(target_fit@model@pricePre - state$prices), na.rm = TRUE),
+      baseline_quantity_discrepancy = max(abs(target_q - state$quantities), na.rm = TRUE),
+      baseline_share_discrepancy = max(abs(target_shares - shares), na.rm = TRUE),
+      required_arguments = transition$required_arguments,
+      derived_parameters = parameters,
+      discarded_parameters = transition$discarded,
+      target_parameter_validity = isTRUE(validObject(target_fit@model, test = TRUE)),
+      source_elasticity = state$elasticity,
+      target_elasticity = target_e,
+      source_market_elasticity = state$market_elasticity,
+      target_market_elasticity = target_market_elasticity,
+      elasticity_discrepancy = e_diff,
+      elasticity_rmse = sqrt(mean(e_diff^2, na.rm = TRUE)),
+      maximum_absolute_elasticity_difference = max(abs(e_diff), na.rm = TRUE),
+      source_jacobian = source_j,
+      target_jacobian = target_j,
+      jacobian_discrepancy = j_diff,
+      jacobian_rmse = sqrt(mean(j_diff^2, na.rm = TRUE)),
+      parameter_mapping = mapping
+    )
   )
-  list(fit = target_fit, state = state, parameters = parameters,
-       shares = shares, inside_size = inside_size, diagnostics = diagnostics)
 }

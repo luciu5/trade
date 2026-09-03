@@ -597,16 +597,17 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 #' Only transitions with a complete supplied-parameter path are permitted.
 #' Same-demand primitives are retained and the target conduct state is
 #' reconstructed through `specify()`. Registered flat Logit/CES transitions
-#' instead translate the demand locally by matching baseline shares and
-#' minimizing baseline elasticity distance; source margins are not used to
-#' recalibrate translated demand. This is not a global equivalence claim
+#' use deterministic baseline translations and require any target curvature
+#' primitive that is not identified by the source. Source margins are not used
+#' to recalibrate translated demand. This is not a global equivalence claim
 #' between price-level Logit and log-price CES.
 #'
 #' @param fit A `TradeFit` returned by `calibrate()` or `specify()`.
 #' @param demand Optional target demand-system name.
 #' @param conduct Optional target conduct name.
 #' @param variant Optional target model variant.
-#' @param ... Reserved for future transition-specific options.
+#' @param ... Transition-specific target primitives. For the registered flat
+#'   Logit/CES transitions, supply `alpha` or `gamma` as required.
 #' @return A newly constructed `TradeFit` under the target specification.
 #' @seealso [`specify()`], [`update.TradeFit()`]
 #' @rdname trade-architecture
@@ -616,8 +617,15 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   if (!is(fit, "TradeFit")) {
     stop("'fit' must be a TradeFit returned by calibrate() or specify()")
   }
-  if (length(list(...))) {
-    stop("respecify() does not accept transition-specific arguments yet")
+  supplied <- list(...)
+  if (length(supplied) &&
+      (is.null(names(supplied)) || any(!nzchar(names(supplied))))) {
+    stop("respecify() transition arguments must be named")
+  }
+  unsupported <- setdiff(names(supplied), c("alpha", "gamma"))
+  if (length(unsupported)) {
+    stop("unsupported respecify() transition argument(s): ",
+         paste(unsupported, collapse = ", "))
   }
 
   source <- fit@spec
@@ -631,9 +639,14 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     stop("respecify() requires a different registered model specification")
   }
   transition <- .trade_transition_entry(source, target)
+  if (identical(source$demand, target$demand) && length(supplied)) {
+    stop("respecify() transition from '", source$id, "' to '", target$id,
+         "' does not accept transition-specific demand arguments")
+  }
 
-  if (identical(transition$kind, "local-demand-translation")) {
-    translated <- .translate_trade_demand(fit, target)
+  if (!identical(source$demand, target$demand)) {
+    translated <- .translate_trade_demand(fit, target, transition,
+                                           supplied)
     result <- translated$fit
     result@parameters <- .trade_parameters(result@model)
     result@observed <- fit@observed
@@ -644,11 +657,15 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
       from = source$id,
       to = target$id,
       kind = transition$kind,
+      required_arguments = transition$required_arguments,
       retained = transition$retain,
+      derived = transition$derived,
+      discarded = transition$discarded,
       recomputed = transition$recompute,
       invalidated = transition$invalidate,
       calibration_required = transition$calibration_required
     )
+    result@diagnostics$translation <- translated$diagnostics
     result@diagnostics$local_translation <- translated$diagnostics
     result@diagnostics$source_calibration_args <-
       fit@diagnostics$calibration_args
@@ -684,7 +701,11 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   result@diagnostics$transition <- list(
     from = source$id,
     to = target$id,
+    kind = transition$kind,
+    required_arguments = transition$required_arguments,
     retained = transition$retain,
+    derived = transition$derived,
+    discarded = transition$discarded,
     recomputed = transition$recompute,
     invalidated = transition$invalidate,
     calibration_required = transition$calibration_required

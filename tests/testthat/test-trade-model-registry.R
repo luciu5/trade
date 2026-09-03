@@ -33,5 +33,28 @@ test_that("registry contains only complete implemented trade models", {
 test_that("unsupported combinations fail clearly", {
   expect_error(model_spec("ces", "auction2nd"), "unsupported trade model")
   expect_error(model_spec("logit", "stackelberg"), "unsupported conduct")
-  expect_error(model_spec("not-a-demand", "bertrand"), "unsupported demand")
+    expect_error(model_spec("not-a-demand", "bertrand"), "unsupported demand")
+})
+
+test_that("trade transition registry records only supported supplied paths", {
+    transitions <- getFromNamespace(
+        ".trade_transition_registry", "trade"
+    )()
+    keys <- vapply(
+        transitions,
+        function(entry) paste(entry$from, entry$to, sep = "->"),
+        character(1)
+    )
+
+    expect_false(anyDuplicated(keys) > 0L)
+    expect_true(all(vapply(
+        transitions,
+        function(entry) entry$kind %in% c(
+            "structural-restriction", "algebraic-translation",
+            "conditional-translation"
+        ),
+        logical(1)
+    )))
+    expect_true(any(keys == "logit::bertrand->ces::bertrand"))
+    expect_false(any(grepl("nested|cournot", keys)))
 })
