@@ -30,6 +30,22 @@ NULL
          variant = "standard", policy = "tariff", class = "TariffAIDS",
          legacy_calibrator = "bertrand_tariff", calibrate = TRUE,
          specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "blp::bertrand", demand = "blp", conduct = "bertrand",
+         variant = "standard", policy = "tariff", class = "TariffLogitBLP",
+         legacy_calibrator = "blp", calibrate = TRUE,
+         specify = TRUE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "blp::cournot", demand = "blp", conduct = "cournot",
+         variant = "standard", policy = "tariff", class = "TariffCournotBLP",
+         legacy_calibrator = "blp", calibrate = TRUE,
+         specify = TRUE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "blp::auction2nd", demand = "blp", conduct = "auction2nd",
+         variant = "standard", policy = "tariff", class = "TariffAuction2ndBLP",
+         legacy_calibrator = "blp", calibrate = TRUE,
+         specify = TRUE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "blp::bargaining", demand = "blp", conduct = "bargaining",
+         variant = "standard", policy = "tariff", class = "TariffBargainingBLP",
+         legacy_calibrator = "blp", calibrate = TRUE,
+         specify = TRUE, simulate = TRUE, tariff = TRUE, quota = FALSE),
     list(id = "logit::moncom", demand = "logit", conduct = "moncom",
          variant = "standard", policy = "tariff", class = "TariffMonComLogit",
          legacy_calibrator = "monopolistic_competition_tariff", calibrate = TRUE,
@@ -91,6 +107,7 @@ NULL
 .normalize_trade_demand <- function(demand) {
   .normalize_trade_name(demand, c(
     logit = "logit", multinomiallogit = "logit",
+    blp = "blp", logitblp = "blp", randomcoefficientslogit = "blp",
     ces = "ces", aids = "aids", linear = "linear",
     loglinear = "loglin", loglin = "loglin"
   ), "demand")

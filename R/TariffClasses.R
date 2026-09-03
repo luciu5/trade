@@ -128,6 +128,34 @@ setClass("TariffLogitCournotALM", contains = "LogitCournotALM",
            .validTariffVector(object)
          })
 
+# BLP demand uses the complete antitrust BLP conduct classes.  These light
+# tariff wrappers add only the pre/post tariff state; the demand, conduct,
+# cost-recovery, and equilibrium methods remain those supplied by antitrust.
+# In particular, trade does not create a second BLP implementation.
+setClass("TariffLogitBLP", contains = "LogitBLP",
+         representation = representation(
+           tariffPre = "numeric",
+           tariffPost = "numeric"),
+         validity = function(object) .validTariffVector(object))
+
+setClass("TariffCournotBLP", contains = "CournotBLP",
+         representation = representation(
+           tariffPre = "numeric",
+           tariffPost = "numeric"),
+         validity = function(object) .validTariffVector(object))
+
+setClass("TariffAuction2ndBLP", contains = "Auction2ndBLP",
+         representation = representation(
+           tariffPre = "numeric",
+           tariffPost = "numeric"),
+         validity = function(object) .validTariffVector(object))
+
+setClass("TariffBargainingBLP", contains = "BargainingBLP",
+         representation = representation(
+           tariffPre = "numeric",
+           tariffPost = "numeric"),
+         validity = function(object) .validTariffVector(object))
+
 #'@rdname Tariff-classes
 #' @export
 setClass("TariffMonComLogit", contains = "Logit",
@@ -235,8 +263,8 @@ setClass("TariffBargainingCES", contains = "BargainingCES",
 
 #'@rdname Tariff-classes
 #' @export
-setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES","Tariff2ndLogit","TariffBargainingLogit","TariffBargainingCES"))
+setClassUnion("TariffBertrand", c("TariffLogit", "TariffCES", "TariffAIDS","TariffMonComLogit","TariffMonComCES","Tariff2ndLogit","TariffBargainingLogit","TariffBargainingCES", "TariffLogitBLP", "TariffCournotBLP", "TariffAuction2ndBLP", "TariffBargainingBLP"))
 
 #'@rdname Tariff-classes
 #' @export
-setClassUnion("TariffLogitCournotModels", c("TariffLogitCournot", "TariffLogitCournotALM"))
+setClassUnion("TariffLogitCournotModels", c("TariffLogitCournot", "TariffLogitCournotALM", "TariffCournotBLP"))

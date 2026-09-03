@@ -204,6 +204,9 @@ calibrate <- function(demand, conduct = NULL, variant = "standard",
     arguments
   )
   .trade_reject_post_arguments(arguments)
+  if (identical(spec$demand, "blp")) {
+    return(.trade_calibrate_blp(spec, arguments, calibration_args))
+  }
   arguments <- .trade_calibrate_arguments(spec, arguments)
   calibrator <- .trade_legacy_function(entry$legacy_calibrator)
   captured <- .trade_capture_conditions(do.call(calibrator, arguments))
@@ -271,6 +274,10 @@ specify <- function(demand, conduct = NULL, prices, parameters,
     arguments
   )
   .trade_reject_post_arguments(arguments)
+  if (identical(spec$demand, "blp")) {
+    return(.trade_specify_blp(spec, prices, parameters, arguments,
+                              specification_args))
+  }
   arguments <- .trade_specify_arguments(spec, prices, parameters, arguments)
   captured <- .trade_capture_conditions(do.call(.sim_legacy, arguments))
 
@@ -447,7 +454,10 @@ specify <- function(demand, conduct = NULL, prices, parameters,
     ## (both set from calibration), so single-shot behavior is unchanged.
     if (is.null(tariffPost)) tariffPost <- model@tariffPost
 
-    if (is(model, "TariffCournot")) {
+    if (identical(spec$demand, "blp")) {
+      .trade_recalculate_blp(step_fit, tariffPost, subset, priceStart,
+                             bargpowerPost, isMax, arguments)
+    } else if (is(model, "TariffCournot")) {
       .trade_recalculate_cournot(step_fit, tariffPost, subset, arguments)
     } else {
       .trade_recalculate_tariff(step_fit, tariffPost, subset,

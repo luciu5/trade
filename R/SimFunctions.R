@@ -126,7 +126,7 @@ NULL
 #'@export
 .sim_legacy <- function(prices,
                 supply=c("moncom","bertrand","auction2nd","bargaining"),
-                demand=c("logit","ces"),
+                demand=c("logit","ces","BLP","LogitBLP","CournotBLP"),
                 demand.param,
                 owner,
                 tariffPre=rep(0,length(prices)),
@@ -139,12 +139,26 @@ NULL
                 bargpowerPost=bargpowerPre,
                 labels=paste("Prod",1:length(prices),sep=""),...){
 
+  supply_missing <- missing(supply)
   if(!missing(supply) && length(supply) == 1 && supply == "auction"){
     warning("'auction' is deprecated; use 'auction2nd' instead")
     supply <- "auction2nd"
   }
   supply <- match.arg(supply)
   demand <- match.arg(demand)
+  if (identical(demand, "LogitBLP")) {
+    if (!supply_missing && supply != "bertrand") {
+      stop("'demand = \"LogitBLP\"' is only compatible with 'supply = \"bertrand\"'. Use 'demand = \"BLP\"' for explicit supply control.")
+    }
+    demand <- "BLP"
+    supply <- "bertrand"
+  } else if (identical(demand, "CournotBLP")) {
+    if (!supply_missing && supply != "cournot") {
+      stop("'demand = \"CournotBLP\"' is only compatible with 'supply = \"cournot\"'. Use 'demand = \"BLP\"' for explicit supply control.")
+    }
+    demand <- "BLP"
+    supply <- "cournot"
+  }
   nprods <- length(prices)
 
   tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
