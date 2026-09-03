@@ -108,6 +108,52 @@ test_that("other documented tariff constructors construct valid objects", {
   expect_true(methods::isClass("TariffMonComCES"))
 })
 
+test_that("CES bargaining tariff preserves revenue accounting and tariff wedges", {
+  x <- beer_data()
+  tariff <- suppressWarnings(
+    bargaining_tariff(
+      demand = "ces",
+      prices = x$prices,
+      shares = x$shares,
+      margins = x$margins,
+      owner = x$owner,
+      tariffPost = x$tariff,
+      insideSize = sum(x$quantities),
+      labels = x$labels
+    )
+  )
+
+  revenue_shares <- x$prices * x$quantities /
+    sum(x$prices * x$quantities)
+  owner_matrix <- .owner_to_matrix(x$owner, length(x$prices), "owner")
+  expected_owner_post <- owner_matrix *
+    matrix(1 - x$tariff, nrow = length(x$tariff), ncol = length(x$tariff))
+  expected_mc_delta <- tariff@mcPre *
+    (x$tariff - 0) / (1 - x$tariff)
+
+  expect_equal(unname(tariff@shares), unname(revenue_shares), tolerance = 1e-12)
+  expect_equal(tariff@ownerPre, owner_matrix, tolerance = 1e-12)
+  expect_equal(tariff@ownerPost, expected_owner_post, tolerance = 1e-12)
+  expect_equal(tariff@mcDelta, expected_mc_delta, tolerance = 1e-12)
+  expect_equal(unname(tariff@pricePre), unname(x$prices), tolerance = 1e-7)
+  expect_equal(
+    unname(tariff@pricePost),
+    c(.0441000051356314, .0328000074633931, .0409000303612154,
+      .0396000293962325, .0387863677340622, .0498414298186677),
+    tolerance = 1e-7
+  )
+
+  zero_change <- suppressWarnings(
+    bargaining_tariff(
+      demand = "ces", prices = x$prices, shares = x$shares,
+      margins = x$margins, owner = x$owner,
+      tariffPost = rep(0, length(x$prices)),
+      insideSize = sum(x$quantities)
+    )
+  )
+  expect_equal(zero_change@pricePost, zero_change@pricePre, tolerance = 1e-7)
+})
+
 test_that("constructors require explicit ownership when ownership affects conduct", {
   x <- beer_data()
 

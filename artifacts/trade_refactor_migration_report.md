@@ -38,7 +38,10 @@ target-state reconstruction, flat Logit↔CES local translations, unsupported
 Cournot/nested transitions, and source-fit immutability. Flat Logit↔CES
 translations require explicit target curvature, match target baseline shares
 analytically, and report deterministic local elasticity diagnostics; they are
-not treated as a global demand equivalence.
+not treated as a global demand equivalence. A respecified fit retains the
+source calibration call only as provenance and has no current calibration
+call, so `update(respecified_fit)` fails instead of recalibrating from source
+margins.
 
 ## Preserved or unsupported behavior
 
@@ -51,7 +54,10 @@ model-specific solve, and result metadata identifies the supplied scenario.
 
 Tariff incidence, marginal-cost recovery, quota capacity treatment, bargaining
 conventions, and all solver behavior remain delegated to the existing model
-implementations. Nested-demand and Cournot respecification remain unsupported
+implementations. The CES bargaining-tariff path is documented and tested as
+new substantive functionality: its revenue-share conversion, tariff-adjusted
+ownership, marginal-cost wedge, baseline-price, and zero-tariff behavior have
+an independent regression/oracle check. Nested-demand and Cournot respecification remain unsupported
 because trade currently lacks a validated common supplied-parameter path for
 those conversions. They require `update()` or a separately reviewed
 model-specific loader.

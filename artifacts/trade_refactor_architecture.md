@@ -47,6 +47,14 @@ demand systems or supplied-parameter Cournot path, so those transitions remain
 unsupported and should use `update()` or a separately reviewed model-specific
 loader.
 
+The CES bargaining-tariff path is substantive trade functionality, not merely
+registry plumbing. It converts quantity shares to revenue shares for CES,
+uses the trade CES normalization, applies tariff-adjusted ownership and the
+existing marginal-cost wedge convention, and delegates the bargaining FOCs to
+the established CES bargaining implementation. Independent tariff-wedge,
+revenue-accounting, baseline-price, and zero-tariff-change regression checks
+cover this path.
+
 ## Policy boundary
 
 `counterfactual()` is a lightweight reusable container for post-calibration

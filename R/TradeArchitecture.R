@@ -510,6 +510,10 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
   }
   calibration_args <- object@diagnostics$calibration_args
   if (!is.list(calibration_args) || is.null(names(calibration_args))) {
+    if (identical(object@diagnostics$route, "respecify") ||
+        !is.null(object@diagnostics$source_calibration_args)) {
+      stop("update() requires a fit whose current specification was created by calibrate(); this fit was created by respecify()")
+    }
     stop("this fit does not retain a calibration call; update() requires a fit created by calibrate()")
   }
 
@@ -669,17 +673,7 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     result@diagnostics$local_translation <- translated$diagnostics
     result@diagnostics$source_calibration_args <-
       fit@diagnostics$calibration_args
-    if (is.list(fit@diagnostics$calibration_args)) {
-      target_calibration <- fit@diagnostics$calibration_args
-      target_calibration$demand <- target$demand
-      target_calibration$conduct <- target$conduct
-      target_calibration$variant <- target$variant
-      target_calibration$policy <- target$policy
-      target_calibration$tariffPre <- translated$state$model@tariffPre
-      target_calibration$tariffPost <- NULL
-      target_calibration$quotaPre <- NULL
-      result@diagnostics$calibration_args <- target_calibration
-    }
+    result@diagnostics$calibration_args <- NULL
     return(result)
   }
 
@@ -710,12 +704,8 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     invalidated = transition$invalidate,
     calibration_required = transition$calibration_required
   )
-  if (is.list(fit@diagnostics$calibration_args)) {
-    result@diagnostics$calibration_args <- fit@diagnostics$calibration_args
-    result@diagnostics$calibration_args$demand <- target$demand
-    result@diagnostics$calibration_args$conduct <- target$conduct
-    result@diagnostics$calibration_args$variant <- target$variant
-    result@diagnostics$calibration_args$policy <- target$policy
-  }
+  result@diagnostics$source_calibration_args <-
+    fit@diagnostics$calibration_args
+  result@diagnostics$calibration_args <- NULL
   result
 }

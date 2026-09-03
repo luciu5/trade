@@ -213,6 +213,10 @@ test_that("trade update changes calibration conduct and respecify retains demand
                "logit::moncom")
   expect_false(isTRUE(all.equal(updated@model@mcPre,
                                 respecified@model@mcPre)))
+  expect_null(respecified@diagnostics$calibration_args)
+  expect_equal(respecified@diagnostics$source_calibration_args,
+               fit@diagnostics$calibration_args)
+  expect_error(update(respecified), "fit.*created by calibrate.*respecify")
   expect_equal(fit@spec$conduct, "bertrand")
 })
 

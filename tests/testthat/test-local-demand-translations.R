@@ -65,6 +65,10 @@ test_that("trade translations require target curvature", {
   ces <- respecify(fit, demand = "ces", gamma = 1.2)
   expect_error(respecify(ces, demand = "logit"),
                "requires explicit target primitive.*alpha")
+  expect_error(respecify(fit, demand = "ces", gamma = 0),
+               "trade CES 'gamma'.*positive")
+  expect_error(respecify(ces, demand = "logit", alpha = 0),
+               "trade Logit 'alpha'.*negative")
 })
 
 test_that("trade keeps unregistered demand transitions unavailable", {

@@ -5,7 +5,7 @@
 \title{Tariff Simulation With A Nash Bargaining Game}
 \usage{
 bargaining_tariff(
-  demand = c("logit"),
+  demand = c("logit", "ces"),
   prices,
   shares,
   margins,
@@ -27,7 +27,7 @@ bargaining_tariff(
 )
 }
 \arguments{
-\item{demand}{A character vector indicating which demand system to use. Currently allows logit (default).}
+\item{demand}{A character vector indicating which demand system to use. Currently allows logit (default) or ces.}
 
 \item{prices}{A length k vector product prices.}
 
@@ -77,47 +77,20 @@ The default is to draw k random elements from a [0,1] uniform distribution. For 
 \item{...}{Additional options to feed to the \code{\link[BB]{BBsolve}} optimizer used to solve for equilibrium prices.}
 }
 \value{
-\code{bargaining_tariff} returns an instance of class \code{\linkS4class{TariffBargainingLogit}}
+\code{bargaining_tariff} returns an instance of class \code{\linkS4class{TariffBargainingLogit}} or \code{\linkS4class{TariffBargainingCES}}
 }
 \description{
-Simulate the effect of tariffs when firms play a Nash Bargaining game and consumer demand is Logit.
+Simulate the effect of tariffs when firms play a Nash Bargaining game and consumer demand is Logit or CES.
 }
 \details{
 Let k denote the number of products produced by all firms.
 Using price, and quantity, information for all products
 in each market, as well as margin information for at least
 one products in each market, \code{bargaining_tariff} is able to
-recover the slopes and intercepts of a Logit  demand
+recover the slopes and intercepts of a Logit or CES demand
 system. These parameters are then used to simulate the price
 effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 Nash Bargaining game.
-}
-\examples{
-\donttest{
-## Calibration and simulation results from a 10\% tariff on non-US beers "OTHER-LITE"
-## and "OTHER-REG"
-## Source: Epstein/Rubenfeld 2004, pg 80
-
-prodNames <- c("BUD","OLD STYLE","MILLER","MILLER-LITE","OTHER-LITE","OTHER-REG")
-owner <-c("BUD","OLD STYLE","MILLER","MILLER","OTHER-LITE","OTHER-REG")
-price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
-shares   <- c(.066,.172,.253,.187,.099,.223)
-margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
-tariff <- c(0,0,0,0,.1,.1)
-
-names(price) <-
- names(shares) <-
- names(margins) <-
- prodNames
-
-
-result.barg <- bargaining_tariff(demand = "logit",prices=price,shares=shares,
-                                margins = margins,owner=owner,
-                                 tariffPost = tariff, labels=prodNames)
-
-print(result.barg)           # return predicted price change
-summary(result.barg)         # summarize merger simulation
-}
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,

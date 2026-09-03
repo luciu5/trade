@@ -64,6 +64,22 @@
   NULL
 }
 
+.trade_translation_validate_alpha <- function(alpha) {
+  if (!is.numeric(alpha) || length(alpha) != 1L ||
+      !is.finite(alpha) || alpha >= 0) {
+    stop("target trade Logit 'alpha' must be a finite, negative scalar")
+  }
+  as.numeric(alpha)
+}
+
+.trade_translation_validate_gamma <- function(gamma) {
+  if (!is.numeric(gamma) || length(gamma) != 1L ||
+      !is.finite(gamma) || gamma <= 0) {
+    stop("target trade CES 'gamma' must be a finite, positive scalar")
+  }
+  as.numeric(gamma)
+}
+
 .trade_translation_logit_meanval <- function(shares, prices, alpha,
                                              has_outside, price_outside,
                                              reference) {
@@ -168,7 +184,7 @@
     } else {
       as.numeric(supplied$gamma)[1]
     }
-    if (!is.finite(gamma)) stop("target 'gamma' must be a finite scalar")
+    gamma <- .trade_translation_validate_gamma(gamma)
     meanval <- .trade_translation_ces_meanval(
       shares, state$prices, gamma, has_outside, price_outside, reference
     )
@@ -181,7 +197,7 @@
     } else {
       as.numeric(supplied$alpha)[1]
     }
-    if (!is.finite(alpha)) stop("target 'alpha' must be a finite scalar")
+    alpha <- .trade_translation_validate_alpha(alpha)
     meanval <- .trade_translation_logit_meanval(
       shares, state$prices, alpha, has_outside, price_outside, reference
     )
