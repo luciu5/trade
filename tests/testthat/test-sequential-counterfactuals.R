@@ -1,7 +1,8 @@
 ## Tests for sequential (multi-step) trade counterfactual composition:
-## tariff sequencing, quota sequencing, quality sequencing (moncom only),
-## interactions with exit, and the explicit rejections (ownership
-## unsupported, entry unsupported).
+## tariff sequencing, quota sequencing, quality sequencing across every
+## Logit/CES-family trade class (moncom, tariff Bertrand/Cournot,
+## second-score auction, bargaining, quota), interactions with exit, and
+## the explicit rejections (ownership unsupported, entry unsupported).
 
 .trade_seq_fit_data <- function() {
     list(
@@ -15,6 +16,12 @@
 .trade_seq_fit <- function() {
     x <- .trade_seq_fit_data()
     calibrate("logit", "bertrand", prices = x$prices,
+             quantities = x$quantities, margins = x$margins, owner = x$owner)
+}
+
+.trade_seq_quota_fit <- function() {
+    x <- .trade_seq_fit_data()
+    calibrate("logit", "bertrand", policy = "quota", prices = x$prices,
              quantities = x$quantities, margins = x$margins, owner = x$owner)
 }
 
@@ -66,9 +73,9 @@ test_that("simulate() can resume tariff sequencing from a CounterfactualPath", {
     expect_false(step3@subset[1])
 })
 
-## ---- Quality (moncom only) --------------------------------------------------
+## ---- Quality -----------------------------------------------------------
 
-test_that("quality is verified only for logit::moncom::tariff and ces::moncom::tariff", {
+test_that("quality is verified for logit::moncom::tariff and ces::moncom::tariff", {
     x <- .trade_seq_fit_data()
     fit <- calibrate("logit", "moncom", prices = x$prices,
                      quantities = x$quantities, margins = x$margins)
@@ -103,12 +110,72 @@ test_that("quality persists into a later tariff change and vice versa", {
     expect_equal(step2b@tariffPost, c(rep(0, 5), .1), tolerance = 1e-10)
 })
 
-test_that("quality is rejected for tariff Bertrand (LogitALM-descended, unverified)", {
+test_that("quality is verified for tariff Bertrand (LogitALM-descended) and persists across a tariff change", {
     fit <- .trade_seq_fit()
-    expect_error(
-        simulate(fit, counterfactual(quality = c(BUD = .1))),
-        "does not support"
-    )
+    baseline_meanval <- fit@model@slopes$meanval[["Prod1"]]
+
+    cf <- counterfactual(quality = c(Prod1 = .10))
+    cf <- add_step(cf, tariff = c(rep(0, 5), .1))
+    path <- simulate(fit, cf)
+    step2 <- result_at(path, 2)
+    expect_equal(step2@slopes$meanval[["Prod1"]], baseline_meanval * 1.10, tolerance = 1e-10)
+    expect_equal(step2@tariffPost, c(rep(0, 5), .1), tolerance = 1e-10)
+})
+
+test_that("quality is verified for tariff Cournot (LogitCournot-descended)", {
+    x <- .trade_seq_fit_data()
+    fit <- calibrate("logit", "cournot", prices = x$prices,
+                     quantities = x$quantities, margins = x$margins, owner = x$owner)
+    baseline <- fit@model@slopes$meanval[["Prod1"]]
+    result <- simulate(fit, counterfactual(quality = c(Prod1 = .10)))
+    expect_equal(result@slopes$meanval[["Prod1"]], baseline * 1.10, tolerance = 1e-10)
+})
+
+test_that("quality is verified for second-score auction tariff models", {
+    x <- .trade_seq_fit_data()
+    fit <- calibrate("logit", "auction2nd", prices = x$prices,
+                     quantities = x$quantities, margins = x$margins * x$prices,
+                     owner = x$owner)
+    baseline <- fit@model@slopes$meanval[["Prod1"]]
+    result <- simulate(fit, counterfactual(quality = c(Prod1 = .10)))
+    expect_equal(result@slopes$meanval[["Prod1"]], baseline * 1.10, tolerance = 1e-10)
+})
+
+test_that("quality is verified for bargaining tariff Logit and CES", {
+    x <- .trade_seq_fit_data()
+    fit <- calibrate("logit", "bargaining", prices = x$prices,
+                     shares = x$quantities / sum(x$quantities), margins = x$margins,
+                     owner = x$owner)
+    baseline <- fit@model@slopes$meanval[["Prod1"]]
+    result <- simulate(fit, counterfactual(quality = c(Prod1 = .10)))
+    expect_equal(result@slopes$meanval[["Prod1"]], baseline * 1.10, tolerance = 1e-10)
+
+    fit_c <- calibrate("ces", "bargaining", prices = x$prices,
+                      shares = x$quantities / sum(x$quantities), margins = x$margins,
+                      owner = x$owner)
+    baseline_c <- fit_c@model@slopes$meanval[["Prod1"]]
+    result_c <- simulate(fit_c, counterfactual(quality = c(Prod1 = .10)))
+    expect_equal(result_c@slopes$meanval[["Prod1"]], baseline_c * 1.10, tolerance = 1e-10)
+})
+
+test_that("quality is verified for quota Logit and persists across a quota change", {
+    fit <- .trade_seq_quota_fit()
+    baseline <- fit@model@slopes$meanval[["Prod6"]]
+
+    cf <- counterfactual(quality = c(Prod6 = .10))
+    cf <- add_step(cf, quota = c(rep(Inf, 5), .8))
+    path <- simulate(fit, cf)
+    step2 <- result_at(path, 2)
+    expect_equal(step2@slopes$meanval[["Prod6"]], baseline * 1.10, tolerance = 1e-10)
+    expect_equal(step2@quotaPost, c(rep(Inf, 5), .8), tolerance = 1e-10)
+})
+
+test_that("quality is rejected for AIDS tariff models (no meanval)", {
+    x <- .trade_seq_fit_data()
+    fit_aids <- calibrate("aids", "bertrand", prices = x$prices,
+                          quantities = x$quantities, margins = x$margins,
+                          owner = x$owner)
+    expect_error(simulate(fit_aids, counterfactual(quality = c(Prod1 = .1))), "does not support")
 })
 
 ## ---- Exit + tariff interaction ---------------------------------------------
@@ -148,12 +215,6 @@ test_that("entry is rejected outright for trade in this release", {
 })
 
 ## ---- Quota --------------------------------------------------------------
-
-.trade_seq_quota_fit <- function() {
-    x <- .trade_seq_fit_data()
-    calibrate("logit", "bertrand", policy = "quota", prices = x$prices,
-             quantities = x$quantities, margins = x$margins, owner = x$owner)
-}
 
 test_that("sequential quota -> quota resolves to the same level as a direct one-shot quota", {
     fit <- .trade_seq_quota_fit()

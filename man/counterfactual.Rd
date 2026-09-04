@@ -39,9 +39,11 @@ counterfactual(
 \item{products}{Product-structure changes, unsupported unless registered.}
 
 \item{quality}{A named numeric vector of proportional changes to
-calibrated `meanval`, keyed by product label. Verified only for the
-`logit::moncom::tariff` and `ces::moncom::tariff` trade models, whose
-legacy classes are exactly bare `antitrust::Logit`/`antitrust::CES`.}
+calibrated `meanval`, keyed by product label. Verified for every
+registered trade model whose legacy class wraps a Logit/CES-family
+antitrust demand system (moncom, tariff Bertrand/Cournot, second-score
+auction, bargaining, and LogitCap-descended quota); unsupported for
+AIDS and linear/loglin Cournot tariff models, which have no `meanval`.}
 
 \item{entry}{Not supported for trade in this release; always errors.}
 

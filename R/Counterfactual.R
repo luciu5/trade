@@ -26,9 +26,11 @@
 #' @param leader Leader changes, unsupported unless registered.
 #' @param products Product-structure changes, unsupported unless registered.
 #' @param quality A named numeric vector of proportional changes to
-#'   calibrated `meanval`, keyed by product label. Verified only for the
-#'   `logit::moncom::tariff` and `ces::moncom::tariff` trade models, whose
-#'   legacy classes are exactly bare `antitrust::Logit`/`antitrust::CES`.
+#'   calibrated `meanval`, keyed by product label. Verified for every
+#'   registered trade model whose legacy class wraps a Logit/CES-family
+#'   antitrust demand system (moncom, tariff Bertrand/Cournot, second-score
+#'   auction, bargaining, and LogitCap-descended quota); unsupported for
+#'   AIDS and linear/loglin Cournot tariff models, which have no `meanval`.
 #' @param entry Not supported for trade in this release; always errors.
 #' @param ... Reserved; model specification fields are rejected.
 #' @return A `Counterfactual` object with exactly one `CounterfactualStep`.
@@ -168,13 +170,24 @@ combine_counterfactuals <- function(...) {
     active
 }
 
-## The two trade registry entries whose legacy class is exactly bare
-## antitrust::Logit / antitrust::CES (logit::moncom::tariff,
-## ces::moncom::tariff) are the only models where quality's `meanval`
-## multiplier has been verified against antitrust's demand equations.
-## Every other trade class (LogitALM/CESALM-descended tariff Bertrand,
-## LogitCap-descended quota, Cournot, auction, bargaining) is excluded.
-.quality_supported_trade_classes <- c("TariffMonComLogit", "TariffMonComCES")
+## Every trade tariff/quota class that wraps a Logit/CES-family antitrust
+## demand system has been calibrated and quality-shocked directly to
+## confirm the post-shock FOC residual is at machine precision: bare
+## Logit/CES moncom (TariffMonComLogit/CES), LogitALM/CESALM-descended
+## tariff Bertrand (TariffLogit/CES), Logit(ALM)Cournot-descended tariff
+## Cournot (TariffLogitCournot/ALM), second-score auction
+## (Tariff2ndLogit), bargaining (TariffBargainingLogit/CES), and
+## LogitCap-descended quota (QuotaLogit). Trade has no nested-demand
+## registry entries, so that family (in scope on the antitrust side)
+## simply does not arise here.
+.quality_supported_trade_classes <- c(
+    "TariffMonComLogit", "TariffMonComCES",
+    "TariffLogit", "TariffCES",
+    "TariffLogitCournot", "TariffLogitCournotALM",
+    "Tariff2ndLogit",
+    "TariffBargainingLogit", "TariffBargainingCES",
+    "QuotaLogit"
+)
 
 .validate_counterfactual_step <- function(step, spec) {
     capabilities <- .trade_counterfactual_capabilities(spec)

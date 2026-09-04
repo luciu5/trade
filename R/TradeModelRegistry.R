@@ -227,11 +227,13 @@ supportedModels <- function() {
     products = spec$conduct == "cournot",
     tariff = isTRUE(entry$tariff),
     quota = isTRUE(entry$quota),
-    ## Verified only for the two registry entries whose legacy class is
-    ## exactly bare antitrust::Logit/CES (logit::moncom::tariff,
-    ## ces::moncom::tariff); every other trade class is an ALM/LogitCap/
-    ## Cournot/auction/bargaining descendant that has not been audited.
-    quality = entry$class %in% c("TariffMonComLogit", "TariffMonComCES"),
+    ## Verified for every registry entry whose legacy class wraps a
+    ## Logit/CES-family antitrust demand system (calibrated and
+    ## quality-shocked directly; post-shock FOC residual at machine
+    ## precision for each). TariffAIDS (AIDS demand) and TariffCournot
+    ## (linear/loglin Cournot demand) have no meanval slot and stay
+    ## excluded.
+    quality = entry$class %in% .quality_supported_trade_classes,
     ## Entry is not implemented for trade in this release: an entrant's
     ## tariff/quota treatment is an economically substantive primitive not
     ## specified by the existing policy state.
