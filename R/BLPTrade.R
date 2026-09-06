@@ -50,7 +50,8 @@ NULL
 .trade_blp_options <- c(
   "output", "priceOutside", "insideSize", "labels", "weights", "nDraws",
   "draws", "drawWeights", "integration", "contractionTol",
-  "contractionMaxIter", "optimizer_control", "bargpowerPre"
+  "contractionMaxIter", "nNodes", "integrationWeights",
+  "optimizer_control", "bargpowerPre"
 )
 
 .trade_blp_antitrust_options <- function(arguments) {
@@ -90,7 +91,15 @@ NULL
     antitrust_fit@diagnostics$messages,
     conditions$messages
   ))
-  fit@parameters <- .trade_parameters(model)
+  ## Preserve antitrust's direct BLP parameter names for lifecycle consumers
+  ## while retaining the tariff wrapper's complete slope object for legacy
+  ## callers.  The wrapper must not collapse alphaMean/sigma into an opaque
+  ## nested list.
+  fit@parameters <- antitrust_fit@parameters
+  fit@parameters$slopes <- model@slopes
+  if (.trade_has_slot(model, "bargpowerPre")) {
+    fit@parameters$bargpowerPre <- model@bargpowerPre
+  }
   fit
 }
 
