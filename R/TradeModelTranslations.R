@@ -1,9 +1,9 @@
-# Deterministic demand translations for TradeFit objects.
+# Demand translation adapter for TradeFit objects.
 #
-# Trade currently has complete supplied-parameter paths for flat Logit and CES
-# Bertrand and monopolistic-competition tariff models.  This file therefore
-# implements only those registered transitions.  It does not introduce
-# nested or Cournot parameter paths that the legacy package does not provide.
+# Demand conversion is implemented by antitrust. Trade supplies only the
+# adapter needed to present a tariff model as an AntitrustFit, then rebuilds
+# the target tariff model with the translated demand primitives. Keeping the
+# conversion in one package prevents the two transition graphs from drifting.
 
 .trade_translation_market_elasticity <- function(model) {
   value <- try(elast(model, preMerger = TRUE, market = TRUE), silent = TRUE)
@@ -14,15 +14,17 @@
   model <- fit@model
   prices <- as.numeric(model@pricePre)
   quantities <- as.numeric(calcQuantities(model, preMerger = TRUE))
-  qshares <- as.numeric(calcShares(model, preMerger = TRUE, revenue = FALSE))
-  rshares <- as.numeric(calcShares(model, preMerger = TRUE, revenue = TRUE))
-  if (!all(is.finite(quantities)) && is.numeric(fit@observed$quantities)) {
+  qshares <- as.numeric(calcShares(model, preMerger = TRUE,
+                                   revenue = FALSE))
+  rshares <- as.numeric(calcShares(model, preMerger = TRUE,
+                                   revenue = TRUE))
+  if (any(!is.finite(quantities)) && is.numeric(fit@observed$quantities)) {
     quantities <- as.numeric(fit@observed$quantities)
   }
-  if (!all(is.finite(quantities))) quantities <- qshares / sum(qshares)
-  if (!all(is.finite(qshares))) qshares <- quantities / sum(quantities)
+  if (any(!is.finite(quantities))) quantities <- qshares / sum(qshares)
+  if (any(!is.finite(qshares))) qshares <- quantities / sum(quantities)
   revenues <- quantities * prices
-  if (!all(is.finite(rshares))) rshares <- revenues / sum(revenues)
+  if (any(!is.finite(rshares))) rshares <- revenues / sum(revenues)
   if (any(!is.finite(c(prices, quantities, qshares, rshares, revenues)))) {
     stop("respecify() requires finite baseline prices, shares, and quantities")
   }
@@ -36,7 +38,7 @@
     has_outside_quantity = sum(qshares) < 1 - 1e-8,
     has_outside_revenue = sum(rshares) < 1 - 1e-8,
     price_outside = if (.trade_has_slot(model, "priceOutside")) {
-      model@priceOutside
+      as.numeric(model@priceOutside)[1]
     } else {
       0
     },
@@ -52,100 +54,160 @@
   )
 }
 
-.trade_translation_parameter <- function(fit, name) {
-  slopes <- fit@parameters$slopes
-  if (is.list(slopes) && !is.null(slopes[[name]])) {
-    return(slopes[[name]])
-  }
-  if (.trade_has_slot(fit@model, "slopes") &&
-      is.list(fit@model@slopes) && !is.null(fit@model@slopes[[name]])) {
-    return(fit@model@slopes[[name]])
-  }
-  NULL
+.trade_antitrust_conduct <- function(conduct) {
+  ## Monopolistic competition is trade-specific. Its demand conversion is
+  ## nevertheless the same flat demand mapping used by antitrust; the final
+  ## trade target is rebuilt under the trade moncom equations below.
+  if (identical(conduct, "moncom")) "bertrand" else conduct
 }
 
-.trade_translation_validate_alpha <- function(alpha) {
-  if (!is.numeric(alpha) || length(alpha) != 1L ||
-      !is.finite(alpha) || alpha >= 0) {
-    stop("target trade Logit 'alpha' must be a finite, negative scalar")
-  }
-  as.numeric(alpha)
-}
-
-.trade_translation_validate_gamma <- function(gamma) {
-  if (!is.numeric(gamma) || length(gamma) != 1L ||
-      !is.finite(gamma) || gamma <= 1) {
+.trade_validate_translation_arguments <- function(target, supplied) {
+  if (identical(target$demand, "ces") && !is.null(supplied$gamma) &&
+      (!is.numeric(supplied$gamma) || length(supplied$gamma) != 1L ||
+       !is.finite(supplied$gamma) || supplied$gamma <= 1)) {
     stop("target trade CES 'gamma' must be a finite scalar greater than 1 for the output-market CES path")
   }
-  as.numeric(gamma)
-}
-
-.trade_translation_logit_meanval <- function(shares, prices, alpha,
-                                             has_outside, price_outside,
-                                             reference) {
-  if (any(shares <= 0)) stop("demand translation requires strictly positive baseline shares")
-  if (has_outside) {
-    outside <- 1 - sum(shares)
-    if (outside <= 0) stop("the target Logit model has no positive outside share")
-    result <- log(shares / outside) - alpha * (prices - price_outside)
-  } else {
-    result <- log(shares / shares[reference]) -
-      alpha * (prices - prices[reference])
-    result[reference] <- 0
+  if (identical(target$demand, "logit") && !is.null(supplied$alpha) &&
+      (!is.numeric(supplied$alpha) || length(supplied$alpha) != 1L ||
+       !is.finite(supplied$alpha) || supplied$alpha >= 0)) {
+    stop("target trade Logit 'alpha' must be a finite, negative scalar")
   }
-  names(result) <- names(shares)
-  result
 }
 
-.trade_translation_ces_meanval <- function(shares, prices, gamma,
-                                           has_outside, price_outside,
-                                           reference) {
-  if (any(shares <= 0)) stop("demand translation requires strictly positive baseline shares")
-  if (has_outside) {
-    outside <- 1 - sum(shares)
-    if (outside <= 0 || price_outside <= 0) {
-      stop("the target CES model requires a positive outside-good price")
+.trade_antitrust_proxy <- function(fit, state) {
+  source <- fit@spec
+  antitrust_spec <- antitrust::model_spec(
+    source$demand,
+    .trade_antitrust_conduct(source$conduct),
+    variant = source$variant
+  )
+  parameters <- fit@parameters
+  if (is.list(parameters$slopes)) parameters <- parameters$slopes
+
+  proxy_model <- fit@model
+  if (.trade_has_slot(proxy_model, "shares")) {
+    proxy_model@shares <- if (identical(source$demand, "ces")) {
+      state$revenue_shares
+    } else {
+      state$quantity_shares
     }
-    result <- (shares / outside) * (price_outside / prices)^(1 - gamma)
-  } else {
-    result <- (shares / shares[reference]) *
-      (prices[reference] / prices)^(1 - gamma)
-    result[reference] <- 1
   }
-  names(result) <- names(shares)
-  result
+
+  observed <- fit@observed
+  observed$ownerPre <- state$owner
+  observed$prices <- state$prices
+  observed$quantities <- state$quantities
+  observed$shares <- if (identical(source$demand, "ces")) {
+    state$revenue_shares
+  } else {
+    state$quantity_shares
+  }
+  if (is.null(observed$margins)) observed$margins <- NULL
+
+  baseline <- fit@diagnostics$calibration_args
+  if (!is.list(baseline)) baseline <- fit@diagnostics$specification_args
+  if (!is.list(baseline)) baseline <- list()
+  baseline[c(
+    "demand", "conduct", "variant", "prices", "shares", "quantities",
+    "ownerPre", "insideSize", "priceOutside", "labels"
+  )] <- list(
+    source$demand,
+    .trade_antitrust_conduct(source$conduct),
+    source$variant,
+    state$prices,
+    observed$shares,
+    state$quantities,
+    state$owner,
+    sum(state$quantities),
+    state$price_outside,
+    state$labels
+  )
+  diagnostics <- fit@diagnostics
+  diagnostics$calibration_args <- baseline
+
+  methods::new(
+    "AntitrustFit",
+    spec = antitrust_spec,
+    model = proxy_model,
+    parameters = parameters,
+    observed = observed,
+    diagnostics = diagnostics
+  )
 }
 
-.trade_translation_reference <- function(state) {
-  index <- as.integer(state$norm_index)[1]
-  if (is.na(index) || index < 1L || index > length(state$prices)) 1L else index
-}
-
-.trade_translation_price_outside <- function(state, target, has_outside) {
-  value <- as.numeric(state$price_outside)[1]
-  if (target == "ces" && (!is.finite(value) || value <= 0)) return(1)
-  if (!has_outside) return(if (is.finite(value) && value >= 0) value else 1)
-  if (!is.finite(value) || value < 0) 0 else value
+.trade_antitrust_translation <- function(fit, target, supplied, state) {
+  .trade_validate_translation_arguments(target, supplied)
+  proxy <- .trade_antitrust_proxy(fit, state)
+  target_conduct <- .trade_antitrust_conduct(target$conduct)
+  demand_arguments <- supplied[intersect(
+    names(supplied), c("alpha", "gamma", "nests", "sigma")
+  )]
+  translated <- do.call(
+    antitrust::respecify,
+    c(
+      list(
+        fit = proxy,
+        demand = target$demand,
+        conduct = target_conduct,
+        variant = target$variant
+      ),
+      demand_arguments
+    )
+  )
+  parameters <- translated@parameters
+  target_shares <- as.numeric(translated@observed$shares)
+  if (identical(target$demand, "ces") && is.null(parameters$shareInside)) {
+    ## `shareInside` is a CES normalization primitive. antitrust uses it in
+    ## target construction but does not retain it in its public parameter
+    ## list; recover the already translated observed share total, rather than
+    ## estimating it from margins or an elasticity objective.
+    parameters$shareInside <- sum(target_shares)
+  }
+  list(
+    fit = translated,
+    parameters = parameters,
+    shares = target_shares,
+    inside_size = if (identical(target$demand, "ces")) {
+      sum(state$revenues)
+    } else {
+      sum(state$quantities)
+    },
+    price_outside = if (.trade_has_slot(translated@model, "priceOutside")) {
+      as.numeric(translated@model@priceOutside)[1]
+    } else {
+      state$price_outside
+    },
+    mapping = translated@diagnostics$translation,
+    antitrust_transition = translated@diagnostics$transition
+  )
 }
 
 .trade_translation_target_args <- function(state, target, parameters,
-                                           inside_size, price_outside) {
-  list(
-    demand = target,
+                                           inside_size, price_outside,
+                                           conduct_arguments = list()) {
+  arguments <- list(
+    demand = target$demand,
+    conduct = target$conduct,
+    variant = target$variant,
     prices = state$prices,
     parameters = parameters,
-    tariffPre = state$model@tariffPre,
     owner = state$owner,
     insideSize = inside_size,
     priceOutside = price_outside,
     labels = state$labels
   )
+  if (.trade_has_slot(state$model, "tariffPre")) {
+    arguments$tariffPre <- state$model@tariffPre
+  }
+  c(arguments, conduct_arguments)
 }
 
 .trade_translation_build <- function(state, target, parameters, inside_size,
-                                     price_outside) {
+                                     price_outside,
+                                     conduct_arguments = list()) {
   result <- do.call(specify, .trade_translation_target_args(
-    state, target, parameters, inside_size, price_outside
+    state, target, parameters, inside_size, price_outside,
+    conduct_arguments
   ))
   if (target$demand == "ces" && .trade_has_slot(result@model, "mktSize")) {
     result@model@mktSize <- inside_size / sum(calcShares(
@@ -158,82 +220,51 @@
 
 .translate_trade_demand <- function(fit, target, transition, supplied) {
   state <- .trade_translation_state(fit)
-  source <- fit@spec$demand
-  target_demand <- target$demand
-  missing <- setdiff(transition$required_arguments, names(supplied))
-  if (length(missing)) {
-    stop("respecify() transition from '", source, "' to '", target_demand,
-         "' requires explicit target primitive(s): ", paste(missing, collapse = ", "))
-  }
-  if (!all(c(source, target_demand) %in% c("logit", "ces"))) {
-    stop("trade currently supports deterministic respecification only between flat Logit and CES")
-  }
-
-  to_ces <- target_demand == "ces"
-  shares <- if (to_ces) state$revenue_shares else state$quantity_shares
-  has_outside <- if (to_ces) state$has_outside_revenue else state$has_outside_quantity
-  price_outside <- .trade_translation_price_outside(
-    state, target_demand, has_outside
-  )
-  inside_size <- if (to_ces) sum(state$revenues) else sum(state$quantities)
-  reference <- .trade_translation_reference(state)
-
-  if (to_ces) {
-    gamma <- if (source == "ces") {
-      as.numeric(.trade_translation_parameter(fit, "gamma"))[1]
-    } else {
-      as.numeric(supplied$gamma)[1]
-    }
-    gamma <- .trade_translation_validate_gamma(gamma)
-    meanval <- .trade_translation_ces_meanval(
-      shares, state$prices, gamma, has_outside, price_outside, reference
-    )
-    parameters <- list(gamma = gamma, meanval = meanval,
-                       shareInside = sum(shares))
-    mapping <- list(formula = "mu_j proportional to revenue_share_j * price_j^(gamma - 1)")
-  } else {
-    alpha <- if (source == "logit") {
-      as.numeric(.trade_translation_parameter(fit, "alpha"))[1]
-    } else {
-      as.numeric(supplied$alpha)[1]
-    }
-    alpha <- .trade_translation_validate_alpha(alpha)
-    meanval <- .trade_translation_logit_meanval(
-      shares, state$prices, alpha, has_outside, price_outside, reference
-    )
-    parameters <- list(alpha = alpha, meanval = meanval)
-    mapping <- list(formula = "delta_j = log(quantity_share_j / reference_share) - alpha * price_difference")
-  }
-
+  translated <- .trade_antitrust_translation(fit, target, supplied, state)
   target_fit <- .trade_translation_build(
-    state, target, parameters, inside_size, price_outside
+    state, target, translated$parameters, translated$inside_size,
+    translated$price_outside
   )
   target_e <- as.matrix(elast(target_fit@model, preMerger = TRUE))
-  target_market_elasticity <- .trade_translation_market_elasticity(target_fit@model)
+  target_market_elasticity <- .trade_translation_market_elasticity(
+    target_fit@model
+  )
   target_shares <- as.numeric(calcShares(
-    target_fit@model, preMerger = TRUE, revenue = to_ces
+    target_fit@model, preMerger = TRUE,
+    revenue = identical(target$demand, "ces")
   ))
   target_q <- as.numeric(calcQuantities(target_fit@model, preMerger = TRUE))
   source_j <- state$elasticity * outer(state$quantities, 1 / state$prices)
   target_j <- target_e * outer(target_q, 1 / state$prices)
   e_diff <- target_e - state$elasticity
   j_diff <- target_j - source_j
+  antitrust_diagnostics <- translated$fit@diagnostics$translation
   list(
     fit = target_fit,
     state = state,
-    shares = shares,
-    parameters = parameters,
+    shares = translated$shares,
+    parameters = translated$parameters,
     diagnostics = list(
-      source_demand = source,
-      target_demand = target_demand,
+      source_demand = fit@spec$demand,
+      target_demand = target$demand,
       transition_kind = transition$kind,
-      baseline_price_discrepancy = max(abs(target_fit@model@pricePre - state$prices), na.rm = TRUE),
-      baseline_quantity_discrepancy = max(abs(target_q - state$quantities), na.rm = TRUE),
-      baseline_share_discrepancy = max(abs(target_shares - shares), na.rm = TRUE),
+      delegated_to = "antitrust::respecify",
+      antitrust_transition = translated$antitrust_transition,
+      baseline_price_discrepancy = max(
+        abs(target_fit@model@pricePre - state$prices), na.rm = TRUE
+      ),
+      baseline_quantity_discrepancy = max(
+        abs(target_q - state$quantities), na.rm = TRUE
+      ),
+      baseline_share_discrepancy = max(
+        abs(target_shares - translated$shares), na.rm = TRUE
+      ),
       required_arguments = transition$required_arguments,
-      derived_parameters = parameters,
+      derived_parameters = translated$parameters,
       discarded_parameters = transition$discarded,
-      target_parameter_validity = isTRUE(validObject(target_fit@model, test = TRUE)),
+      target_parameter_validity = isTRUE(validObject(
+        target_fit@model, test = TRUE
+      )),
       source_elasticity = state$elasticity,
       target_elasticity = target_e,
       source_market_elasticity = state$market_elasticity,
@@ -245,7 +276,7 @@
       target_jacobian = target_j,
       jacobian_discrepancy = j_diff,
       jacobian_rmse = sqrt(mean(j_diff^2, na.rm = TRUE)),
-      parameter_mapping = mapping
+      parameter_mapping = antitrust_diagnostics$parameter_mapping
     )
   )
 }

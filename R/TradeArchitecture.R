@@ -682,7 +682,13 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 .trade_structural_parameters <- function(fit) {
   model <- fit@model
   if (.trade_has_slot(model, "slopes") && is.list(methods::slot(model, "slopes"))) {
-    return(methods::slot(model, "slopes"))
+    result <- methods::slot(model, "slopes")
+    if (.trade_has_slot(model, "shareInside") &&
+        !is.null(model@shareInside) &&
+        is.null(result$shareInside)) {
+      result$shareInside <- model@shareInside
+    }
+    return(result)
   }
   if (is.list(fit@parameters) && !is.null(fit@parameters$slopes) &&
       is.list(fit@parameters$slopes)) {
@@ -691,7 +697,23 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
   stop("source fit does not expose portable demand parameters")
 }
 
-.trade_respecify_arguments <- function(fit, target, parameters) {
+.trade_respecify_conduct_arguments <- function(fit, target, transition,
+                                               supplied) {
+  if (!identical(target$conduct, "bargaining")) return(list())
+  value <- supplied$bargpowerPre
+  if (is.null(value) && identical(fit@spec$conduct, "bargaining") &&
+      .trade_has_slot(fit@model, "bargpowerPre")) {
+    value <- fit@model@bargpowerPre
+  }
+  if (is.null(value)) {
+    stop("respecify() transition from '", fit@spec$id, "' to '",
+         target$id, "' requires explicit target primitive(s): bargpowerPre")
+  }
+  list(bargpowerPre = value)
+}
+
+.trade_respecify_arguments <- function(fit, target, parameters,
+                                       conduct_arguments = list()) {
   model <- fit@model
   observed <- fit@observed
   owner <- observed$owner
@@ -714,30 +736,36 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
     parameters = parameters,
     owner = owner
   )
-  for (name in c("tariffPre", "insideSize", "priceOutside", "labels")) {
+  for (name in c("tariffPre", "quotaPre", "insideSize", "priceOutside",
+                 "labels")) {
     value <- observed[[name]]
     if (is.null(value)) value <- .trade_slot(model, name)
     if (!is.null(value)) arguments[[name]] <- value
   }
-  arguments
+  c(arguments, conduct_arguments)
 }
 
 #' Respecify a fitted trade model
 #'
 #' Only transitions with a complete supplied-parameter path are permitted.
-#' Same-demand primitives are retained and the target conduct state is
-#' reconstructed through `specify()`. Registered flat Logit/CES transitions
-#' use deterministic baseline translations and require any target curvature
-#' primitive that is not identified by the source. Source margins are not used
-#' to recalibrate translated demand. This is not a global equivalence claim
-#' between price-level Logit and log-price CES.
+#' Demand translations and portable demand-state transitions are delegated to
+#' antitrust's transition infrastructure. Trade then reconstructs the target
+#' tariff state and target supply equations through `specify()`. Flat
+#' Logit/CES translations require any target curvature primitive that is not
+#' identified by the source; a target bargaining model additionally requires
+#' `bargpowerPre` unless that primitive is already present in the source fit.
+#' Source margins are never used to recalibrate translated demand. Tariff
+#' state is retained explicitly and target tariff-adjusted costs/equilibrium
+#' state are recomputed. This is not a global equivalence claim between
+#' price-level Logit and log-price CES.
 #'
 #' @param fit A `TradeFit` returned by `calibrate()` or `specify()`.
 #' @param demand Optional target demand-system name.
 #' @param conduct Optional target conduct name.
 #' @param variant Optional target model variant.
 #' @param ... Transition-specific target primitives. For the registered flat
-#'   Logit/CES transitions, supply `alpha` or `gamma` as required.
+#'   Logit/CES transitions, supply `alpha` or `gamma` as required. Supply
+#'   `bargpowerPre` when the target conduct is bargaining.
 #' @return A newly constructed `TradeFit` under the target specification.
 #' @seealso [`specify()`], [`update.TradeFit()`]
 #' @rdname trade-architecture
@@ -752,7 +780,9 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
       (is.null(names(supplied)) || any(!nzchar(names(supplied))))) {
     stop("respecify() transition arguments must be named")
   }
-  unsupported <- setdiff(names(supplied), c("alpha", "gamma"))
+  unsupported <- setdiff(
+    names(supplied), c("alpha", "gamma", "nests", "sigma", "bargpowerPre")
+  )
   if (length(unsupported)) {
     stop("unsupported respecify() transition argument(s): ",
          paste(unsupported, collapse = ", "))
@@ -769,9 +799,17 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     stop("respecify() requires a different registered model specification")
   }
   transition <- .trade_transition_entry(source, target)
-  if (identical(source$demand, target$demand) && length(supplied)) {
+  demand_arguments <- intersect(
+    names(supplied), c("alpha", "gamma", "nests", "sigma")
+  )
+  if (identical(source$demand, target$demand) && length(demand_arguments)) {
     stop("respecify() transition from '", source$id, "' to '", target$id,
          "' does not accept transition-specific demand arguments")
+  }
+  if (length(supplied$bargpowerPre) &&
+      !identical(target$conduct, "bargaining")) {
+    stop("respecify() transition from '", source$id, "' to '", target$id,
+         "' does not accept 'bargpowerPre'")
   }
 
   if (!identical(source$demand, target$demand)) {
@@ -793,7 +831,8 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
       discarded = transition$discarded,
       recomputed = transition$recompute,
       invalidated = transition$invalidate,
-      calibration_required = transition$calibration_required
+      calibration_required = transition$calibration_required,
+      policy = transition$policy
     )
     result@diagnostics$translation <- translated$diagnostics
     result@diagnostics$local_translation <- translated$diagnostics
@@ -804,6 +843,16 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   }
 
   parameters <- .trade_structural_parameters(fit)
+  portable_translation <- NULL
+  canonical_source_conduct <- .trade_antitrust_conduct(source$conduct)
+  canonical_target_conduct <- .trade_antitrust_conduct(target$conduct)
+  if (!identical(canonical_source_conduct, canonical_target_conduct)) {
+    state <- .trade_translation_state(fit)
+    portable_translation <- .trade_antitrust_translation(
+      fit, target, list(), state
+    )
+    parameters <- portable_translation$parameters
+  }
   missing_parameters <- setdiff(transition$retain, names(parameters))
   if (length(missing_parameters)) {
     stop("source fit does not contain portable parameter(s): ",
@@ -811,8 +860,11 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   }
   parameters <- parameters[transition$retain]
 
+  conduct_arguments <- .trade_respecify_conduct_arguments(
+    fit, target, transition, supplied
+  )
   result <- do.call(specify, .trade_respecify_arguments(
-    fit, target, parameters
+    fit, target, parameters, conduct_arguments
   ))
   result@parameters <- .trade_parameters(result@model)
   result@observed <- fit@observed
@@ -828,10 +880,15 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     discarded = transition$discarded,
     recomputed = transition$recompute,
     invalidated = transition$invalidate,
-    calibration_required = transition$calibration_required
+    calibration_required = transition$calibration_required,
+    policy = transition$policy
   )
   result@diagnostics$source_calibration_args <-
     fit@diagnostics$calibration_args
   result@diagnostics$calibration_args <- NULL
+  if (!is.null(portable_translation)) {
+    result@diagnostics$translation <- portable_translation$fit@diagnostics$translation
+    result@diagnostics$delegated_to <- "antitrust::respecify"
+  }
   result
 }

@@ -18,15 +18,17 @@ respecify(fit, demand = NULL, conduct = NULL, variant = NULL, ...)
 A newly constructed \code{TradeFit} under the target specification.
 }
 \description{
-\code{respecify} applies an explicitly registered transition. Same-demand
-Logit or CES primitives are retained for conduct changes. Registered flat
-Logit/CES transitions instead perform a local demand translation: target mean
-values match baseline shares and target curvature minimizes baseline
-elasticity distance. The target state is rebuilt through \code{specify};
-source margins are not used to recalibrate translated demand. This is not a
-global equivalence claim between price-level Logit and log-price CES.
-Nested and Cournot transitions remain unsupported until trade has validated
-complete supplied-parameter paths for those models; use \code{update} to
-recalibrate instead.
+\code{respecify} applies an explicitly registered transition. Trade delegates
+demand and portable conduct translations to the corresponding antitrust
+transition infrastructure, then rebuilds the target trade model through
+\code{specify}. The target preserves observed baseline prices and shares;
+tariff or quota state is retained where compatible, while policy-adjusted
+costs and equilibrium state are recomputed under the target equations.
+Target curvature primitives that are not identified by the source must be
+supplied explicitly. A target bargaining model likewise requires
+\code{bargpowerPre} unless it is retained from a bargaining source fit.
+Source margins are not used to recalibrate translated demand, and unsupported
+or incomplete target model paths fail explicitly. This is not a global
+equivalence claim between different demand systems.
 }
 \seealso{\code{\link{specify}}, \code{\link{update.TradeFit}}}

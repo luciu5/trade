@@ -242,83 +242,124 @@ supportedModels <- function() {
 }
 
 
-## Respecification is intentionally narrower than model registration. These
-## transitions have a complete supplied-parameter path in the legacy package:
-## demand primitives can be retained while the distinct Bertrand and
-## monopolistic-competition state is reconstructed. Cournot is not listed
-## because trade has no supplied-parameter constructor for that model.
-.trade_transition_registry <- local({
-  entries <- list(
-    list(from = "logit::bertrand", to = "logit::moncom",
-         kind = "structural-restriction", required_arguments = character(),
-         retain = c("alpha", "meanval"),
-         recompute = c("marginal costs", "monopolistic-competition state"),
-         invalidate = c("Bertrand margins"),
-         calibration_required = FALSE),
-    list(from = "logit::moncom", to = "logit::bertrand",
-         kind = "structural-restriction", required_arguments = character(),
-         retain = c("alpha", "meanval"),
-         recompute = c("marginal costs", "Bertrand state"),
-         invalidate = c("monopolistic-competition margins"),
-         calibration_required = FALSE),
-    list(from = "ces::bertrand", to = "ces::moncom",
-         kind = "structural-restriction", required_arguments = character(),
-         retain = c("alpha", "gamma", "meanval"),
-         recompute = c("marginal costs", "monopolistic-competition state"),
-         invalidate = c("Bertrand margins"),
-         calibration_required = FALSE),
-    list(from = "ces::moncom", to = "ces::bertrand",
-         kind = "structural-restriction", required_arguments = character(),
-         retain = c("alpha", "gamma", "meanval"),
-         recompute = c("marginal costs", "Bertrand state"),
-         invalidate = c("monopolistic-competition margins"),
-         calibration_required = FALSE),
-    list(from = "logit::bertrand", to = "ces::bertrand",
-         kind = "algebraic-translation", required_arguments = c("gamma"),
-         retain = c("prices", "ownership", "conduct"),
-         recompute = c("CES demand parameters", "marginal costs",
-                       "Bertrand state"),
-         invalidate = c("Logit demand parameters"),
-         calibration_required = FALSE),
-    list(from = "ces::bertrand", to = "logit::bertrand",
-         kind = "algebraic-translation", required_arguments = c("alpha"),
-         retain = c("prices", "ownership", "conduct"),
-         recompute = c("Logit demand parameters", "marginal costs",
-                       "Bertrand state"),
-         invalidate = c("CES demand parameters"),
-         calibration_required = FALSE),
-    list(from = "logit::moncom", to = "ces::moncom",
-         kind = "algebraic-translation", required_arguments = c("gamma"),
-         retain = c("prices", "ownership", "conduct"),
-         recompute = c("CES demand parameters", "marginal costs",
-                       "monopolistic-competition state"),
-         invalidate = c("Logit demand parameters"),
-         calibration_required = FALSE),
-    list(from = "ces::moncom", to = "logit::moncom",
-         kind = "algebraic-translation", required_arguments = c("alpha"),
-         retain = c("prices", "ownership", "conduct"),
-         recompute = c("Logit demand parameters", "marginal costs",
-                       "monopolistic-competition state"),
-         invalidate = c("CES demand parameters"),
-         calibration_required = FALSE)
-  )
-  function() entries
-})
-
-.trade_transition_entry <- function(from, to) {
-  entries <- .trade_transition_registry()
-  matches <- Filter(function(entry) {
-    identical(entry$from, from$id) && identical(entry$to, to$id)
-  }, entries)
-  if (!length(matches)) {
-    stop("respecify() transition from '", from$id, "' to '",
-         to$id, "' is not supported; use update() to recalibrate the target model")
+## Respecification is validated by antitrust's transition graph. Trade adds
+## only the policy bookkeeping and the moncom conduct alias: moncom has no
+## antitrust counterpart, but its flat demand conversion is the same one used
+## for antitrust Bertrand. This keeps trade from maintaining a second demand
+## conversion graph that could drift from antitrust.
+.trade_policy_transition_metadata <- function(policy, target) {
+  if (identical(policy, "quota")) {
+    list(
+      retained = "quotaPre",
+      translated = character(),
+      discarded = "quotaPost",
+      required_from_user = character(),
+      recomputed = c("quota-adjusted supply state", "equilibrium state")
+    )
+  } else {
+    list(
+      retained = "tariffPre",
+      translated = character(),
+      discarded = "tariffPost",
+      required_from_user = character(),
+      recomputed = c("tariff-adjusted ownership", "marginal costs",
+                     "equilibrium state")
+    )
   }
-  entry <- matches[[1L]]
+}
+
+.trade_antitrust_transition_entry <- function(from, to) {
+  source <- antitrust::model_spec(
+    from$demand, .trade_antitrust_conduct(from$conduct), from$variant
+  )
+  target <- antitrust::model_spec(
+    to$demand, .trade_antitrust_conduct(to$conduct), to$variant
+  )
+  utils::getFromNamespace(".model_transition_entry", "antitrust")(
+    source, target
+  )
+}
+
+.trade_transition_metadata <- function(from, to) {
+  target_entry <- .trade_registry_entry(to)
+  if (!isTRUE(target_entry$specify)) {
+    stop("respecify() target '", to$id,
+         "' is not supported: it has no supplied-parameter construction path; use update()")
+  }
+
+  same_flat_conduct <- identical(from$demand, to$demand) &&
+    identical(.trade_antitrust_conduct(from$conduct),
+              .trade_antitrust_conduct(to$conduct)) &&
+    !identical(from$conduct, to$conduct)
+  if (same_flat_conduct) {
+    entry <- list(
+      from = from$id,
+      to = to$id,
+      kind = "conduct_change",
+      required_arguments = character(),
+      retain = if (identical(from$demand, "ces")) {
+        c("alpha", "gamma", "meanval")
+      } else {
+        c("alpha", "meanval")
+      },
+      derived = character(),
+      discarded = c("source conduct supply state"),
+      recompute = c("marginal costs", "target conduct state"),
+      invalidate = c("source conduct supply state"),
+      calibration_required = FALSE,
+      handler = "portable"
+    )
+  } else {
+    entry <- try(.trade_antitrust_transition_entry(from, to), silent = TRUE)
+    if (inherits(entry, "try-error")) {
+      stop("respecify() transition from '", from$id, "' to '",
+           to$id, "' is not supported by antitrust's transition graph; use update() to recalibrate the target model")
+    }
+    entry$from <- from$id
+    entry$to <- to$id
+  }
+
   if (is.null(entry$required_arguments)) entry$required_arguments <- character()
   if (is.null(entry$kind)) entry$kind <- "structural-restriction"
   if (is.null(entry$derived)) entry$derived <- character()
   if (is.null(entry$discarded)) entry$discarded <- character()
   if (is.null(entry$calibration_required)) entry$calibration_required <- FALSE
+
+  if (identical(to$conduct, "bargaining") &&
+      !identical(from$conduct, "bargaining")) {
+    entry$required_arguments <- unique(c(
+      entry$required_arguments, "bargpowerPre"
+    ))
+    entry$derived <- unique(setdiff(entry$derived, "bargpowerPre"))
+    entry$discarded <- unique(c(entry$discarded,
+                                "source conduct supply state"))
+  }
+  entry$policy <- .trade_policy_transition_metadata(from$policy, to)
   entry
+}
+
+## Compatibility view for diagnostics and existing callers. Its contents are
+## generated from antitrust's transition graph and the registered complete
+## trade models; no demand-conversion formulas live here.
+.trade_transition_registry <- function() {
+  entries <- .trade_registry()
+  candidates <- list()
+  for (from in entries) {
+    for (to in entries) {
+      if (!identical(from$policy, to$policy) || identical(from$id, to$id)) {
+        next
+      }
+      source <- structure(from[c("demand", "conduct", "variant", "policy", "id")],
+                          class = c("trade_model_spec", "list"))
+      target <- structure(to[c("demand", "conduct", "variant", "policy", "id")],
+                          class = c("trade_model_spec", "list"))
+      candidate <- try(.trade_transition_metadata(source, target), silent = TRUE)
+      if (!inherits(candidate, "try-error")) candidates[[length(candidates) + 1L]] <- candidate
+    }
+  }
+  candidates
+}
+
+.trade_transition_entry <- function(from, to) {
+  .trade_transition_metadata(from, to)
 }

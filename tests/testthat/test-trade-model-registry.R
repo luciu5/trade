@@ -51,10 +51,12 @@ test_that("trade transition registry records only supported supplied paths", {
         transitions,
         function(entry) entry$kind %in% c(
             "structural-restriction", "algebraic-translation",
-            "conditional-translation"
+            "conditional-translation", "conduct_change"
         ),
         logical(1)
     )))
     expect_true(any(keys == "logit::bertrand->ces::bertrand"))
-    expect_false(any(grepl("nested|cournot", keys)))
+    expect_true(any(keys == "logit::bertrand->logit::moncom"))
+    expect_true(any(grepl("cournot->", keys)))
+    expect_false(any(grepl("->.*cournot", keys)))
 })
