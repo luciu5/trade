@@ -1,5 +1,5 @@
 ## Trade-native synthetic markets. The neutral share/ownership design comes
-## from iopolicy, while policy calibration and equilibrium state remain in
+## from antitrust, while policy calibration and equilibrium state remain in
 ## trade's registered model implementations.
 
 .trade_synthetic_foc_solution <- function(shares, ownership) {
@@ -272,7 +272,7 @@
 #' Generate a model-consistent synthetic trade market
 #'
 #' `synthetic_market()` is the trade-native fake-market entry point. It draws
-#' product shares and ownership through [iopolicy::fake_market()], then uses
+#' product shares and ownership through [antitrust::fake_market()], then uses
 #' trade's selected policy/model implementation to calibrate or specify the
 #' baseline. Prices and margins are not independent random draws: the active
 #' reference product supplies the positive price normalization and one level
@@ -401,7 +401,7 @@ synthetic_market <- function(
     }
 
     spec <- model_spec(demand, supply, policy = policy)
-    design <- iopolicy::fake_market(
+    design <- antitrust::fake_market(
         mode = if (mode == "observed") "observed" else "primitives",
         n_firms = n_firms, n_products = n_products,
         dirichlet_alpha = dirichlet_alpha, outside_beta = outside_beta,

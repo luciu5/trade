@@ -11,12 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out iopolicy development dependency
-        uses: actions/checkout@v4
-        with:
-          repository: luciu5/iopolicy
-          ref: main
-          path: iopolicy
       - name: Check out antitrust development dependency
         uses: actions/checkout@v4
         with:
@@ -29,8 +23,6 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           packages: any::testthat, any::pkgload, any::BB, any::numDeriv, any::nleqslv, any::SQUAREM, any::MASS, any::ggplot2, any::knitr, any::bookdown, any::rmarkdown, any::competitiontoolbox
-      - name: Install iopolicy development dependency
-        run: R CMD INSTALL iopolicy
       - name: Install antitrust refactor dependency
         run: R CMD INSTALL antitrust
       - name: Build trade
