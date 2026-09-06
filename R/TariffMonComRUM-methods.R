@@ -80,7 +80,7 @@ setMethod(
       alphaBounds[1] <- alphaBounds[2]/1e-4
       }
 
-    minAlpha <- optimize(minD, alphaBounds,
+    minAlpha <- stats::optimize(minD, alphaBounds,
                          tol=object@control.slopes$reltol)$minimum
 
     if(!is.na(mktElast)){
@@ -187,7 +187,7 @@ if(!is.na(mktElast) && mktElast < -1){
   }
 
 
-minGamma <- optimize(minD,gammaBounds,
+minGamma <- stats::optimize(minD,gammaBounds,
                      tol=object@control.slopes$reltol)$minimum
 
 

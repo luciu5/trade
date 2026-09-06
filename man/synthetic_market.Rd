@@ -11,7 +11,7 @@ synthetic_market(
   policy = c("tariff", "quota"),
   n_firms = 3L,
   n_products = 1L,
-  dirichlet_alpha = rep(1, n_firms * n_products),
+  dirichlet_alpha = NULL,
   outside_beta = c(2, 8),
   reference_price = 100,
   prices = NULL,
@@ -29,8 +29,10 @@ synthetic_market(
 \item{mode}{Either `"observed"` or `"primitives"`.}
 \item{policy}{Baseline policy family, `"tariff"` or `"quota"`.}
 \item{n_firms}{Number of inside firms; the reference firm is additional.}
-\item{n_products}{Number of products per inside firm.}
-\item{dirichlet_alpha}{Positive product-level Dirichlet parameters.}
+\item{n_products}{Number of products per inside firm. A scalar is recycled
+across firms; a vector must have length `n_firms`.}
+\item{dirichlet_alpha}{Positive product-level Dirichlet parameters, one per
+inside product. If omitted, all shapes equal one.}
 \item{outside_beta}{Positive Beta shape parameters for the reference share.}
 \item{reference_price}{A positive level price for the reference product.}
 \item{prices}{Optional complete positive price vector ending at

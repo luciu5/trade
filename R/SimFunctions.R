@@ -12,7 +12,7 @@
 #' (2nd score auction), or "bargaining".
 #' @param demand A character string indicating the type of demand system
 #'   to be used in the merger simulation. Supported demand systems are
-#'   logit (\sQuote{Logit}) or ces (\sQuote{CES}).
+#'   logit (\sQuote{Logit}), ces (\sQuote{CES}), BLP, LogitBLP, or CournotBLP.
 #' @param demand.param  See Below.
 #' @param owner Required. EITHER a vector of length k whose values indicate which firm produced a product before the tariff
 #' OR a k x k matrix of pre-merger ownership shares.
@@ -441,7 +441,7 @@ NULL
 #' @export
 sim <- function(prices,
                 supply=c("moncom","bertrand","auction2nd","bargaining"),
-                demand=c("logit","ces"),
+                demand=c("logit","ces","BLP","LogitBLP","CournotBLP"),
                 demand.param,
                 owner,
                 tariffPre=rep(0,length(prices)),

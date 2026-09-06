@@ -14,7 +14,8 @@
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param parmStart A vector of starting values for demand calibration.
-#' @param priceStart A vector of length k whose elements equal initial guesses for prices. Default is \code{prices}.
+#' @param priceStart A vector of length k whose elements equal initial guesses
+#'  for prices. When omitted, valid pre-merger `prices` are used.
 #' @param control.slopes A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
 #' @param labels A k-length vector of labels.
@@ -116,7 +117,14 @@ if(demand == "aids"){
 
   if(missing(parmStart)) parmStart <- rep(NA_real_,2)
 
-  if(missing(priceStart)) priceStart <- runif(nprods)
+  if(missing(priceStart)) {
+    if (!missing(prices) && is.numeric(prices) && length(prices) == nprods &&
+        all(is.finite(prices)) && all(prices > 0)) {
+      priceStart <- prices
+    } else {
+      priceStart <- stats::runif(nprods)
+    }
+  }
 
   if(missing(diversions)){
     diversions <- tcrossprod(1/(1-shares_revenue),shares_revenue)

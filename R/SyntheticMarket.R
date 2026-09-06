@@ -2,6 +2,40 @@
 ## from iopolicy, while policy calibration and equilibrium state remain in
 ## trade's registered model implementations.
 
+.trade_synthetic_foc_solution <- function(shares, ownership) {
+    derivative <- diag(shares) - tcrossprod(shares)
+    G <- t(ownership * derivative)
+    n <- length(shares)
+    rank_tolerance <- sqrt(.Machine$double.eps)
+    foc_rank <- qr(G, tol = rank_tolerance)$rank
+    foc_condition_limit <- 1 / rank_tolerance
+    foc_condition_number <- tryCatch(
+        kappa(G, exact = TRUE),
+        error = function(e) Inf
+    )
+    if (foc_rank < n || !is.finite(foc_condition_number) ||
+        foc_condition_number > foc_condition_limit) {
+        stop(
+            "ownership-adjusted Logit FOC system is singular or ill-conditioned",
+            " (rank = ", foc_rank, "/", n,
+            ", condition number = ", format(foc_condition_number, digits = 6),
+            ", limit = ", format(foc_condition_limit, digits = 6), ")"
+        )
+    }
+    z <- tryCatch(solve(G, shares), error = function(e) e)
+    if (inherits(z, "error") || any(!is.finite(z))) {
+        stop("ownership-adjusted Logit FOC system is singular or non-finite: ",
+             if (inherits(z, "error")) conditionMessage(z) else "non-finite solution")
+    }
+    list(
+        G = G,
+        z = z,
+        rank = foc_rank,
+        condition_number = foc_condition_number,
+        condition_limit = foc_condition_limit
+    )
+}
+
 .trade_synthetic_logit_parameters <- function(shares, prices, owner,
                                               reference_product, markup,
                                               tariff = rep(0, length(shares))) {
@@ -20,6 +54,7 @@
     ## here. The markup system is homogeneous in 1 / alpha.
     meanval_probe <- log(shares / shares[reference_product])
     meanval_probe[reference_product] <- 0
+    foc_solution <- NULL
     if (any(tariff != 0)) {
         probe <- specify(
             demand = "logit", conduct = "bertrand", policy = "tariff",
@@ -40,13 +75,9 @@
         foc <- rep(NA_real_, n)
     } else {
         effective_owner <- owner_matrix
-        derivative <- diag(shares) - tcrossprod(shares)
-        G <- t(effective_owner * derivative)
-        z <- tryCatch(solve(G, shares), error = function(e) e)
-        if (inherits(z, "error") || any(!is.finite(z))) {
-            stop("the ownership-adjusted Logit FOC system is singular or non-finite: ",
-                 if (inherits(z, "error")) conditionMessage(z) else "non-finite solution")
-        }
+        foc_solution <- .trade_synthetic_foc_solution(shares, effective_owner)
+        G <- foc_solution$G
+        z <- foc_solution$z
         alpha <- -unname(z[reference_product]) / markup
         markups <- -z / alpha
         foc <- unname(shares + G %*% (alpha * markups))
@@ -59,7 +90,14 @@
     meanval[reference_product] <- 0
     list(alpha = alpha, meanval = meanval, markups = markups,
          ownership = effective_owner,
-         foc = foc)
+         foc = foc,
+         foc_rank = if (!is.null(foc_solution)) foc_solution$rank else NA_integer_,
+         foc_condition_number = if (!is.null(foc_solution)) {
+             foc_solution$condition_number
+         } else NA_real_,
+         foc_condition_limit = if (!is.null(foc_solution)) {
+             foc_solution$condition_limit
+         } else NA_real_)
 }
 
 .trade_synthetic_quota_fit <- function(spec, shares, prices, owner,
@@ -164,7 +202,8 @@
 }
 
 .trade_synthetic_attach <- function(fit, market, mode, reference_markup,
-                                    policy, policy_pre, parameter_truth) {
+                                    policy, policy_pre, parameter_truth,
+                                    foc_diagnostics = list()) {
     fit@observed$shares <- market$shares
     fit@observed$quantities <- market$shares
     fit@observed$prices <- market$prices
@@ -206,7 +245,7 @@
             foc_residual <- max(abs(foc))
         }
     }
-    fit@diagnostics$synthetic <- list(
+    synthetic_diagnostics <- list(
         status = "completed",
         mode = mode,
         policy = policy,
@@ -219,6 +258,14 @@
         foc_residual = foc_residual,
         foc_tolerance = 1e-8
     )
+    if (length(foc_diagnostics)) {
+        synthetic_diagnostics$foc_rank <- foc_diagnostics$foc_rank
+        synthetic_diagnostics$foc_condition_number <-
+            foc_diagnostics$foc_condition_number
+        synthetic_diagnostics$foc_condition_limit <-
+            foc_diagnostics$foc_condition_limit
+    }
+    fit@diagnostics$synthetic <- synthetic_diagnostics
     fit
 }
 
@@ -233,6 +280,8 @@
 #'
 #' The active reference product is a real product in the ownership map. The
 #' `n_firms` argument counts inside firms and the reference firm is additional.
+#' `n_products` may be a scalar shared by all inside firms or a vector with one
+#' count per firm.
 #' For now, a baseline must be either tariff-only or quota-only. Supplying both
 #' `tariffPre` and `quotaPre` is rejected explicitly because simultaneous
 #' pre-policies are not yet implemented by the trade model registry.
@@ -242,8 +291,10 @@
 #' @param mode Either `"observed"` or `"primitives"`.
 #' @param policy Baseline policy family, `"tariff"` or `"quota"`.
 #' @param n_firms Number of inside firms; the reference firm is additional.
-#' @param n_products Number of products per inside firm.
-#' @param dirichlet_alpha Positive product-level Dirichlet parameters.
+#' @param n_products Number of products per inside firm. A scalar is recycled
+#' across firms; a vector must have length `n_firms`.
+#' @param dirichlet_alpha Positive product-level Dirichlet parameters, one per
+#' inside product. If omitted, all shapes equal one.
 #' @param outside_beta Positive Beta shape parameters for the reference share.
 #' @param reference_price A positive level price for the reference product.
 #' @param prices Optional complete positive price vector ending at
@@ -262,7 +313,7 @@ synthetic_market <- function(
     mode = c("observed", "primitives"),
     policy = c("tariff", "quota"),
     n_firms = 3L, n_products = 1L,
-    dirichlet_alpha = rep(1, n_firms * n_products),
+    dirichlet_alpha = NULL,
     outside_beta = c(2, 8), reference_price = 100,
     prices = NULL, outside_margin = NULL, parameters = NULL,
     tariffPre = NULL, quotaPre = NULL, seed = NULL, ...) {
@@ -276,15 +327,34 @@ synthetic_market <- function(
         n_firms != as.integer(n_firms) || n_firms < 1L) {
         stop("'n_firms' must be a positive integer")
     }
-    if (!is.numeric(n_products) || length(n_products) != 1L ||
-        n_products != as.integer(n_products) || n_products < 1L) {
-        stop("'n_products' must be a positive integer")
-    }
     n_firms <- as.integer(n_firms)
-    n_products <- as.integer(n_products)
-    n <- n_firms * n_products + 1L
-    if (!is.numeric(dirichlet_alpha) || length(dirichlet_alpha) != n - 1L ||
-        any(!is.finite(dirichlet_alpha)) || any(dirichlet_alpha <= 0)) {
+    n_products_input <- as.numeric(n_products)
+    if (length(n_products_input) != 1L &&
+        length(n_products_input) != n_firms) {
+        stop("'n_products' must be a positive integer scalar or a vector of length n_firms")
+    }
+    if (any(!is.finite(n_products_input)) ||
+        any(n_products_input != as.integer(n_products_input)) ||
+        any(n_products_input < 1)) {
+        stop("'n_products' must contain positive integers")
+    }
+    n_products <- if (length(n_products_input) == 1L) {
+        as.integer(n_products_input)
+    } else {
+        as.integer(n_products_input)
+    }
+    products_per_firm <- if (length(n_products_input) == 1L) {
+        rep(as.integer(n_products_input), n_firms)
+    } else {
+        as.integer(n_products_input)
+    }
+    if (sum(products_per_firm) > 2147483646) {
+        stop("the number of inside products is too large")
+    }
+    n <- as.integer(sum(products_per_firm) + 1L)
+    if (!is.null(dirichlet_alpha) &&
+        (!is.numeric(dirichlet_alpha) || length(dirichlet_alpha) != n - 1L ||
+         any(!is.finite(dirichlet_alpha)) || any(dirichlet_alpha <= 0))) {
         stop("'dirichlet_alpha' must be a finite, strictly positive vector of length ",
              n - 1L)
     }
@@ -387,7 +457,7 @@ synthetic_market <- function(
                 "observed-reference-markup-foc"
             return(.trade_synthetic_attach(
                 fit, design, mode, markup, policy, policy_pre,
-                parameter_truth = list()
+                parameter_truth = list(), foc_diagnostics = recovered
             ))
         }
         if (spec$demand == "logit" && spec$conduct == "bertrand" &&
@@ -403,7 +473,7 @@ synthetic_market <- function(
                 "observed-reference-markup-foc"
             return(.trade_synthetic_attach(
                 fit, design, mode, markup, policy, policy_pre,
-                parameter_truth = list()
+                parameter_truth = list(), foc_diagnostics = recovered
             ))
         }
         margins <- rep(NA_real_, n)
@@ -413,7 +483,7 @@ synthetic_market <- function(
                  variant = spec$variant, policy = spec$policy,
                  prices = prices, quantities = shares, margins = margins,
                  owner = owner),
-            setNames(list(policy_pre), paste0(policy, "Pre")), dots
+            stats::setNames(list(policy_pre), paste0(policy, "Pre")), dots
         )
         fit <- do.call(calibrate, args)
         return(.trade_synthetic_attach(
@@ -429,7 +499,7 @@ synthetic_market <- function(
              variant = spec$variant, policy = spec$policy,
              prices = prices, parameters = parameters, owner = owner,
              priceOutside = reference_price),
-        setNames(list(policy_pre), paste0(policy, "Pre")), dots
+        stats::setNames(list(policy_pre), paste0(policy, "Pre")), dots
     )
     fit <- do.call(specify, args)
     .trade_synthetic_attach(

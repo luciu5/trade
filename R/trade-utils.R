@@ -38,7 +38,7 @@
   }
 
   owner <- factor(owner, levels = unique(owner))
-  owner <- model.matrix(~-1+owner)
+  owner <- stats::model.matrix(~-1+owner)
   tcrossprod(owner)
 }
 

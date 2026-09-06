@@ -216,7 +216,7 @@ supportedModels <- function() {
 
 .trade_counterfactual_capabilities <- function(spec) {
   entry <- .trade_registry_entry(spec)
-  if (is.null(entry)) return(setNames(logical(), character()))
+  if (is.null(entry)) return(stats::setNames(logical(), character()))
   c(
     ownership = FALSE,
     costs = FALSE,

@@ -4,6 +4,8 @@
 # conduct equations are implemented by antitrust.  Trade adds only the
 # tariff-aware wrapper and translates tariff changes into the same post-state
 # conventions used by its existing legacy constructors.
+#' @importFrom utils modifyList
+NULL
 
 .trade_blp_class <- function(conduct) {
   switch(conduct,

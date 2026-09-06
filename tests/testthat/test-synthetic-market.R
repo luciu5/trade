@@ -13,9 +13,35 @@ test_that("trade synthetic tariff markets use the active reference product", {
     expect_lt(fit@diagnostics$synthetic$foc_residual, 1e-8)
     expect_equal(unname(fit@model@pricePre), market$prices, tolerance = 1e-10)
     expect_equal(fit@model@tariffPre, rep(0, 5))
+    expect_equal(fit@diagnostics$synthetic$foc_rank, 5)
+    expect_lt(fit@diagnostics$synthetic$foc_condition_number,
+              fit@diagnostics$synthetic$foc_condition_limit)
 
     result <- simulate(fit, counterfactual(tariff = rep(.1, 5)))
     expect_s4_class(result, "TariffLogit")
+})
+
+test_that("trade synthetic markets preserve heterogeneous ownership", {
+    fit <- synthetic_market(
+        demand = "logit", supply = "bertrand", policy = "tariff",
+        n_firms = 3, n_products = c(1, 2, 3), reference_price = 100,
+        outside_margin = 20, seed = 13
+    )
+    market <- fit@diagnostics$synthetic_market
+    expect_equal(market$design$products_per_firm, c(1, 2, 3))
+    expect_equal(market$products$firm_id, c(1, 2, 2, 3, 3, 3, 4))
+    expect_lt(fit@diagnostics$synthetic$foc_residual, 1e-8)
+})
+
+test_that("singular trade Logit FOC systems are rejected", {
+    shares <- c(.2, .3, .1, .4)
+    prices <- rep(100, length(shares))
+    expect_error(
+        trade:::.trade_synthetic_logit_parameters(
+            shares, prices, matrix(1, 4, 4), 4, 20
+        ),
+        "singular or ill-conditioned"
+    )
 })
 
 test_that("trade synthetic quota markets retain the quota baseline", {

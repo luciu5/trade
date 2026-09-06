@@ -9,7 +9,7 @@
 .sim_legacy(
   prices,
   supply = c("moncom", "bertrand", "auction2nd", "bargaining"),
-  demand = c("logit", "ces"),
+  demand = c("logit", "ces", "BLP", "LogitBLP", "CournotBLP"),
   demand.param,
   owner,
   tariffPre = rep(0, length(prices)),
@@ -27,7 +27,7 @@
 sim(
   prices,
   supply = c("moncom", "bertrand", "auction2nd", "bargaining"),
-  demand = c("logit", "ces"),
+  demand = c("logit", "ces", "BLP", "LogitBLP", "CournotBLP"),
   demand.param,
   owner,
   tariffPre = rep(0, length(prices)),
@@ -51,7 +51,7 @@ values are "moncom" (monopolistic competition), "bertrand" (Nash Bertrand),  "au
 
 \item{demand}{A character string indicating the type of demand system
 to be used in the merger simulation. Supported demand systems are
-logit (\sQuote{Logit}) or ces (\sQuote{CES}).}
+logit (\sQuote{Logit}), ces (\sQuote{CES}), BLP, LogitBLP, or CournotBLP.}
 
 \item{demand.param}{See Below.}
 

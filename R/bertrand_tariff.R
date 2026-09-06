@@ -14,8 +14,10 @@
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
-#' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
-#'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
+#' @param priceStart For aids, a vector of length k whose elements are initial
+#'  guesses for the price solve. When omitted, valid pre-merger `prices` are
+#'  used; a random positive fallback is retained only when those prices are
+#'  unavailable. For ces and logit, the default is prices.
 #' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
 #' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
@@ -121,7 +123,14 @@ if(demand == "aids"){
 
   if(missing(parmStart)) parmStart <- rep(NA_real_,2)
 
-  if(missing(priceStart)) priceStart <- runif(nprods)
+  if(missing(priceStart)) {
+    if (!missing(prices) && is.numeric(prices) && length(prices) == nprods &&
+        all(is.finite(prices)) && all(prices > 0)) {
+      priceStart <- prices
+    } else {
+      priceStart <- stats::runif(nprods)
+    }
+  }
 
   if(missing(diversions)){
     diversions <- tcrossprod(1/(1-shares_revenue),shares_revenue)

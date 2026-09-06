@@ -116,7 +116,7 @@ setMethod(
 
 
 
-    bestParms=optim(parmStart,minDemand, method="L-BFGS-B", lower=lowerB, upper= upperB)$par
+    bestParms=stats::optim(parmStart,minDemand, method="L-BFGS-B", lower=lowerB, upper= upperB)$par
 
     if(isTRUE(all.equal(bestParms[1:nplants],rep(0, nplants),check.names=FALSE))){warning("Some plant-level cost parameters are close to 0.")}
     if(isTRUE(all.equal(bestParms[-(1:nplants)],rep(0, nprods),check.names=FALSE))){warning("Some demand parameters are close to 0.")}

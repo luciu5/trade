@@ -16,6 +16,10 @@
 \alias{TariffBargainingCES-class}
 \alias{TariffBertrand-class}
 \alias{TariffLogitCournotModels-class}
+\alias{TariffLogitBLP-class}
+\alias{TariffCournotBLP-class}
+\alias{TariffAuction2ndBLP-class}
+\alias{TariffBargainingBLP-class}
 \title{S4 classes to model tariffs}
 \description{
 Extend classes from the \pkg{antitrust} package to accomodate tariffs.

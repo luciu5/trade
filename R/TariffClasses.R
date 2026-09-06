@@ -1,7 +1,6 @@
 #'@title S4 classes to model tariffs
 #'@import antitrust
 #'@import methods
-#'@import stats
 #'@description Extend classes from the \pkg{antitrust} package to accomodate tariffs.
 #'@slot tariffPre For TariffCournot, a matrix containing  \strong{current} plant-level (rows) AND product-level (columns) tariffs.
 #'Default is a matrix of 0s.  For all other classes,  a vector containg \strong{current} product-level  tariffs.
@@ -132,24 +131,32 @@ setClass("TariffLogitCournotALM", contains = "LogitCournotALM",
 # tariff wrappers add only the pre/post tariff state; the demand, conduct,
 # cost-recovery, and equilibrium methods remain those supplied by antitrust.
 # In particular, trade does not create a second BLP implementation.
+#' @rdname Tariff-classes
+#' @export
 setClass("TariffLogitBLP", contains = "LogitBLP",
          representation = representation(
            tariffPre = "numeric",
            tariffPost = "numeric"),
          validity = function(object) .validTariffVector(object))
 
+#' @rdname Tariff-classes
+#' @export
 setClass("TariffCournotBLP", contains = "CournotBLP",
          representation = representation(
            tariffPre = "numeric",
            tariffPost = "numeric"),
          validity = function(object) .validTariffVector(object))
 
+#' @rdname Tariff-classes
+#' @export
 setClass("TariffAuction2ndBLP", contains = "Auction2ndBLP",
          representation = representation(
            tariffPre = "numeric",
            tariffPost = "numeric"),
          validity = function(object) .validTariffVector(object))
 
+#' @rdname Tariff-classes
+#' @export
 setClass("TariffBargainingBLP", contains = "BargainingBLP",
          representation = representation(
            tariffPre = "numeric",
