@@ -125,7 +125,7 @@ test_that("CES bargaining tariff preserves revenue accounting and tariff wedges"
 
   revenue_shares <- x$prices * x$quantities /
     sum(x$prices * x$quantities)
-  owner_matrix <- .owner_to_matrix(x$owner, length(x$prices), "owner")
+  owner_matrix <- trade:::.owner_to_matrix(x$owner, length(x$prices), "owner")
   expected_owner_post <- owner_matrix *
     matrix(1 - x$tariff, nrow = length(x$tariff), ncol = length(x$tariff))
   expected_mc_delta <- tariff@mcPre *
