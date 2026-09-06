@@ -10,3 +10,5 @@
 ^vignettes/.*[.]html$
 ^trade_.*[.]tar[.]gz$
 ^\.Rcheck$
+^antitrust$
+^artifacts$
