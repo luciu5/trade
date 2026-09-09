@@ -10,6 +10,8 @@ test_that("trade synthetic tariff markets use the active reference product", {
     expect_equal(fit@spec$policy, "tariff")
     expect_equal(unname(calcShares(fit@model, TRUE)), market$shares,
                  tolerance = 1e-10)
+    expect_equal(fit@diagnostics$synthetic$status, "completed")
+    expect_equal(fit@diagnostics$synthetic$foc_status, "verified")
     expect_lt(fit@diagnostics$synthetic$foc_residual, 1e-8)
     expect_equal(unname(fit@model@pricePre), market$prices, tolerance = 1e-10)
     expect_equal(fit@model@tariffPre, rep(0, 5))
@@ -31,6 +33,19 @@ test_that("trade synthetic markets preserve heterogeneous ownership", {
     expect_equal(market$design$products_per_firm, c(1, 2, 3))
     expect_equal(market$products$firm_id, c(1, 2, 2, 3, 3, 3, 4))
     expect_lt(fit@diagnostics$synthetic$foc_residual, 1e-8)
+})
+
+test_that("trade synthetic MonCom markets do not claim Bertrand FOCs", {
+    fit <- synthetic_market(
+        demand = "logit", supply = "moncom", policy = "tariff",
+        n_firms = 2, n_products = 2, reference_price = 100,
+        outside_margin = 10, seed = 20
+    )
+
+    expect_equal(fit@diagnostics$synthetic$status, "unavailable")
+    expect_equal(fit@diagnostics$synthetic$foc_status, "unavailable")
+    expect_true(is.na(fit@diagnostics$synthetic$foc_residual))
+    expect_true(is.na(fit@diagnostics$synthetic$equilibrium_check))
 })
 
 test_that("singular trade Logit FOC systems are rejected", {

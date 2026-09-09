@@ -25,36 +25,58 @@ synthetic_market(
 }
 \arguments{
 \item{demand}{Demand-system name, with `"logit"` as the default.}
+
 \item{supply}{Supply/conduct name, with `"bertrand"` as the default.}
+
 \item{mode}{Either `"observed"` or `"primitives"`.}
+
 \item{policy}{Baseline policy family, `"tariff"` or `"quota"`.}
+
 \item{n_firms}{Number of inside firms; the reference firm is additional.}
+
 \item{n_products}{Number of products per inside firm. A scalar is recycled
 across firms; a vector must have length `n_firms`.}
+
 \item{dirichlet_alpha}{Positive product-level Dirichlet parameters, one per
 inside product. If omitted, all shapes equal one.}
+
 \item{outside_beta}{Positive Beta shape parameters for the reference share.}
+
 \item{reference_price}{A positive level price for the reference product.}
+
 \item{prices}{Optional complete positive price vector ending at
 `reference_price`.}
+
 \item{outside_margin}{Optional level reference-product markup in observed
 mode. Otherwise the open numerical implementation of `U(0, 100)` is used.}
+
 \item{parameters}{Named model-specific primitives in primitives mode.}
+
 \item{tariffPre}{Optional tariff-only pre-policy vector.}
+
 \item{quotaPre}{Optional quota-only pre-policy vector.}
+
 \item{seed}{Optional explicit integer seed.}
-\item{...}{Model-specific arguments forwarded to `calibrate()` or `specify()`.}
+
+\item{...}{Additional arguments forwarded to [calibrate()] or [specify()].}
 }
 \value{
-A `TradeFit` directly accepted by `simulate()`.
+A [TradeFit] directly accepted by [simulate()].
 }
 \description{
-Draws a neutral share and ownership design and uses trade's selected policy,
-demand, and supply implementation to construct a consistent fitted market.
+`synthetic_market()` is the trade-native fake-market entry point. It draws
+product shares and ownership through [antitrust::fake_market()], then uses
+trade's selected policy/model implementation to calibrate or specify the
+baseline. Prices and margins are not independent random draws: the active
+reference product supplies the positive price normalization and one level
+markup, while trade recovers the remaining model state.
 }
 \details{
-The reference product is active, positively priced, and owned by an
-additional reference firm. `n_firms` counts inside firms. A baseline is
-tariff-only or quota-only; simultaneous tariff and quota pre-policies are
-rejected explicitly. Prices and margins are not independently drawn.
+The active reference product is a real product in the ownership map. The
+`n_firms` argument counts inside firms and the reference firm is additional.
+`n_products` may be a scalar shared by all inside firms or a vector with one
+count per firm.
+For now, a baseline must be either tariff-only or quota-only. Supplying both
+`tariffPre` and `quotaPre` is rejected explicitly because simultaneous
+pre-policies are not yet implemented by the trade model registry.
 }

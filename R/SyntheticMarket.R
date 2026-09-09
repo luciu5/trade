@@ -228,7 +228,9 @@
     )
     foc <- rep(NA_real_, n)
     foc_residual <- NA_real_
-    if (methods::is(model, "Logit") &&
+    if (identical(fit@spec$conduct, "bertrand") &&
+        methods::is(model, "Logit") &&
+        !methods::is(model, "CES") &&
         !methods::is(model, "LogitCournot") &&
         (!methods::is(model, "LogitCap") || methods::is(model, "QuotaLogit")) &&
         !methods::is(model, "LogitNests")) {
@@ -245,8 +247,9 @@
             foc_residual <- max(abs(foc))
         }
     }
+    foc_supported <- is.finite(foc_residual)
     synthetic_diagnostics <- list(
-        status = "completed",
+        status = if (foc_supported) "completed" else "unavailable",
         mode = mode,
         policy = policy,
         policy_pre = policy_pre,
@@ -256,7 +259,13 @@
         implied_markup = unname(implied_markup),
         foc = unname(foc),
         foc_residual = foc_residual,
-        foc_tolerance = 1e-8
+        foc_tolerance = 1e-8,
+        foc_status = if (foc_supported) "verified" else "unavailable",
+        equilibrium_check = if (foc_supported) {
+            foc_residual < 1e-8
+        } else {
+            NA
+        }
     )
     if (length(foc_diagnostics)) {
         synthetic_diagnostics$foc_rank <- foc_diagnostics$foc_rank
@@ -478,12 +487,17 @@ synthetic_market <- function(
         }
         margins <- rep(NA_real_, n)
         margins[ref] <- if (level_conduct) markup else markup / reference_price
+        args <- list(
+            demand = spec$demand, conduct = spec$conduct,
+            variant = spec$variant, policy = spec$policy,
+            prices = prices, quantities = shares, margins = margins
+        )
+        ## Atomistic MonCom legacy calibrators have no ownership argument;
+        ## retain the ownership map in the neutral synthetic market while
+        ## leaving it out of that conduct's calibration call.
+        if (!identical(spec$conduct, "moncom")) args$owner <- owner
         args <- c(
-            list(demand = spec$demand, conduct = spec$conduct,
-                 variant = spec$variant, policy = spec$policy,
-                 prices = prices, quantities = shares, margins = margins,
-                 owner = owner),
-            stats::setNames(list(policy_pre), paste0(policy, "Pre")), dots
+            args, stats::setNames(list(policy_pre), paste0(policy, "Pre")), dots
         )
         fit <- do.call(calibrate, args)
         return(.trade_synthetic_attach(
