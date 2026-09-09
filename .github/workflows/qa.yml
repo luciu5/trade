@@ -3,11 +3,33 @@ name: trade QA
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '37 3 * * *'
   workflow_dispatch:
+    inputs:
+      antitrust_ref:
+        description: 'Antitrust refactor branch or commit SHA to install'
+        required: false
+        default: 'refactor'
+        type: string
+      test_tier:
+        description: 'Test tier for manual QA'
+        required: false
+        default: 'extended'
+        type: choice
+        options:
+          - extended
+          - nightly
+
+# Push and pull-request runs intentionally default to the mutable refactor
+# branch for compatibility. Dispatch with a full antitrust commit SHA when a
+# reproducible dependency revision is required.
 
 jobs:
   check:
     name: R 4.6.1 dependency-stack check
+    env:
+      ANTITRUST_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || inputs.test_tier || 'fast' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,8 +37,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luciu5/antitrust
-          ref: refactor
+          ref: ${{ inputs.antitrust_ref || 'refactor' }}
           path: antitrust
+      - name: Record resolved source revisions and test tier
+        shell: bash
+        env:
+          REQUESTED_ANTITRUST_REF: ${{ inputs.antitrust_ref || 'refactor' }}
+        run: |
+          core_sha="$(git -C antitrust rev-parse HEAD)"
+          trade_sha="$(git rev-parse HEAD)"
+          provenance_file="${RUNNER_TEMP}/trade-source-revisions.txt"
+          {
+            echo "requested_antitrust_ref=${REQUESTED_ANTITRUST_REF}"
+            echo "antitrust_sha=${core_sha}"
+            echo "trade_sha=${trade_sha}"
+            echo "test_tier=${ANTITRUST_TEST_TIER}"
+          } | tee "${provenance_file}"
+          {
+            echo "### Source provenance"
+            echo
+            echo "- requested antitrust ref: \`${REQUESTED_ANTITRUST_REF}\`"
+            echo "- resolved antitrust SHA: \`${core_sha}\`"
+            echo "- resolved trade SHA: \`${trade_sha}\`"
+            echo "- test tier: \`${ANTITRUST_TEST_TIER}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: '4.6.1'
@@ -24,7 +68,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           packages: any::testthat, any::pkgload, any::BB, any::numDeriv, any::nleqslv, any::SQUAREM, any::MASS, any::ggplot2, any::knitr, any::bookdown, any::rmarkdown, any::competitiontoolbox
-      - name: Install antitrust refactor dependency
+      - name: Install selected antitrust dependency
         run: R CMD INSTALL antitrust
       - name: Remove dependency checkout before building trade
         run: rm -rf antitrust
@@ -32,3 +76,10 @@ jobs:
         run: R CMD build --no-manual --no-resave-data .
       - name: Check trade
         run: R CMD check --as-cran trade_*.tar.gz
+      - name: Upload source provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trade-source-provenance
+          path: ${{ runner.temp }}/trade-source-revisions.txt
+          if-no-files-found: warn
