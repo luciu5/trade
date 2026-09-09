@@ -111,3 +111,21 @@ test_that("trade transition registry records only supported supplied paths", {
     expect_true(any(grepl("cournot->", keys)))
     expect_false(any(grepl("->.*cournot", keys)))
 })
+
+test_that("trade transition lookup delegates to antitrust's public accessor", {
+    from <- model_spec("logit", "bertrand")
+    to <- model_spec("ces", "bertrand")
+    antitrust_from <- antitrust::model_spec(
+        from$demand, "bertrand", from$variant
+    )
+    antitrust_to <- antitrust::model_spec(
+        to$demand, "bertrand", to$variant
+    )
+
+    expect_equal(
+        getFromNamespace(".trade_antitrust_transition_entry", "trade")(
+            from, to
+        ),
+        antitrust::model_transition(antitrust_from, antitrust_to)
+    )
+})

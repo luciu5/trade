@@ -275,9 +275,7 @@ supportedModels <- function() {
   target <- antitrust::model_spec(
     to$demand, .trade_antitrust_conduct(to$conduct), to$variant
   )
-  utils::getFromNamespace(".model_transition_entry", "antitrust")(
-    source, target
-  )
+  antitrust::model_transition(source, target)
 }
 
 .trade_transition_metadata <- function(from, to) {
