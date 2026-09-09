@@ -4,6 +4,7 @@
 #' The wrapped object remains the implementation of the economic model; the
 #' wrapper marks its calibrated baseline before a particular policy scenario.
 #'
+#' @importClassesFrom antitrust StructuralFit
 #' @name trade-architecture
 NULL
 
@@ -11,19 +12,7 @@ NULL
 #' @export
 setClass(
   "TradeFit",
-  representation = representation(
-    spec = "ANY",
-    model = "ANY",
-    parameters = "list",
-    observed = "list",
-    diagnostics = "list"
-  ),
-  prototype = list(
-    spec = list(),
-    parameters = list(),
-    observed = list(),
-    diagnostics = list()
-  )
+  contains = "StructuralFit"
 )
 
 .trade_has_slot <- function(object, name) name %in% methods::slotNames(object)

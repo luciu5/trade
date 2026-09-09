@@ -9,7 +9,7 @@ Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
 Author: Charles Taragin [aut, cre]
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
-Imports: antitrust (>= 0.99.36), methods, stats
+Imports: antitrust (>= 0.99.37), methods, stats
 Suggests: MASS, BB, competitiontoolbox, rmarkdown, bookdown, knitr, testthat
 Config/testthat/edition: 3
 VignetteBuilder: knitr
