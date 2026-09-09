@@ -38,14 +38,17 @@ counterfactual(
 
 \item{products}{Product-structure changes, unsupported unless registered.}
 
-\item{quality}{A named numeric vector of proportional changes to
-calibrated `meanval`, keyed by product label. Verified for every
-registered trade model whose legacy class wraps a Logit/CES-family
-antitrust demand system (moncom, tariff Bertrand/Cournot, second-score
-auction, bargaining, and LogitCap-descended quota); unsupported for
-AIDS and linear/loglin Cournot tariff models, which have no `meanval`.}
+\item{quality}{A named numeric vector of proportional attractiveness
+changes keyed by product label. Logit adds `log1p(quality)` to the
+utility; CES multiplies its positive mean-value weight by `1 + quality`.
+Verified for every registered trade model whose legacy class wraps a
+Logit/CES-family
+  antitrust demand system (moncom, tariff Bertrand/Cournot, second-score
+  auction, bargaining, and LogitCap-descended quota); unsupported for
+  AIDS and linear/loglin Cournot tariff models, which have no `meanval`.}
 
-\item{entry}{Not supported for trade in this release; always errors.}
+\item{entry}{An entrant specification. Trade validates entry support when
+the counterfactual is simulated for a fitted TradeFit.}
 
 \item{...}{Reserved; model specification fields are rejected.}
 }

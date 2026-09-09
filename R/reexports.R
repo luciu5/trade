@@ -79,3 +79,8 @@ antitrust::final_result
 #' @export
 #' @importFrom antitrust result_at
 antitrust::result_at
+
+#' @rdname antitrust-reexports
+#' @export
+#' @importFrom antitrust add_step
+antitrust::add_step

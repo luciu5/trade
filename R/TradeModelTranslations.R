@@ -55,10 +55,11 @@
 }
 
 .trade_antitrust_conduct <- function(conduct) {
-  ## Monopolistic competition is trade-specific. Its demand conversion is
-  ## nevertheless the same flat demand mapping used by antitrust; the final
-  ## trade target is rebuilt under the trade moncom equations below.
-  if (identical(conduct, "moncom")) "bertrand" else conduct
+  ## MonCom is now a first-class antitrust conduct.  Use that registered
+  ## target for demand translation so the proxy carries the same conduct
+  ## identity; trade still rebuilds the final target through its tariff-aware
+  ## MonCom implementation.
+  conduct
 }
 
 .trade_validate_translation_arguments <- function(target, supplied) {
@@ -140,7 +141,8 @@
   proxy <- .trade_antitrust_proxy(fit, state)
   target_conduct <- .trade_antitrust_conduct(target$conduct)
   demand_arguments <- supplied[intersect(
-    names(supplied), c("alpha", "gamma", "nests", "sigma")
+    names(supplied), c("alpha", "gamma", "nests", "sigma",
+                       "bargpowerPre")
   )]
   translated <- do.call(
     antitrust::respecify,
@@ -199,6 +201,9 @@
   if (.trade_has_slot(state$model, "tariffPre")) {
     arguments$tariffPre <- state$model@tariffPre
   }
+  if (.trade_has_slot(state$model, "quotaPre")) {
+    arguments$quotaPre <- state$model@quotaPre
+  }
   c(arguments, conduct_arguments)
 }
 
@@ -218,12 +223,23 @@
   result
 }
 
-.translate_trade_demand <- function(fit, target, transition, supplied) {
+.translate_trade_demand <- function(fit, target, transition, supplied,
+                                    conduct_arguments = list()) {
   state <- .trade_translation_state(fit)
-  translated <- .trade_antitrust_translation(fit, target, supplied, state)
+  ## The antitrust adapter owns demand conversion, but its target constructor
+  ## must also see conduct primitives carried by the trade target.  Merge them
+  ## by name to avoid duplicate actual arguments when the caller supplied the
+  ## same primitive explicitly.
+  translation_supplied <- supplied
+  if (length(conduct_arguments)) {
+    translation_supplied[names(conduct_arguments)] <- conduct_arguments
+  }
+  translated <- .trade_antitrust_translation(
+    fit, target, translation_supplied, state
+  )
   target_fit <- .trade_translation_build(
     state, target, translated$parameters, translated$inside_size,
-    translated$price_outside
+    translated$price_outside, conduct_arguments
   )
   target_e <- as.matrix(elast(target_fit@model, preMerger = TRUE))
   target_market_elasticity <- .trade_translation_market_elasticity(

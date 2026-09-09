@@ -83,6 +83,28 @@ test_that("trade BLP preserves provided integration points and weights", {
   expect_equal(trade_fit@diagnostics$integration$rule, "provided")
 })
 
+test_that("trade BLP accepts the consDraws alias without partial matching", {
+  fixture <- .trade_blp_fixture(
+    nodes = c(-1.5, -.5, .5, 1.5),
+    weights = c(.10, .20, .30, .40)
+  )
+  fit <- specify(
+    demand = "blp", conduct = "bertrand", prices = fixture$prices,
+    parameters = list(
+      alphaMean = fixture$alpha, sigma = fixture$sigma,
+      meanval = fixture$delta
+    ), shares = fixture$shares, owner = fixture$owner, s0 = fixture$s0,
+    consDraws = fixture$nodes, integrationWeights = fixture$weights,
+    output = TRUE
+  )
+
+  expect_identical(fit@diagnostics$integration$rule, "provided")
+  expect_equal(fit@diagnostics$integration$nodes, fixture$nodes,
+               tolerance = 0)
+  expect_equal(fit@diagnostics$integration$weights,
+               fixture$weights / sum(fixture$weights), tolerance = 0)
+})
+
 test_that("trade BLP no-demographics calibration works under GH and Monte Carlo", {
   for (rule in c("gauss-hermite", "monte-carlo")) {
     if (identical(rule, "gauss-hermite")) {

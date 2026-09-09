@@ -243,10 +243,10 @@ supportedModels <- function() {
 
 
 ## Respecification is validated by antitrust's transition graph. Trade adds
-## only the policy bookkeeping and the moncom conduct alias: moncom has no
-## antitrust counterpart, but its flat demand conversion is the same one used
-## for antitrust Bertrand. This keeps trade from maintaining a second demand
-## conversion graph that could drift from antitrust.
+## only policy bookkeeping; MonCom is a first-class antitrust conduct, so its
+## demand transitions use the same registered graph and structural formulas.
+## This keeps trade from maintaining a second demand-conversion graph that
+## could drift from antitrust.
 .trade_policy_transition_metadata <- function(policy, target) {
   if (identical(policy, "quota")) {
     list(

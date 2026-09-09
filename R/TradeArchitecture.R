@@ -648,6 +648,13 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
     if (is.null(names(replacements)) || any(!nzchar(names(replacements)))) {
       stop("update() arguments must be named calibration or model-specification arguments")
     }
+    specification_replacements <- intersect(
+      names(replacements), c("demand", "conduct", "variant", "policy")
+    )
+    if (length(specification_replacements)) {
+      stop("update() reruns the same demand, conduct, variant, and policy calibration; ",
+           "use respecify() for registered model transitions")
+    }
     calibration_args[names(replacements)] <- replacements
   }
 
@@ -812,9 +819,13 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
          "' does not accept 'bargpowerPre'")
   }
 
+  conduct_arguments <- .trade_respecify_conduct_arguments(
+    fit, target, transition, supplied
+  )
+
   if (!identical(source$demand, target$demand)) {
     translated <- .translate_trade_demand(fit, target, transition,
-                                           supplied)
+                                           supplied, conduct_arguments)
     result <- translated$fit
     result@parameters <- .trade_parameters(result@model)
     result@observed <- fit@observed
@@ -848,8 +859,12 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   canonical_target_conduct <- .trade_antitrust_conduct(target$conduct)
   if (!identical(canonical_source_conduct, canonical_target_conduct)) {
     state <- .trade_translation_state(fit)
+    translation_supplied <- supplied
+    if (length(conduct_arguments)) {
+      translation_supplied[names(conduct_arguments)] <- conduct_arguments
+    }
     portable_translation <- .trade_antitrust_translation(
-      fit, target, list(), state
+      fit, target, translation_supplied, state
     )
     parameters <- portable_translation$parameters
   }
@@ -860,9 +875,6 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   }
   parameters <- parameters[transition$retain]
 
-  conduct_arguments <- .trade_respecify_conduct_arguments(
-    fit, target, transition, supplied
-  )
   result <- do.call(specify, .trade_respecify_arguments(
     fit, target, parameters, conduct_arguments
   ))

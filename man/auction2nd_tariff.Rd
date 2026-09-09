@@ -43,7 +43,8 @@ auction2nd_tariff(
 \item{tariffPost}{A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.}
 
-\item{priceStart}{A vector of length k whose elements equal initial guesses for prices. Default is \code{prices}.}
+\item{priceStart}{A vector of length k whose elements equal initial guesses
+for prices. When omitted, valid pre-merger `prices` are used.}
 
 \item{parmStart}{A vector of starting values for demand calibration.}
 

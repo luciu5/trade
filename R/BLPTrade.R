@@ -49,13 +49,17 @@ NULL
 
 .trade_blp_options <- c(
   "output", "priceOutside", "insideSize", "labels", "weights", "nDraws",
-  "draws", "drawWeights", "integration", "contractionTol",
-  "contractionMaxIter", "nNodes", "integrationWeights",
-  "optimizer_control", "bargpowerPre"
+  "draws", "consDraws", "drawWeights", "integration", "integrationWeights",
+  "contractionTol",
+  "contractionMaxIter", "nNodes",
+  "optimizer_control", "bargpowerPre", "s0"
 )
 
-.trade_blp_antitrust_options <- function(arguments) {
-  arguments[intersect(names(arguments), .trade_blp_options)]
+.trade_blp_antitrust_options <- function(arguments, include_s0 = FALSE) {
+  allowed <- if (isTRUE(include_s0)) .trade_blp_options else {
+    setdiff(.trade_blp_options, "s0")
+  }
+  arguments[intersect(names(arguments), allowed)]
 }
 
 .trade_blp_fit <- function(antitrust_fit, spec, arguments, tariffPre,
@@ -155,7 +159,7 @@ NULL
       parameters = parameters, ownerPre = owner_pre, shares = shares,
       margins = arguments$margins
     ),
-    .trade_blp_antitrust_options(arguments)
+    .trade_blp_antitrust_options(arguments, include_s0 = TRUE)
   )
   captured <- .trade_capture_conditions(do.call(antitrust::specify, call))
   if (inherits(captured$value, "try-error")) stop(captured$value)

@@ -14,6 +14,7 @@
 \alias{ownerToVec}
 \alias{final_result}
 \alias{result_at}
+\alias{add_step}
 \title{Re-exported antitrust diagnostics and accessors}
 \usage{
 calcPriceDelta(
@@ -47,6 +48,8 @@ ownerToVec(object, ...)
 final_result(path)
 
 result_at(path, i)
+
+add_step(object, ...)
 }
 \arguments{
 \item{object}{An instance of a supported simulation class.}

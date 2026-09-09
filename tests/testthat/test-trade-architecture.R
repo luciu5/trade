@@ -145,6 +145,102 @@ test_that("CES uses its complete legacy calibration and simulation path", {
   expect_trade_result_parity(simulate(fit, tariffPost = x$tariff), old)
 })
 
+test_that("trade MonCom CES matches core direct primitives and responds to tariffs", {
+  prices <- c(2, 2.5, 3)
+  revenue_shares <- c(.30, .25, .25)
+  revenue_total <- 100
+  quantities <- revenue_total * revenue_shares / prices
+  owner <- c("A", "A", "B")
+  gamma <- 2
+  parameters <- list(
+    alpha = 1 / sum(revenue_shares) - 1,
+    gamma = gamma,
+    meanval = revenue_shares * prices /
+      ((1 - sum(revenue_shares)) * 1)
+  )
+
+  core <- antitrust::specify(
+    "ces", "moncom", prices = prices, parameters = parameters,
+    ownerPre = owner, shares = revenue_shares, insideSize = revenue_total,
+    priceOutside = 1
+  )
+  fit <- specify(
+    "ces", "moncom", prices = prices, parameters = parameters,
+    owner = owner, insideSize = revenue_total, priceOutside = 1
+  )
+
+  expect_s4_class(fit@model, "TariffMonComCES")
+  expect_equal(unname(fit@parameters$slopes$gamma), gamma, tolerance = 0)
+  expect_equal(unname(fit@model@pricePre), unname(core@model@pricePre),
+               tolerance = 1e-10)
+  expect_equal(unname(calcShares(fit@model, TRUE, revenue = TRUE)),
+               unname(calcShares(core@model, TRUE, revenue = TRUE)),
+               tolerance = 1e-10)
+  expect_equal(unname(calcQuantities(fit@model, TRUE)),
+               unname(calcQuantities(core@model, TRUE)), tolerance = 1e-10)
+  expect_equal(unname(fit@model@mcPre), unname(core@model@mcPre),
+               tolerance = 1e-10)
+
+  ## Independent atomistic CES FOC: q + (p-mc)(-gamma q/p) = 0.
+  q_pre <- as.numeric(calcQuantities(fit@model, TRUE))
+  p_pre <- as.numeric(fit@model@pricePre)
+  mc_pre <- as.numeric(fit@model@mcPre)
+  foc_pre <- q_pre + (p_pre - mc_pre) * (-gamma * q_pre / p_pre)
+  expect_lt(max(abs(foc_pre)), 1e-10)
+
+  tariff <- c(.10, 0, .20)
+  shocked <- simulate(fit, tariffPost = tariff)
+  expected_mc <- mc_pre / (1 - tariff)
+  expected_price <- p_pre / (1 - tariff)
+  expect_equal(unname(shocked@mcPre), unname(mc_pre), tolerance = 0)
+  expect_equal(unname(shocked@mcPost), unname(expected_mc),
+               tolerance = 1e-10)
+  expect_equal(unname(shocked@pricePost), unname(expected_price),
+               tolerance = 1e-10)
+
+  q_post <- as.numeric(calcQuantities(shocked, FALSE))
+  p_post <- as.numeric(shocked@pricePost)
+  mc_post <- as.numeric(shocked@mcPost)
+  foc_post <- q_post + (p_post - mc_post) * (-gamma * q_post / p_post)
+  expect_lt(max(abs(foc_post)), 1e-10)
+
+  ## MonCom pricing is atomistic; ownership labels cannot change the result.
+  other_owner <- specify(
+    "ces", "moncom", prices = prices, parameters = parameters,
+    owner = c("X", "Y", "Z"), insideSize = revenue_total,
+    priceOutside = 1
+  )
+  expect_equal(unname(other_owner@model@pricePost),
+               unname(fit@model@pricePost), tolerance = 1e-10)
+})
+
+test_that("trade and core retain distinct noisy MonCom CES calibration objectives", {
+  prices <- c(2, 2.5, 3)
+  revenue_shares <- c(.30, .25, .25)
+  quantities <- 100 * revenue_shares / prices
+  margins <- c(.50, .40, .25)
+
+  core <- antitrust::calibrate(
+    "ces", "moncom", prices = prices, shares = revenue_shares,
+    margins = margins, ownerPre = c("A", "A", "B"), insideSize = 100,
+    priceOutside = 1
+  )
+  trade_fit <- calibrate(
+    "ces", "moncom", prices = prices, quantities = quantities,
+    margins = margins, priceOutside = 1
+  )
+
+  ## Core estimates the weighted mean of inverse margins; the mature trade
+  ## calibrator minimizes squared margin distance and therefore estimates the
+  ## inverse of the mean margin. These are distinct objectives under noise.
+  expect_equal(unname(core@parameters$gamma), mean(1 / margins),
+               tolerance = 1e-10)
+  expect_equal(unname(trade_fit@parameters$slopes$gamma), 1 / mean(margins),
+               tolerance = 1e-4)
+  expect_true(abs(core@parameters$gamma - trade_fit@parameters$slopes$gamma) >
+              1e-3)
+})
+
 test_that("quota policy is a separate complete model path", {
   x <- trade_fit_data()
   fit <- calibrate("logit", "bertrand", policy = "quota",
@@ -195,15 +291,15 @@ test_that("update genuinely recalibrates a stored trade baseline", {
   expect_true(is.call(update(fit, evaluate = FALSE)))
 })
 
-test_that("trade update changes calibration conduct and respecify retains demand", {
+test_that("trade update preserves model identity and respecify changes conduct", {
   x <- trade_fit_data()
   fit <- calibrate("logit", "bertrand", prices = x$prices,
     quantities = x$quantities, margins = x$margins, owner = x$owner)
 
-  updated <- update(fit, conduct = "moncom")
-  direct <- calibrate("logit", "moncom", prices = x$prices,
-    quantities = x$quantities, margins = x$margins)
-  expect_equal(updated@model@slopes, direct@model@slopes, tolerance = 1e-9)
+  expect_error(
+    update(fit, conduct = "moncom"),
+    "same demand, conduct, variant, and policy calibration"
+  )
 
   respecified <- respecify(fit, conduct = "moncom")
   expect_equal(respecified@model@slopes, fit@model@slopes, tolerance = 0)
@@ -211,8 +307,6 @@ test_that("trade update changes calibration conduct and respecify retains demand
                "logit::bertrand")
   expect_equal(respecified@diagnostics$transition$to,
                "logit::moncom")
-  expect_false(isTRUE(all.equal(updated@model@mcPre,
-                                respecified@model@mcPre)))
   expect_null(respecified@diagnostics$calibration_args)
   expect_equal(respecified@diagnostics$source_calibration_args,
                fit@diagnostics$calibration_args)

@@ -1,12 +1,10 @@
 ## Trade's Counterfactual/CounterfactualStep/CounterfactualPath/Entrant
 ## infrastructure reuses antitrust's exported S4 classes and generics
 ## (`add_step()`, `final_result()`, `result_at()`) directly via
-## `import(antitrust)`; only the trade-specific constructor bodies,
-## capability validation, and exit-subset handling live here. Entry is not
-## supported for trade in this release: an entrant's tariff/quota treatment
-## is an economically substantive primitive that is not specified by the
-## existing tariff/quota policy state, so `entry` always errors clearly
-## rather than guessing.
+## `import(antitrust)`; only the trade-specific capability validation and
+## exit-subset handling live here. The neutral object may carry `entry`, but
+## trade rejects it at the TradeFit simulation boundary because an entrant's
+## tariff/quota treatment is not specified by the existing policy state.
 
 #' Define a post-calibration trade-policy counterfactual
 #'
@@ -25,13 +23,16 @@
 #' @param bargaining Bargaining-parameter changes, unsupported unless registered.
 #' @param leader Leader changes, unsupported unless registered.
 #' @param products Product-structure changes, unsupported unless registered.
-#' @param quality A named numeric vector of proportional changes to
-#'   calibrated `meanval`, keyed by product label. Verified for every
-#'   registered trade model whose legacy class wraps a Logit/CES-family
+#' @param quality A named numeric vector of proportional attractiveness
+#' changes keyed by product label. Logit adds `log1p(quality)` to the
+#' utility; CES multiplies its positive mean-value weight by `1 + quality`.
+#' Verified for every registered trade model whose legacy class wraps a
+#' Logit/CES-family
 #'   antitrust demand system (moncom, tariff Bertrand/Cournot, second-score
 #'   auction, bargaining, and LogitCap-descended quota); unsupported for
 #'   AIDS and linear/loglin Cournot tariff models, which have no `meanval`.
-#' @param entry Not supported for trade in this release; always errors.
+#' @param entry An entrant specification. Trade validates entry support when
+#'   the counterfactual is simulated for a fitted TradeFit.
 #' @param ... Reserved; model specification fields are rejected.
 #' @return A `Counterfactual` object with exactly one `CounterfactualStep`.
 #' @export
@@ -39,82 +40,16 @@ counterfactual <- function(ownership = NULL, costs = NULL, exit = NULL,
                            capacity = NULL, tariff = NULL, quota = NULL,
                            bargaining = NULL, leader = NULL, products = NULL,
                            quality = NULL, entry = NULL, ...) {
-    extras <- list(...)
-    if (length(extras)) {
-        stop("counterfactual() accepts economic-environment fields only; use update() or respecify() for model specification changes")
-    }
-    if (!is.null(entry)) {
-        stop("'entry' is not supported for trade models in this release: an entrant's tariff/quota treatment is not a specified primitive")
-    }
-    if (!is.null(quality) && (is.null(names(quality)) || any(!nzchar(names(quality))))) {
-        stop("'quality' must be a named numeric vector (product label = proportional change)")
-    }
-    if (!is.null(quality) && anyDuplicated(names(quality))) {
-        stop("'quality' contains duplicate product labels")
-    }
-    changes <- Filter(Negate(is.null), list(
+    ## Counterfactual objects and add_step() are shared neutral infrastructure
+    ## owned by antitrust.  Trade policy restrictions are checked only when a
+    ## TradeFit reaches simulate(), where the active policy/model is known.
+    antitrust::counterfactual(
         ownership = ownership, costs = costs, exit = exit,
         capacity = capacity, tariff = tariff, quota = quota,
         bargaining = bargaining, leader = leader, products = products,
-        quality = quality
-    ))
-    step <- new("CounterfactualStep", changes = changes)
-    new("Counterfactual", steps = list(step))
+        quality = quality, entry = entry, ...
+    )
 }
-
-#' Append a sequential counterfactual step
-#'
-#' `add_step()` appends one new, simultaneous `CounterfactualStep` to a
-#' `Counterfactual`. The appended step is solved starting from the
-#' equilibrium produced by the immediately preceding step (or, for the
-#' first appended step, the fitted baseline); it never replaces or
-#' recalibrates prior steps.
-#'
-#' @param object A `Counterfactual` object.
-#' @param ownership Ownership changes, unsupported unless registered.
-#' @param costs Cost changes, unsupported unless registered.
-#' @param exit Products to remove, or a logical active-product vector.
-#' @param capacity Capacity changes, unsupported unless registered.
-#' @param tariff A post-counterfactual tariff vector.
-#' @param quota A post-counterfactual quota vector.
-#' @param bargaining Bargaining-parameter changes, unsupported unless registered.
-#' @param leader Leader changes, unsupported unless registered.
-#' @param products Product-structure changes, unsupported unless registered.
-#' @param quality A named numeric vector of proportional changes to
-#'   calibrated `meanval`, keyed by product label.
-#' @param entry Not supported for trade in this release; always errors.
-#' @param ... Reserved; model specification fields are rejected.
-#' @return A `Counterfactual` object with the new step appended.
-#' @export
-setMethod("add_step", "Counterfactual", function(object, ownership = NULL,
-                                                  costs = NULL, exit = NULL,
-                                                  capacity = NULL, tariff = NULL,
-                                                  quota = NULL, bargaining = NULL,
-                                                  leader = NULL, products = NULL,
-                                                  quality = NULL, entry = NULL, ...) {
-    extras <- list(...)
-    if (length(extras)) {
-        stop("add_step() accepts economic-environment fields only; use update() or respecify() for model specification changes")
-    }
-    if (!is.null(entry)) {
-        stop("'entry' is not supported for trade models in this release: an entrant's tariff/quota treatment is not a specified primitive")
-    }
-    if (!is.null(quality) && (is.null(names(quality)) || any(!nzchar(names(quality))))) {
-        stop("'quality' must be a named numeric vector (product label = proportional change)")
-    }
-    if (!is.null(quality) && anyDuplicated(names(quality))) {
-        stop("'quality' contains duplicate product labels")
-    }
-    changes <- Filter(Negate(is.null), list(
-        ownership = ownership, costs = costs, exit = exit,
-        capacity = capacity, tariff = tariff, quota = quota,
-        bargaining = bargaining, leader = leader, products = products,
-        quality = quality
-    ))
-    step <- new("CounterfactualStep", changes = changes)
-    object@steps <- c(object@steps, list(step))
-    object
-})
 
 #' Combine non-conflicting counterfactual changes into one simultaneous step
 #'
@@ -247,9 +182,22 @@ combine_counterfactuals <- function(...) {
         stop("'quality' references product(s) that are not active (exited): ",
              paste(excluded, collapse = ", "))
     }
+    if (any(!is.finite(quality) | quality <= -1)) {
+        stop("'quality' values must be finite and greater than -1")
+    }
     meanval <- model@slopes$meanval
     idx <- match(names(quality), labels)
-    meanval[idx] <- meanval[idx] * (1 + quality)
+    if (methods::is(model, "CES")) {
+        ## CES mean values are positive demand weights, so retain the
+        ## multiplicative proportional convention.
+        meanval[idx] <- meanval[idx] * (1 + quality)
+    } else if (methods::is(model, "Logit")) {
+        ## Logit mean values are utilities: a proportional choice-weight
+        ## shock is an additive log(1 + quality) shift.
+        meanval[idx] <- meanval[idx] + log1p(quality)
+    } else {
+        stop("'quality' is unsupported for this trade demand model")
+    }
     model@slopes$meanval <- meanval
     model
 }
