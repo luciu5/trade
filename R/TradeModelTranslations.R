@@ -148,7 +148,7 @@
     antitrust::respecify,
     c(
       list(
-        fit = proxy,
+        object = proxy,
         demand = target$demand,
         conduct = target_conduct,
         variant = target$variant
