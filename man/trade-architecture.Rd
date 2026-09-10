@@ -1,19 +1,21 @@
 \name{trade-architecture}
 \alias{trade-architecture}
 \alias{TradeFit-class}
-\alias{TradeCounterfactualPath-class}
 \alias{calibrate}
 \alias{specify}
 \alias{simulate,TradeFit-method}
-\alias{simulate,TradeCounterfactualPath-method}
+\alias{simulate_steps,TradeFit-method}
 \title{Calibrate, specify, and simulate trade models}
 \description{
   The trade architecture separates construction of a baseline structural
   model from policy counterfactual simulation.  Existing trade S4 objects
   remain the economic implementation and are returned by \code{simulate}.
   \code{simulate()} and \code{respecify()} are S4 generics owned by
-  \pkg{antitrust}; trade supplies methods for its own \code{TradeFit} and
-  \code{TradeCounterfactualPath} classes.
+  \pkg{antitrust}; trade supplies methods for its own \code{TradeFit} class.
+  Resuming a multi-step \code{CounterfactualPath} produced by a
+  \code{TradeFit} is handled by antitrust's own shared \code{CounterfactualPath}
+  method, which dispatches the new steps back to trade through
+  \code{simulate_steps()}.
 }
 \usage{
 calibrate(demand, conduct = NULL, variant = "standard",
@@ -25,8 +27,7 @@ specify(demand, conduct = NULL, prices, parameters,
 \S4method{simulate}{TradeFit}(object, tariffPost, quotaPost, subset,
   priceStart, bargpowerPost, isMax = FALSE, ...)
 
-\S4method{simulate}{TradeCounterfactualPath}(object, tariffPost, quotaPost, subset,
-  priceStart, bargpowerPost, isMax = FALSE, ...)
+\S4method{simulate_steps}{TradeFit}(object, last_result, steps, ...)
 }
 \arguments{
   \item{demand}{A demand-system name or a normalized model specification.}
@@ -38,7 +39,7 @@ specify(demand, conduct = NULL, prices, parameters,
   \item{prices}{A vector of observed product prices.}
   \item{parameters}{A named list of supplied structural parameters.}
   \item{object}{A \code{TradeFit} returned by \code{calibrate} or
-    \code{specify}, or a \code{TradeCounterfactualPath} to resume from.}
+    \code{specify}.}
   \item{tariffPost}{A post-policy ad valorem tariff vector.}
   \item{quotaPost}{A post-policy quota vector.}
   \item{subset}{A logical vector selecting products in the post-policy market.}
@@ -47,6 +48,8 @@ specify(demand, conduct = NULL, prices, parameters,
     bargaining models.}
   \item{isMax}{Whether to request the legacy local-maximum check where
     supported.}
+  \item{last_result}{The legacy trade S4 result the path last landed on.}
+  \item{steps}{The ordered \code{CounterfactualStep} objects to solve next.}
   \item{...}{Baseline inputs, scenario inputs, or solver options accepted by
     the selected legacy implementation.}
 }
@@ -61,19 +64,13 @@ specify(demand, conduct = NULL, prices, parameters,
 \value{
   \code{calibrate} and \code{specify} return a \code{TradeFit}. \code{simulate}
   returns the existing trade S4 result class selected by the fitted model, or
-  a \code{TradeCounterfactualPath} for a multi-step \code{Counterfactual}.
+  a \code{CounterfactualPath} for a multi-step \code{Counterfactual}.
+  \code{simulate_steps} returns a list with one element, \code{results}: a
+  list of legacy trade S4 results, one per step, in order.
 }
 \section{TradeFit class}{
   A \code{TradeFit} contains the normalized model specification, the existing
   calibrated S4 model object, structural parameters, observed inputs, and
   calibration diagnostics.
-}
-\section{TradeCounterfactualPath class}{
-  A \code{TradeCounterfactualPath} is a trade-owned subclass of antitrust's
-  \code{CounterfactualPath} with no additional slots. It exists only so that
-  \code{simulate()} dispatches to trade's tariff/quota step-resolution logic
-  when resuming a path produced by simulating a \code{TradeFit}, without
-  overriding the shared \code{CounterfactualPath} method that antitrust and
-  other structural-fit families rely on for their own paths.
 }
 \seealso{\code{\link{model_spec}}, \code{\link{supportedModels}}}

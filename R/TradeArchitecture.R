@@ -6,6 +6,7 @@
 #'
 #' @importClassesFrom antitrust StructuralFit
 #' @importFrom antitrust simulate
+#' @importFrom antitrust simulate_steps
 #' @importFrom antitrust respecify
 #' @name trade-architecture
 NULL
@@ -15,24 +16,6 @@ NULL
 setClass(
   "TradeFit",
   contains = "StructuralFit"
-)
-
-#' A trade-origin sequential counterfactual path
-#'
-#' `TradeCounterfactualPath` is a trade-owned subclass of antitrust's
-#' `CounterfactualPath` with no additional slots. It exists solely so that
-#' `simulate()` dispatches to trade's own tariff/quota step-resolution logic
-#' (fundamentally different from antitrust's ownership/cost mechanics) when
-#' resuming a path that was produced by simulating a `TradeFit`, without
-#' overriding the shared `CounterfactualPath` method that antitrust and any
-#' other structural-fit family continue to rely on for their own paths.
-#'
-#' @importClassesFrom antitrust CounterfactualPath
-#' @rdname trade-architecture
-#' @export
-setClass(
-  "TradeCounterfactualPath",
-  contains = "CounterfactualPath"
 )
 
 .trade_has_slot <- function(object, name) name %in% methods::slotNames(object)
@@ -513,15 +496,15 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' or quota scenarios without recalibration. For a multi-step
 #' `Counterfactual` (built with [add_step()]), each step is solved in turn,
 #' promoting the previous step's solved equilibrium into the next step's
-#' starting state, and a `TradeCounterfactualPath` recording every step's
-#' result is returned. `object` may also be a `TradeCounterfactualPath`, in
-#' which case simulation resumes from that path's final solved state.
+#' starting state, and a `CounterfactualPath` recording every step's
+#' result is returned. Resuming that path (via `simulate(path, cf)`) is
+#' handled generically by antitrust's own `CounterfactualPath` method,
+#' which dispatches the new steps back to trade through [simulate_steps()].
 #'
 #' `simulate()` is an S4 generic owned by \pkg{antitrust}; this method
-#' dispatches on `object`'s class `TradeFit` or `TradeCounterfactualPath`.
+#' dispatches on `object`'s class `TradeFit`.
 #'
-#' @param object A `TradeFit` returned by [calibrate()] or [specify()], or a
-#'   `TradeCounterfactualPath` to resume from.
+#' @param object A `TradeFit` returned by [calibrate()] or [specify()].
 #' @param tariffPost A post-policy ad valorem tariff vector for tariff models,
 #' or a `Counterfactual` object.
 #' @param quotaPost A post-policy quota vector for quota models.
@@ -531,7 +514,7 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' @param ... Additional model-specific solver or post-state arguments.
 #' @return For a one-step counterfactual, the existing trade S4 result
 #'   object, not a new result hierarchy. For a multi-step counterfactual, a
-#'   `TradeCounterfactualPath`.
+#'   `CounterfactualPath`.
 #' @rdname trade-architecture
 #' @export
 setMethod("simulate", "TradeFit", function(object, tariffPost = NULL,
@@ -544,45 +527,32 @@ setMethod("simulate", "TradeFit", function(object, tariffPost = NULL,
   )
 })
 
+#' Resolve a sequence of policy-counterfactual steps for a fitted trade model
+#'
+#' The `simulate_steps()` extension point that antitrust's own
+#' `CounterfactualPath` resume method calls when the path was originally
+#' produced by simulating a `TradeFit`. Trade's tariff/quota mechanics never
+#' promote a `*Post` slot into `*Pre` and track no cumulative cost state
+#' (see [.trade_simulate_steps()]), so this method carries no extra
+#' resume state beyond `object`, `last_result`, and `steps`.
+#'
+#' @param object A `TradeFit` returned by [calibrate()] or [specify()].
+#' @param last_result The legacy trade S4 result the path last landed on.
+#' @param steps The ordered `CounterfactualStep` objects to solve next.
+#' @param ... Unused; present for generic compatibility.
+#' @return A list with one element, `results`: a list of legacy trade S4
+#'   results, one per step, in order.
 #' @rdname trade-architecture
 #' @export
-setMethod("simulate", "TradeCounterfactualPath", function(object, tariffPost = NULL,
-                                                          quotaPost = NULL, subset = NULL,
-                                                          priceStart = NULL, bargpowerPost = NULL,
-                                                          isMax = FALSE, ...) {
-  .simulate_trade_fit(
-    object, tariffPost = tariffPost, quotaPost = quotaPost, subset = subset,
-    priceStart = priceStart, bargpowerPost = bargpowerPost, isMax = isMax, ...
-  )
+setMethod("simulate_steps", "TradeFit", function(object, last_result, steps, ...) {
+  list(results = .trade_simulate_steps(object, last_result, steps))
 })
 
 .simulate_trade_fit <- function(object, tariffPost = NULL, quotaPost = NULL, subset = NULL,
                                 priceStart = NULL, bargpowerPost = NULL,
                                 isMax = FALSE, ...) {
-  resume_path <- if (is(object, "TradeCounterfactualPath")) object else NULL
-  if (!is.null(resume_path)) object <- NULL
-
   arguments <- list(...)
   cf <- if (inherits(tariffPost, "Counterfactual")) tariffPost else NULL
-
-  if (!is.null(resume_path)) {
-    if (is.null(cf)) {
-      stop("simulate() on a CounterfactualPath requires a Counterfactual as its second argument.")
-    }
-    base_fit <- resume_path@diagnostics$fit
-    if (is.null(base_fit)) {
-      stop("'fit' CounterfactualPath does not retain enough diagnostics to resume simulation.")
-    }
-    .validate_counterfactual(cf, base_fit@spec)
-    results <- .trade_simulate_steps(base_fit, final_result(resume_path), cf@steps)
-    return(new(
-      "TradeCounterfactualPath",
-      initial = resume_path@initial,
-      steps = c(resume_path@steps, cf@steps),
-      results = c(resume_path@results, results),
-      diagnostics = list(fit = base_fit)
-    ))
-  }
 
   spec <- object@spec
   entry <- .trade_registry_entry(spec)
@@ -607,7 +577,7 @@ setMethod("simulate", "TradeCounterfactualPath", function(object, tariffPost = N
     if (length(cf@steps) > 1L) {
       results <- .trade_simulate_steps(object, object@model, cf@steps)
       return(new(
-        "TradeCounterfactualPath",
+        "CounterfactualPath",
         initial = object@model,
         steps = cf@steps,
         results = results,
