@@ -67,23 +67,50 @@ test_that("TradeFit survives an RDS round trip", {
 })
 
 
-test_that("antitrust simulation rejects TradeFit despite shared inheritance", {
-  fit <- methods::new(
-    "TradeFit",
-    spec = list(id = "test::dispatch"),
-    model = list(state = TRUE),
-    parameters = list(alpha = -1.2),
-    observed = list(prices = c(1, 2)),
-    diagnostics = list(status = "constructed")
-  )
+test_that("antitrust::simulate() reaches trade's own TradeFit method via shared dispatch", {
+  ## simulate() is a single S4 generic owned by antitrust; trade supplies a
+  ## method for its own "TradeFit" signature. Calling antitrust::simulate()
+  ## and trade::simulate() on a TradeFit therefore dispatch to the exact same
+  ## registered method -- there is no rejection to test for here anymore.
+  prices <- c(.0441, .0328, .0409, .0396, .0387, .0497)
+  quantities <- c(.066, .172, .253, .187, .099, .223) * 100
+  margins <- c(.3830, .5515, .5421, .5557, .4453, .3769)
+  owner <- c("BUD", "OLD STYLE", "MILLER", "MILLER", "OTHER-LITE", "OTHER-REG")
+  tariff <- c(0, 0, 0, 0, .1, .1)
 
-  cf <- antitrust::counterfactual(ownership = c("A", "A"))
-  expect_s4_class(cf, "Counterfactual")
+  fit <- suppressWarnings(calibrate(
+    demand = "logit", conduct = "bertrand", prices = prices,
+    quantities = quantities, margins = margins, owner = owner
+  ))
+
+  via_antitrust <- suppressWarnings(antitrust::simulate(fit, tariffPost = tariff))
+  via_trade <- suppressWarnings(trade::simulate(fit, tariffPost = tariff))
+
+  expect_s4_class(via_antitrust, "TariffLogit")
+  expect_equal(via_antitrust, via_trade)
+})
+
+
+test_that("a StructuralFit subclass that is neither TradeFit nor AntitrustFit still hits the shared fallback", {
+  ## The shared StructuralFit fallback methods, owned by antitrust, must keep
+  ## producing an explicit "no method defined" error for any StructuralFit
+  ## subclass -- including a hypothetical third sibling family -- that
+  ## supplies neither a TradeFit nor an AntitrustFit method. Trade must not
+  ## touch or duplicate that fallback.
+  setClass("DummyTradeSiblingFit", contains = "StructuralFit")
+  on.exit(removeClass("DummyTradeSiblingFit"), add = TRUE)
+  dummy <- methods::new("DummyTradeSiblingFit")
+
+  expect_true(is(dummy, "StructuralFit"))
+  expect_false(is(dummy, "TradeFit"))
+  expect_false(is(dummy, "AntitrustFit"))
 
   expect_error(
-    antitrust::simulate(
-      fit, ownerPost = cf, priceStart = c(1, 2)
-    ),
-    "must be an AntitrustFit"
+    antitrust::simulate(dummy, ownerPost = c("A", "B")),
+    "no simulate\\(\\) method is defined"
+  )
+  expect_error(
+    antitrust::respecify(dummy, conduct = "cournot"),
+    "no respecify\\(\\) method is defined"
   )
 })

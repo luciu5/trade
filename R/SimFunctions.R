@@ -504,7 +504,7 @@ sim <- function(prices,
   fit <- do.call(specify, fit_arguments)
 
   simulation_arguments <- list(
-    fit = fit,
+    object = fit,
     tariffPost = tariffPost,
     subset = subset,
     bargpowerPost = bargpowerPost

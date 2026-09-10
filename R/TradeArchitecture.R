@@ -5,6 +5,8 @@
 #' wrapper marks its calibrated baseline before a particular policy scenario.
 #'
 #' @importClassesFrom antitrust StructuralFit
+#' @importFrom antitrust simulate
+#' @importFrom antitrust respecify
 #' @name trade-architecture
 NULL
 
@@ -13,6 +15,24 @@ NULL
 setClass(
   "TradeFit",
   contains = "StructuralFit"
+)
+
+#' A trade-origin sequential counterfactual path
+#'
+#' `TradeCounterfactualPath` is a trade-owned subclass of antitrust's
+#' `CounterfactualPath` with no additional slots. It exists solely so that
+#' `simulate()` dispatches to trade's own tariff/quota step-resolution logic
+#' (fundamentally different from antitrust's ownership/cost mechanics) when
+#' resuming a path that was produced by simulating a `TradeFit`, without
+#' overriding the shared `CounterfactualPath` method that antitrust and any
+#' other structural-fit family continue to rely on for their own paths.
+#'
+#' @importClassesFrom antitrust CounterfactualPath
+#' @rdname trade-architecture
+#' @export
+setClass(
+  "TradeCounterfactualPath",
+  contains = "CounterfactualPath"
 )
 
 .trade_has_slot <- function(object, name) name %in% methods::slotNames(object)
@@ -493,12 +513,15 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' or quota scenarios without recalibration. For a multi-step
 #' `Counterfactual` (built with [add_step()]), each step is solved in turn,
 #' promoting the previous step's solved equilibrium into the next step's
-#' starting state, and a `CounterfactualPath` recording every step's result
-#' is returned. `fit` may also be a `CounterfactualPath`, in which case
-#' simulation resumes from that path's final solved state.
+#' starting state, and a `TradeCounterfactualPath` recording every step's
+#' result is returned. `object` may also be a `TradeCounterfactualPath`, in
+#' which case simulation resumes from that path's final solved state.
 #'
-#' @param fit A `TradeFit` returned by [calibrate()] or [specify()], or a
-#'   `CounterfactualPath` to resume from.
+#' `simulate()` is an S4 generic owned by \pkg{antitrust}; this method
+#' dispatches on `object`'s class `TradeFit` or `TradeCounterfactualPath`.
+#'
+#' @param object A `TradeFit` returned by [calibrate()] or [specify()], or a
+#'   `TradeCounterfactualPath` to resume from.
 #' @param tariffPost A post-policy ad valorem tariff vector for tariff models,
 #' or a `Counterfactual` object.
 #' @param quotaPost A post-policy quota vector for quota models.
@@ -508,14 +531,36 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 #' @param ... Additional model-specific solver or post-state arguments.
 #' @return For a one-step counterfactual, the existing trade S4 result
 #'   object, not a new result hierarchy. For a multi-step counterfactual, a
-#'   `CounterfactualPath`.
+#'   `TradeCounterfactualPath`.
 #' @rdname trade-architecture
 #' @export
-simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
-                     priceStart = NULL, bargpowerPost = NULL,
-                     isMax = FALSE, ...) {
-  resume_path <- if (is(fit, "CounterfactualPath")) fit else NULL
-  if (!is.null(resume_path)) fit <- NULL
+setMethod("simulate", "TradeFit", function(object, tariffPost = NULL,
+                                           quotaPost = NULL, subset = NULL,
+                                           priceStart = NULL, bargpowerPost = NULL,
+                                           isMax = FALSE, ...) {
+  .simulate_trade_fit(
+    object, tariffPost = tariffPost, quotaPost = quotaPost, subset = subset,
+    priceStart = priceStart, bargpowerPost = bargpowerPost, isMax = isMax, ...
+  )
+})
+
+#' @rdname trade-architecture
+#' @export
+setMethod("simulate", "TradeCounterfactualPath", function(object, tariffPost = NULL,
+                                                          quotaPost = NULL, subset = NULL,
+                                                          priceStart = NULL, bargpowerPost = NULL,
+                                                          isMax = FALSE, ...) {
+  .simulate_trade_fit(
+    object, tariffPost = tariffPost, quotaPost = quotaPost, subset = subset,
+    priceStart = priceStart, bargpowerPost = bargpowerPost, isMax = isMax, ...
+  )
+})
+
+.simulate_trade_fit <- function(object, tariffPost = NULL, quotaPost = NULL, subset = NULL,
+                                priceStart = NULL, bargpowerPost = NULL,
+                                isMax = FALSE, ...) {
+  resume_path <- if (is(object, "TradeCounterfactualPath")) object else NULL
+  if (!is.null(resume_path)) object <- NULL
 
   arguments <- list(...)
   cf <- if (inherits(tariffPost, "Counterfactual")) tariffPost else NULL
@@ -531,7 +576,7 @@ simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
     .validate_counterfactual(cf, base_fit@spec)
     results <- .trade_simulate_steps(base_fit, final_result(resume_path), cf@steps)
     return(new(
-      "CounterfactualPath",
+      "TradeCounterfactualPath",
       initial = resume_path@initial,
       steps = c(resume_path@steps, cf@steps),
       results = c(resume_path@results, results),
@@ -539,8 +584,7 @@ simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
     ))
   }
 
-  if (!is(fit, "TradeFit")) stop("'fit' must be a TradeFit object, or a CounterfactualPath.")
-  spec <- fit@spec
+  spec <- object@spec
   entry <- .trade_registry_entry(spec)
   if (!isTRUE(entry$simulate)) {
     stop("simulate() is not supported for trade model '", spec$id, "'")
@@ -561,29 +605,29 @@ simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
     }
 
     if (length(cf@steps) > 1L) {
-      results <- .trade_simulate_steps(fit, fit@model, cf@steps)
+      results <- .trade_simulate_steps(object, object@model, cf@steps)
       return(new(
-        "CounterfactualPath",
-        initial = fit@model,
+        "TradeCounterfactualPath",
+        initial = object@model,
         steps = cf@steps,
         results = results,
-        diagnostics = list(fit = fit)
+        diagnostics = list(fit = object)
       ))
     }
 
     step <- cf@steps[[1L]]
     changes <- step@changes
-    model <- fit@model
+    model <- object@model
     if (!is.null(changes$quality)) model <- .apply_quality(model, changes$quality)
     step_arguments <- arguments
     if (!is.null(changes$products)) step_arguments$productsPost <- changes$products
     result <- .trade_simulate_step(
-      fit, model,
+      object, model,
       tariffPost = changes$tariff, quotaPost = changes$quota,
       exit = changes$exit, priceStart = priceStart,
       bargpowerPost = bargpowerPost, isMax = isMax, arguments = step_arguments
     )
-    return(.counterfactual_attach(result, fit, cf))
+    return(.counterfactual_attach(result, object, cf))
   }
 
   if (any(c("tariffPre", "quotaPre", "ownerPost", "mcDelta") %in% names(arguments))) {
@@ -596,12 +640,12 @@ simulate <- function(fit, tariffPost = NULL, quotaPost = NULL, subset = NULL,
   fields <- fields[!vapply(fields, is.null, logical(1))]
   cf <- do.call(counterfactual, fields)
   result <- .trade_simulate_step(
-    fit, fit@model,
+    object, object@model,
     tariffPost = tariffPost, quotaPost = quotaPost, subset = subset,
     priceStart = priceStart, bargpowerPost = bargpowerPost, isMax = isMax,
     arguments = arguments
   )
-  .counterfactual_attach(result, fit, cf)
+  .counterfactual_attach(result, object, cf)
 }
 
 
@@ -755,7 +799,10 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 #' state are recomputed. This is not a global equivalence claim between
 #' price-level Logit and log-price CES.
 #'
-#' @param fit A `TradeFit` returned by `calibrate()` or `specify()`.
+#' `respecify()` is an S4 generic owned by \pkg{antitrust}; this method
+#' dispatches on `object`'s class `TradeFit`.
+#'
+#' @param object A `TradeFit` returned by `calibrate()` or `specify()`.
 #' @param demand Optional target demand-system name.
 #' @param conduct Optional target conduct name.
 #' @param variant Optional target model variant.
@@ -766,11 +813,9 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
 #' @seealso [`specify()`], [`update.TradeFit()`]
 #' @rdname trade-architecture
 #' @export
-respecify <- function(fit, demand = NULL, conduct = NULL,
-                      variant = NULL, ...) {
-  if (!is(fit, "TradeFit")) {
-    stop("'fit' must be a TradeFit returned by calibrate() or specify()")
-  }
+setMethod("respecify", "TradeFit", function(object, demand = NULL,
+                                            conduct = NULL, variant = NULL,
+                                            ...) {
   supplied <- list(...)
   if (length(supplied) &&
       (is.null(names(supplied)) || any(!nzchar(names(supplied))))) {
@@ -784,7 +829,7 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
          paste(unsupported, collapse = ", "))
   }
 
-  source <- fit@spec
+  source <- object@spec
   target <- model_spec(
     demand = if (is.null(demand)) source$demand else demand,
     conduct = if (is.null(conduct)) source$conduct else conduct,
@@ -809,15 +854,15 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   }
 
   conduct_arguments <- .trade_respecify_conduct_arguments(
-    fit, target, transition, supplied
+    object, target, transition, supplied
   )
 
   if (!identical(source$demand, target$demand)) {
-    translated <- .translate_trade_demand(fit, target, transition,
+    translated <- .translate_trade_demand(object, target, transition,
                                            supplied, conduct_arguments)
     result <- translated$fit
     result@parameters <- .trade_parameters(result@model)
-    result@observed <- fit@observed
+    result@observed <- object@observed
     result@observed$demand <- target$demand
     result@diagnostics$source <- "respecify"
     result@diagnostics$route <- "respecify"
@@ -837,23 +882,23 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     result@diagnostics$translation <- translated$diagnostics
     result@diagnostics$local_translation <- translated$diagnostics
     result@diagnostics$source_calibration_args <-
-      fit@diagnostics$calibration_args
+      object@diagnostics$calibration_args
     result@diagnostics$calibration_args <- NULL
     return(result)
   }
 
-  parameters <- .trade_structural_parameters(fit)
+  parameters <- .trade_structural_parameters(object)
   portable_translation <- NULL
   canonical_source_conduct <- .trade_antitrust_conduct(source$conduct)
   canonical_target_conduct <- .trade_antitrust_conduct(target$conduct)
   if (!identical(canonical_source_conduct, canonical_target_conduct)) {
-    state <- .trade_translation_state(fit)
+    state <- .trade_translation_state(object)
     translation_supplied <- supplied
     if (length(conduct_arguments)) {
       translation_supplied[names(conduct_arguments)] <- conduct_arguments
     }
     portable_translation <- .trade_antitrust_translation(
-      fit, target, translation_supplied, state
+      object, target, translation_supplied, state
     )
     parameters <- portable_translation$parameters
   }
@@ -865,10 +910,10 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
   parameters <- parameters[transition$retain]
 
   result <- do.call(specify, .trade_respecify_arguments(
-    fit, target, parameters, conduct_arguments
+    object, target, parameters, conduct_arguments
   ))
   result@parameters <- .trade_parameters(result@model)
-  result@observed <- fit@observed
+  result@observed <- object@observed
   result@diagnostics$source <- "respecify"
   result@diagnostics$route <- "respecify"
   result@diagnostics$transition <- list(
@@ -885,11 +930,11 @@ respecify <- function(fit, demand = NULL, conduct = NULL,
     policy = transition$policy
   )
   result@diagnostics$source_calibration_args <-
-    fit@diagnostics$calibration_args
+    object@diagnostics$calibration_args
   result@diagnostics$calibration_args <- NULL
   if (!is.null(portable_translation)) {
     result@diagnostics$translation <- portable_translation$fit@diagnostics$translation
     result@diagnostics$delegated_to <- "antitrust::respecify"
   }
   result
-}
+})
