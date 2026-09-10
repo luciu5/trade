@@ -49,7 +49,7 @@ NULL
 
 .trade_blp_options <- c(
   "output", "priceOutside", "insideSize", "labels", "weights", "nDraws",
-  "draws", "consDraws", "drawWeights", "integration", "integrationWeights",
+  "draws", "consDraws", "integrationPoints", "drawWeights", "integration", "integrationWeights",
   "contractionTol",
   "contractionMaxIter", "nNodes",
   "optimizer_control", "bargpowerPre", "s0"
@@ -153,10 +153,21 @@ NULL
     n, "tariffPre"
   )
   owner_pre <- .trade_blp_owner_for_tariff(owner, tariffPre, spec$conduct)
+  ## Promote integration controls supplied through trade's `...` boundary
+  ## into the antitrust parameter list as well. This keeps the controls
+  ## attached to the portable BLP state even when downstream specify methods
+  ## inspect only `parameters`.
+  blp_parameters <- parameters
+  for (name in intersect(names(arguments), c(
+    "integrationPoints", "draws", "consDraws", "drawWeights",
+    "integrationWeights", "integration", "nNodes", "nDraws"
+  ))) {
+    if (!is.null(arguments[[name]])) blp_parameters[[name]] <- arguments[[name]]
+  }
   call <- c(
     list(
       demand = "blp", conduct = spec$conduct, prices = prices,
-      parameters = parameters, ownerPre = owner_pre, shares = shares,
+      parameters = blp_parameters, ownerPre = owner_pre, shares = shares,
       margins = arguments$margins
     ),
     .trade_blp_antitrust_options(arguments, include_s0 = TRUE)
