@@ -1,15 +1,15 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.8.6
-Date: 2026-08-25
+Version: 0.8.7
+Date: 2026-09-11
 Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
                   role = c("aut", "cre"))
                   )
 Author: Charles Taragin [aut, cre]
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
-Imports: antitrust (>= 0.99.38), methods, stats
+Imports: antitrust (>= 0.99.39), methods, stats
 Suggests: MASS, BB, competitiontoolbox, rmarkdown, bookdown, knitr, testthat
 Config/testthat/edition: 3
 VignetteBuilder: knitr

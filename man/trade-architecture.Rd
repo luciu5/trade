@@ -5,6 +5,7 @@
 \alias{specify}
 \alias{simulate,TradeFit-method}
 \alias{simulate_steps,TradeFit-method}
+\alias{validate_counterfactual,TradeFit-method}
 \title{Calibrate, specify, and simulate trade models}
 \description{
   The trade architecture separates construction of a baseline structural
@@ -12,6 +13,8 @@
   remain the economic implementation and are returned by \code{simulate}.
   \code{simulate()} and \code{respecify()} are S4 generics owned by
   \pkg{antitrust}; trade supplies methods for its own \code{TradeFit} class.
+  Trade also supplies the corresponding \code{validate_counterfactual()}
+  method so shared path resumption uses trade's model capabilities.
   Resuming a multi-step \code{CounterfactualPath} produced by a
   \code{TradeFit} is handled by antitrust's own shared \code{CounterfactualPath}
   method, which dispatches the new steps back to trade through
@@ -28,6 +31,8 @@ specify(demand, conduct = NULL, prices, parameters,
   priceStart, bargpowerPost, isMax = FALSE, ...)
 
 \S4method{simulate_steps}{TradeFit}(object, last_result, steps, ...)
+
+\S4method{validate_counterfactual}{TradeFit}(object, counterfactual)
 }
 \arguments{
   \item{demand}{A demand-system name or a normalized model specification.}
@@ -50,6 +55,8 @@ specify(demand, conduct = NULL, prices, parameters,
     supported.}
   \item{last_result}{The legacy trade S4 result the path last landed on.}
   \item{steps}{The ordered \code{CounterfactualStep} objects to solve next.}
+  \item{counterfactual}{A \code{Counterfactual} to validate against the
+    fitted trade model's registered capabilities.}
   \item{...}{Baseline inputs, scenario inputs, or solver options accepted by
     the selected legacy implementation.}
 }
@@ -67,6 +74,8 @@ specify(demand, conduct = NULL, prices, parameters,
   a \code{CounterfactualPath} for a multi-step \code{Counterfactual}.
   \code{simulate_steps} returns a list with one element, \code{results}: a
   list of legacy trade S4 results, one per step, in order.
+  \code{validate_counterfactual} returns the validated counterfactual
+  invisibly or raises an error for unsupported fields.
 }
 \section{TradeFit class}{
   A \code{TradeFit} contains the normalized model specification, the existing

@@ -79,6 +79,9 @@ test_that("registered trade counterfactual capabilities have behavioral anchors"
     "ownership", "costs", "capacity", "bargaining", "leader", "quality",
     "quota", "entry"
   )]))
+
+  blp_cournot_capabilities <- capabilities(model_spec("blp", "cournot"))
+  expect_false(blp_cournot_capabilities[["products"]])
 })
 
 test_that("unsupported combinations fail clearly", {

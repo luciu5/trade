@@ -91,6 +91,31 @@ test_that("antitrust::simulate() reaches trade's own TradeFit method via shared 
 })
 
 
+test_that("TradeFit exposes trade-specific counterfactual validation", {
+  prices <- c(.0441, .0328, .0409, .0396, .0387, .0497)
+  quantities <- c(.066, .172, .253, .187, .099, .223) * 100
+  margins <- c(.3830, .5515, .5421, .5557, .4453, .3769)
+  owner <- c("BUD", "OLD STYLE", "MILLER", "MILLER", "OTHER-LITE", "OTHER-REG")
+  fit <- suppressWarnings(calibrate(
+    demand = "logit", conduct = "bertrand", prices = prices,
+    quantities = quantities, margins = margins, owner = owner
+  ))
+  tariff_cf <- counterfactual(tariff = c(0, 0, 0, 0, .1, .1))
+
+  expect_true(methods::existsMethod("validate_counterfactual", "TradeFit"))
+  expect_identical(
+    antitrust::validate_counterfactual(fit, tariff_cf),
+    tariff_cf
+  )
+  expect_error(
+    antitrust::validate_counterfactual(
+      fit, counterfactual(quota = rep(Inf, length(prices)))
+    ),
+    "does not support counterfactual field\\(s\\): quota"
+  )
+})
+
+
 test_that("a StructuralFit subclass that is neither TradeFit nor AntitrustFit still hits the shared fallback", {
   ## The shared StructuralFit fallback methods, owned by antitrust, must keep
   ## producing an explicit "no method defined" error for any StructuralFit

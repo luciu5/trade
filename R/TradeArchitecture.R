@@ -8,6 +8,7 @@
 #' @importFrom antitrust simulate
 #' @importFrom antitrust simulate_steps
 #' @importFrom antitrust respecify
+#' @importFrom antitrust validate_counterfactual
 #' @name trade-architecture
 NULL
 
@@ -542,6 +543,15 @@ setMethod("simulate", "TradeFit", function(object, tariffPost = NULL,
   )
 })
 
+#' @rdname trade-architecture
+#' @export
+setMethod(
+  "validate_counterfactual", "TradeFit",
+  function(object, counterfactual) {
+    .validate_counterfactual(counterfactual, object@spec)
+  }
+)
+
 #' Resolve a sequence of policy-counterfactual steps for a fitted trade model
 #'
 #' The `simulate_steps()` extension point that antitrust's own
@@ -576,7 +586,7 @@ setMethod("simulate_steps", "TradeFit", function(object, last_result, steps, ...
   }
 
   if (!is.null(cf)) {
-    .validate_counterfactual(cf, spec)
+    validate_counterfactual(object, cf)
     conflicts <- c(
       if (!is.null(quotaPost)) "quotaPost",
       if (!is.null(subset)) "subset",
