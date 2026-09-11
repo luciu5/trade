@@ -337,6 +337,21 @@ specify <- function(demand, conduct = NULL, prices, parameters,
     model@mcDelta <- model@mcPre * delta
   } else {
     model@mcDelta <- delta
+    # AIDS prices are represented by a solved proportional-change vector.
+    # Re-solve that vector after applying the counterfactual tariff and
+    # ownership wedges, and before deriving post-policy marginal costs.  The
+    # legacy bertrand_tariff() constructor uses this same ordering.
+    if (is(model, "TariffAIDS")) {
+      model@subset <- subset
+      if (!is.null(priceStart)) model@priceStart <- priceStart
+      model@priceDelta <- do.call(
+        calcPriceDelta,
+        c(
+          list(object = model, isMax = isMax, subset = subset),
+          arguments
+        )
+      )
+    }
     model@mcPost <- calcMC(model, preMerger = FALSE)
   }
   model@subset <- subset

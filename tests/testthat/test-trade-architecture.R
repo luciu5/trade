@@ -51,6 +51,93 @@ test_that("calibrate and simulate separate a Bertrand Logit tariff", {
   expect_equal(new@tariffPost, x$tariff)
 })
 
+test_that("TariffAIDS lifecycle simulation matches the legacy economic oracle", {
+  prices <- rep(10, 4)
+  quantities <- c(40, 30, 20, 10)
+  margins <- c(.25, .25, NA, NA)
+  owner <- c("Firm1", "Firm2", "Firm3", "Firm3")
+  tariff_pre <- c(.05, .05, 0, 0)
+  tariff_post <- c(.25, .25, 0, 0)
+
+  fit <- calibrate(
+    "aids", "bertrand",
+    prices = prices,
+    quantities = quantities,
+    margins = margins,
+    owner = owner,
+    tariffPre = tariff_pre,
+    mktElast = -1
+  )
+  lifecycle <- simulate(fit, tariffPost = tariff_post)
+  legacy <- suppressWarnings(
+    bertrand_tariff(
+      "aids",
+      prices = prices,
+      quantities = quantities,
+      margins = margins,
+      owner = owner,
+      tariffPre = tariff_pre,
+      tariffPost = tariff_post,
+      mktElast = -1
+    )
+  )
+
+  expect_trade_result_parity(lifecycle, legacy)
+  expect_equal(
+    unname(lifecycle@priceDelta),
+    c(.215410962672, .218026293531, .086440483652, .086440478422),
+    tolerance = 1e-7
+  )
+  expect_equal(
+    unname(lifecycle@pricePost),
+    c(12.1541096267, 12.1802629353, 10.8644048365, 10.8644047842),
+    tolerance = 1e-7
+  )
+  expect_gt(max(abs(lifecycle@pricePost - lifecycle@pricePre)), .1)
+
+  unchanged <- simulate(fit, tariffPost = tariff_pre)
+  expect_equal(unname(unchanged@priceDelta), rep(0, 4), tolerance = 1e-7)
+  expect_equal(unchanged@pricePost, unchanged@pricePre, tolerance = 1e-7)
+
+  custom_start <- simulate(
+    fit, tariffPost = c(.08, .08, 0, 0), priceStart = rep(0, 4)
+  )
+  expect_equal(
+    unname(custom_start@priceDelta),
+    c(.026990687992297, .027282600700729, .011620729322997, .011620729323014),
+    tolerance = 1e-7
+  )
+})
+
+test_that("TariffAIDS repeated and sequential simulations re-solve each target", {
+  prices <- rep(10, 4)
+  quantities <- c(40, 30, 20, 10)
+  margins <- c(.25, .25, NA, NA)
+  owner <- c("Firm1", "Firm2", "Firm3", "Firm3")
+  fit <- calibrate(
+    "aids", "bertrand",
+    prices = prices,
+    quantities = quantities,
+    margins = margins,
+    owner = owner,
+    tariffPre = c(.05, .05, 0, 0),
+    mktElast = -1
+  )
+  intermediate <- c(.20, .20, 0, 0)
+  target <- c(.25, .25, 0, 0)
+
+  first <- simulate(fit, tariffPost = intermediate)
+  target_once <- simulate(fit, tariffPost = target)
+  first_again <- simulate(fit, tariffPost = intermediate)
+  cf <- add_step(counterfactual(tariff = intermediate), tariff = target)
+  target_sequential <- result_at(simulate(fit, cf), 2)
+
+  expect_equal(first@priceDelta, first_again@priceDelta, tolerance = 1e-10)
+  expect_equal(first@pricePost, first_again@pricePost, tolerance = 1e-10)
+  expect_equal(target_sequential@priceDelta, target_once@priceDelta, tolerance = 1e-7)
+  expect_equal(target_sequential@pricePost, target_once@pricePost, tolerance = 1e-7)
+})
+
 test_that("one calibrated fit supports repeated tariff simulations", {
   x <- trade_fit_data()
   fit <- calibrate("logit", "bertrand", prices = x$prices,
