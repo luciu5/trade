@@ -189,7 +189,7 @@ NULL
   n <- length(model@shares)
   tariffPost <- .normalize_tariff(tariffPost, n, "tariffPost")
   model@tariffPost <- tariffPost
-  owner <- .trade_raw_owner(fit, model)
+  owner <- .trade_policy_owner(fit, model)
   owner <- .owner_to_matrix(owner, n,
                             "fitted trade BLP ownership is not valid")
   model@ownerPost <- .trade_blp_owner_for_tariff(
@@ -200,7 +200,13 @@ NULL
   ## Auction and bargaining inherit the historical level-change calcMC method;
   ## retain trade's two-step convention. Other BLP conduct paths use the
   ## proportional Bertrand-style cost-change method.
-  if (fit@spec$conduct %in% c("auction2nd", "bargaining")) {
+  if (!is.null(attr(model, "trade_promotion", exact = TRUE))) {
+    state <- attr(model, "antitrust_cost_state", exact = TRUE)
+    model@mcDelta <- if (identical(state$mode, "additive")) {
+      model@mcPre * delta
+    } else delta
+    model@mcPost <- calcMC(model, preMerger = FALSE)
+  } else if (fit@spec$conduct %in% c("auction2nd", "bargaining")) {
     model@mcDelta <- delta
     model@mcPost <- calcMC(model, preMerger = FALSE)
     model@mcDelta <- model@mcPre * delta

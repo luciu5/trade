@@ -302,6 +302,22 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   model@ownerPre
 }
 
+.trade_policy_owner <- function(fit, model) {
+  promotion <- attr(model, "trade_promotion", exact = TRUE)
+  if (!is.null(promotion) && identical(fit@spec$policy, "tariff") &&
+      (.trade_scaled_tariff_owner(model) ||
+       (identical(fit@spec$demand, "blp") &&
+        !identical(fit@spec$conduct, "auction2nd")))) {
+    ## The source ownership already defines the fitted baseline FOCs.
+    ## Undo the supplied baseline wedge only for trade's internal policy
+    ## translation, so applying the same tariff recovers it exactly.
+    return(model@ownerPre / matrix(1 - model@tariffPre,
+                                   nrow = length(model@tariffPre),
+                                   ncol = length(model@tariffPre)))
+  }
+  .trade_raw_owner(fit, model)
+}
+
 .trade_scaled_tariff_owner <- function(model) {
   is(model, "TariffLogit") || is(model, "TariffCES") ||
     is(model, "TariffAIDS") || is(model, "TariffLogitCournotModels") ||
@@ -317,13 +333,29 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 
   model@tariffPost <- tariffPost
   if (.trade_scaled_tariff_owner(model)) {
-    owner <- .owner_to_matrix(.trade_raw_owner(fit, model), n,
+    owner <- .owner_to_matrix(.trade_policy_owner(fit, model), n,
                               "'owner' must be supplied as a length-k vector or k x k ownership matrix")
     model@ownerPost <- .apply_tariff_to_owner(owner, tariffPost)
   }
 
   delta <- .tariff_mc_delta(tariffPre, tariffPost)
-  if (is(model, "Tariff2ndLogit")) {
+  if (!is.null(attr(model, "trade_promotion", exact = TRUE))) {
+    if (is(model, "TariffAIDS")) {
+      model@subset <- subset
+      if (!is.null(priceStart)) model@priceStart <- priceStart
+      model@priceDelta <- do.call(
+        calcPriceDelta,
+        c(list(object = model, isMax = isMax, subset = subset), arguments)
+      )
+    }
+    ## Promoted fits retain antitrust's persistent structural cost state.
+    ## Express a tariff wedge using that state's cost-shock convention.
+    state <- attr(model, "antitrust_cost_state", exact = TRUE)
+    model@mcDelta <- if (identical(state$mode, "additive")) {
+      model@mcPre * delta
+    } else delta
+    model@mcPost <- calcMC(model, preMerger = FALSE)
+  } else if (is(model, "Tariff2ndLogit")) {
     # Preserve the legacy auction sequence: the initial object stores the
     # tariff ratio, calculates mcPost, and only then replaces mcDelta with the
     # level change used by the post-policy price calculation.
@@ -381,7 +413,13 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   model@quotaPost <- quotaPost
 
   if (is(model, "QuotaLogit")) {
-    model@capacitiesPost <- quotaPost * model@shares * model@insideSize
+    promotion <- attr(model, "trade_promotion", exact = TRUE)
+    if (!is.null(promotion)) {
+      model@capacitiesPost <- ifelse(is.infinite(quotaPost), Inf,
+                                     quotaPost * promotion$quantities)
+    } else {
+      model@capacitiesPost <- quotaPost * model@shares * model@insideSize
+    }
   }
   model@subset <- subset
   if (!is.null(priceStart)) model@priceStart <- priceStart
@@ -664,6 +702,9 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
   }
   calibration_args <- object@diagnostics$calibration_args
   if (!is.list(calibration_args) || is.null(names(calibration_args))) {
+    if (identical(object@diagnostics$route, "promote")) {
+      stop("update() requires a fit created by calibrate(); this fit was created by as_trade_fit() from an already fitted structural model")
+    }
     if (identical(object@diagnostics$route, "respecify") ||
         !is.null(object@diagnostics$source_calibration_args)) {
       stop("update() requires a fit whose current specification was created by calibrate(); this fit was created by respecify()")

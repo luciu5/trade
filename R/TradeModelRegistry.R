@@ -1,18 +1,27 @@
-#' Normalized trade model specification and registry
+#' Trade model specifications and supported-model registry
 #'
-#' The registry records complete economic implementations. It is deliberately
-#' not a demand/supply composition engine: an entry points to the legacy trade
-#' constructor whose calibration and equilibrium equations remain authoritative.
+#' Normalize trade demand, conduct, variant, and policy names and inspect the
+#' complete economic model combinations implemented by \pkg{trade}.
 #'
-#' @param demand A demand-system name, such as code{"logit"} or code{"ces"}.
-#' @param conduct A conduct name, such as code{"bertrand"} or
-#'   code{"cournot"}.
+#' @param demand A demand-system name, such as \code{"logit"} or \code{"ces"}.
+#' @param conduct A conduct name, such as \code{"bertrand"} or
+#'   \code{"cournot"}.
 #' @param variant An implemented model variant. The standard variant is
-#'   code{"standard"}; code{"alm"} is used by the ALM Logit-Cournot path.
+#'   \code{"standard"}; \code{"alm"} is used by the ALM Logit-Cournot path.
 #' @param policy The policy state represented by the legacy model. Supported
-#'   values currently include code{"tariff"} and code{"quota"}.
-#' @return code{model_spec} returns a small normalized list. code{supportedModels}
-#'   returns a data frame describing the complete registered models.
+#'   values currently include \code{"tariff"} and \code{"quota"}.
+#' @details
+#' The registry describes complete implemented economic models. It does not
+#' mechanically combine arbitrary demand and conduct modules. Its entries
+#' point to the legacy trade constructors whose calibration and equilibrium
+#' equations remain authoritative.
+#' @return \code{model_spec} returns a small normalized specification containing
+#'   \code{demand}, \code{conduct}, \code{variant}, \code{policy}, and \code{id}.
+#'   \code{supportedModels}
+#'   returns a data frame describing the complete registered models, including
+#'   a \code{promote} capability and a \code{promotion_handler} for baseline
+#'   policy state. Promotion additionally requires an exact matching model
+#'   specification in the antitrust registry.
 #' @name trade-model-registry
 NULL
 
@@ -87,6 +96,23 @@ NULL
          legacy_calibrator = "bertrand_quota", calibrate = TRUE,
          specify = FALSE, simulate = TRUE, tariff = FALSE, quota = TRUE)
   )
+
+  ## Promotion is an operation on a complete registered trade implementation.
+  ## Keep the eligibility decision in this registry, while selecting only the
+  ## shape of policy state needed by the corresponding wrapper.  A matrix is
+  ## required by the legacy Linear/LogLin Cournot tariff class; all other
+  ## tariff wrappers and the Logit quota wrapper use product vectors.
+  entries <- lapply(entries, function(entry) {
+    entry$promote <- TRUE
+    entry$promotion_handler <- if (identical(entry$policy, "quota")) {
+      "quota_vector"
+    } else if (identical(entry$class, "TariffCournot")) {
+      "tariff_matrix"
+    } else {
+      "tariff_vector"
+    }
+    entry
+  })
 
   function() entries
 })
@@ -200,9 +226,9 @@ supportedModels <- function() {
   entries <- .trade_registry()
   character_fields <- c(
     "id", "demand", "conduct", "variant", "policy", "class",
-    "legacy_calibrator"
+    "legacy_calibrator", "promotion_handler"
   )
-  fields <- c(character_fields, "calibrate", "specify", "simulate", "tariff", "quota")
+  fields <- c(character_fields, "promote", "calibrate", "specify", "simulate", "tariff", "quota")
   result <- lapply(fields, function(field) {
     if (field %in% character_fields) {
       vapply(entries, function(entry) entry[[field]], character(1))

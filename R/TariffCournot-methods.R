@@ -174,6 +174,12 @@ setMethod(
   signature= "TariffCournot",
   definition=function(object,preMerger=TRUE,market=FALSE){
 
+    promotion <- attr(object, "trade_promotion", exact = TRUE)
+    if (preMerger && !is.null(promotion)) {
+      if (market) return(sum(object@quantityPre, na.rm = TRUE))
+      return(object@quantityPre)
+    }
+
     slopes <- object@slopes
     intercepts <- object@intercepts
     quantityStart <- object@quantityStart
@@ -192,6 +198,13 @@ setMethod(
       products <-  object@productsPost
       cap <- object@capacitiesPost
       tariff <- object@tariffPost
+    }
+
+    ## Promotion supplies a policy baseline around an existing fitted game.
+    ## Only the change in the tariff wedge may alter its source FOCs.
+    tariff_factor <- 1 + tariff
+    if (!is.null(promotion)) {
+      tariff_factor <- tariff_factor / (1 + object@tariffPre)
     }
 
     nprods <- ncol(products)
@@ -224,7 +237,7 @@ setMethod(
                             exp(intercepts)*slopes*mktQuant^(slopes - 1))
 
 
-      thisFOC <- (t(thisQuant / (1 + tariff )) * thisPartial) %*% owner + thisPrice / t(1 + tariff)
+      thisFOC <- (t(thisQuant / tariff_factor) * thisPartial) %*% owner + thisPrice / t(tariff_factor)
       thisFOC <- t(thisFOC)/thisMC - 1
       #thisFOC <- t(t(thisFOC)/thisPrice) # rescale
       #thisCons <- (plantQuant - cap)/cap # rescale
