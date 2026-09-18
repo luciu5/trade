@@ -19,8 +19,9 @@
 \code{TariffGameFit} preserves a fitted output-market game and records its
 consumer-price tariff fractions, effective costs, recovered physical costs,
 ownership, roles, and immutable source fit. Promotion does not recalibrate or
-solve the baseline. It supports ordinary output Logit/CES fits under the
-explicit tariff contract and the four native coordination classes
+solve the baseline. It supports ordinary output Logit/CES fits and standard
+output Logit second-score auction fits under the explicit tariff contract and
+the four native coordination classes
 \code{StackelbergLogit}, \code{StackelbergCES}, \code{CoreFringeLogit}, and
 \code{CoreFringeCES}.
 }

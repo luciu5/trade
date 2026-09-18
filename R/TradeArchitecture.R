@@ -356,12 +356,11 @@ specify <- function(demand, conduct = NULL, prices, parameters,
     } else delta
     model@mcPost <- calcMC(model, preMerger = FALSE)
   } else if (is(model, "Tariff2ndLogit")) {
-    # Preserve the legacy auction sequence: the initial object stores the
-    # tariff ratio, calculates mcPost, and only then replaces mcDelta with the
-    # level change used by the post-policy price calculation.
-    model@mcDelta <- delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
+    # Auction2ndLogit interprets mcDelta as an additive effective-cost level.
+    # Convert before calculating mcPost; otherwise calcPrices() would retain
+    # the stale mcPre + proportional-delta value.
     model@mcDelta <- model@mcPre * delta
+    model@mcPost <- calcMC(model, preMerger = FALSE)
   } else if (is(model, "TariffBargainingLogit") ||
              is(model, "TariffBargainingCES")) {
     # bargaining_tariff has the same historical two-step assignment.

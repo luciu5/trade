@@ -531,7 +531,9 @@ test_that("quota promotion handles zero fitted output and infinite capacity", {
   ## Retain one zero-output product while leaving the other fitted quantities
   ## positive.  This exercises both the below-one quota exception for zero
   ## output and the Inf * 0 capacity edge case.
-  source@model@mktSize <- c(0, 100, 100)
+  ## A market has one total size. Use a finite, extremely unattractive fitted
+  ## quality to obtain machine-zero demand without making mktSize a vector.
+  source@model@slopes$meanval[[1L]] <- -1000
   fitted_quantities <- antitrust::calcQuantities(source@model, TRUE)
   expect_true(fitted_quantities[[1L]] == 0)
   expect_true(all(fitted_quantities[-1L] > 0))

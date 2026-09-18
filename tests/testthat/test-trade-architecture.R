@@ -216,7 +216,57 @@ test_that("migrated sim paths remain numerically compatible", {
       owner = x$owner,
       tariffPost = x$tariff
     ))
-    expect_trade_result_parity(new, old)
+    if (identical(demand, "logit") && identical(supply, "auction2nd")) {
+      ## The legacy auction constructor computes mcPost before replacing its
+      ## proportional tariff wedge with the additive effective-cost level.
+      ## Its post-policy mc/price pair is therefore not a valid parity oracle.
+      ## Keep strict parity for the immutable baseline state.
+      expect_equal(class(new), class(old))
+      expect_equal(as.numeric(new@pricePre), as.numeric(old@pricePre),
+                   tolerance = 1e-7)
+      expect_equal(as.numeric(new@mcPre), as.numeric(old@mcPre),
+                   tolerance = 1e-7)
+      expect_equal(unname(calcShares(new, TRUE)),
+                   unname(calcShares(old, TRUE)), tolerance = 1e-7)
+      expect_equal(unname(calcMargins(new, TRUE)),
+                   unname(calcMargins(old, TRUE)), tolerance = 1e-7)
+
+      ## tariff is a consumer-price fraction; reconstruct the effective
+      ## cost independently from the zero-tariff physical baseline.
+      tariff_pre <- rep(0, length(x$prices))
+      effective_delta <- (1 - tariff_pre) / (1 - x$tariff) - 1
+      kappa_pre <- as.numeric(new@mcPre)
+      kappa_post <- kappa_pre * (1 + effective_delta)
+      expect_equal(as.numeric(new@mcPost), kappa_post, tolerance = 1e-10)
+      expect_equal(as.numeric(new@mcDelta), kappa_post - kappa_pre,
+                   tolerance = 1e-10)
+      expect_equal(kappa_post * (1 - x$tariff),
+                   kappa_pre * (1 - tariff_pre), tolerance = 1e-10)
+      expect_equal(as.numeric(new@pricePost - new@mcPost),
+                   as.numeric(calcMargins(new, FALSE, level = TRUE)),
+                   tolerance = 1e-8)
+
+      ## Auction eta is v - a*kappa, a = -alpha.  The effective-cost
+      ## shift changes eta while preserving the latent value v.
+      alpha <- as.numeric(new@slopes$alpha)
+      a <- -alpha
+      eta_pre <- as.numeric(new@slopes$meanval)
+      eta_post <- eta_pre + alpha * (kappa_post - kappa_pre)
+      log_scale <- max(c(0, eta_post))
+      weights <- exp(eta_post - log_scale)
+      outside_weight <- if (is.na(new@normIndex)) exp(-log_scale) else 0
+      share_post <- weights / (outside_weight + sum(weights))
+      firm_share <- ave(share_post, x$owner, FUN = sum)
+      markup_post <- -log1p(-firm_share) / (a * firm_share)
+      expect_equal(as.numeric(calcShares(new, FALSE)), share_post, tolerance = 1e-10)
+      expect_equal(as.numeric(new@pricePost), kappa_post + markup_post, tolerance = 1e-7)
+      value_pre <- eta_pre + a * kappa_pre
+      value_post <- eta_post + a * kappa_post
+      expect_equal(value_post, value_pre, tolerance = 1e-10)
+      expect_equal(eta_pre, as.numeric(old@slopes$meanval), tolerance = 0)
+    } else {
+      expect_trade_result_parity(new, old)
+    }
   }
 })
 

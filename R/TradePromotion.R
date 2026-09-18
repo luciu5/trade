@@ -40,7 +40,8 @@
 #' copied baseline for a product with positive fitted output and is rejected.
 #' Unsupported or irrelevant policy arguments are rejected.
 #'
-#' For an ordinary output Logit/CES code{AntitrustFit}, explicitly supplying
+#' For an ordinary output Logit/CES or standard output Logit second-score auction
+#' code{AntitrustFit}, explicitly supplying
 #' either code{cost_basis} or code{margin_basis} opts into the initial
 #' no-reestimation tariff route and returns a code{TariffGameFit}.  A nonzero
 #' code{tariffPre} requires code{cost_basis = "effective"} and

@@ -21,8 +21,9 @@ or \code{"quota"}.}
 
 \item{...}{The baseline policy state. Tariff models accept \code{tariffPre},
 defaulting to zero; the Logit quota model accepts \code{quotaPre},
-defaulting to \code{Inf} (unconstrained). For an ordinary output Logit/CES
-fit, supplying either \code{cost_basis} or \code{margin_basis} opts into the
+defaulting to \code{Inf} (unconstrained). For an ordinary output Logit/CES or
+standard output Logit second-score auction fit, supplying either
+\code{cost_basis} or \code{margin_basis} opts into the
 no-reestimation \code{TariffGameFit} route. A nonzero \code{tariffPre}
 requires \code{cost_basis = "effective"} and
 \code{margin_basis = "net_revenue"}; all-zero baseline tariffs infer these

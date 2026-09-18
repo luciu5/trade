@@ -1,7 +1,7 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.8.9
+Version: 0.8.9.9001
 Date: 2026-09-18
 Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
                   role = c("aut", "cre"))

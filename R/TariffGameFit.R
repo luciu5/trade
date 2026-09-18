@@ -370,12 +370,19 @@ setClass(
   }
   source <- try(antitrust::model_spec(source$demand, source$conduct,
                                       variant = source$variant), silent = TRUE)
-  if (inherits(source, "try-error") ||
-      !source$demand %in% c("logit", "ces") ||
-      !source$conduct %in% c("bertrand", "cournot", "moncom") ||
-      !source$variant %in% c("standard", "alm")) {
+  if (inherits(source, "try-error")) {
     .trade_game_error("trade_tariff_unsupported_model",
-                      "tariff reuse supports only ordinary output Logit/CES Bertrand, Cournot, or MonCom fits")
+                      "tariff reuse requires a registered AntitrustFit model specification")
+  }
+  auction <- identical(source$demand, "logit") &&
+    identical(source$conduct, "auction2nd") &&
+    identical(source$variant, "standard")
+  ordinary <- source$demand %in% c("logit", "ces") &&
+    source$conduct %in% c("bertrand", "cournot", "moncom") &&
+    source$variant %in% c("standard", "alm")
+  if (!ordinary && !auction) {
+    .trade_game_error("trade_tariff_unsupported_model",
+                      "tariff reuse supports ordinary output Logit/CES Bertrand, Cournot, or MonCom fits plus standard output Logit second-score auction fits")
   }
   source_registry <- try(antitrust::supportedModels(), silent = TRUE)
   source_key <- paste(source$demand, source$conduct, source$variant, sep = "::")
@@ -584,8 +591,14 @@ setClass(
   }
   ## antitrust owns cost-state interpretation and all ordinary equilibrium
   ## equations.  Passing the immutable source fit prevents cumulative tariff
-  ## ratios from entering a repeated scenario.
-  args <- list(state$source_fit, owner, mcDelta = as.numeric(delta), subset = subset)
+  ## ratios from entering a repeated scenario.  Auction2ndLogit is the one
+  ## registered ordinary model whose mcDelta is an additive effective-cost
+  ## level; the tariff state stores delta as a proportional effective change.
+  cost_delta <- as.numeric(delta)
+  if (methods::is(state$source_model, "Auction2ndLogit")) {
+    cost_delta <- as.numeric(state$kappaPre) * cost_delta
+  }
+  args <- list(state$source_fit, owner, mcDelta = cost_delta, subset = subset)
   if (!is.null(priceStart)) args$priceStart <- priceStart
   result <- try(do.call(antitrust::simulate, args), silent = TRUE)
   if (inherits(result, "try-error")) {
