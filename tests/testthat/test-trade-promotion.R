@@ -153,13 +153,15 @@ test_that("promotion eligibility is the exact live registry overlap", {
     "ces::moncom::standard", "logit::cournot::standard",
     "logit::cournot::alm", "linear::cournot::standard",
     "loglin::cournot::standard", "logit::auction2nd::standard",
-    "logit::bargaining::standard", "ces::bargaining::standard"
+    "logit::bargaining::standard", "ces::bargaining::standard",
+    "ces::cournot::standard", "logit::bertrand::alm",
+    "ces::bertrand::alm", "ces::cournot::alm"
   )
   expect_setequal(overlap, expected)
 
   tariff <- target[target$policy == "tariff", , drop = FALSE]
   quota <- target[target$policy == "quota", , drop = FALSE]
-  expect_equal(nrow(tariff), 16L)
+  expect_equal(nrow(tariff), 24L)
   expect_equal(nrow(quota), 1L)
   expect_equal(.promotion_key(quota), "logit::bertrand::standard")
   expect_true(all(tariff$promote))
@@ -204,7 +206,10 @@ test_that("as_trade_fit is an S4 generic with explicit fallback behavior", {
 
 test_that("every exact tariff overlap has a direct promotion route", {
   target_registry <- trade::supportedModels()
-  target_registry <- target_registry[target_registry$policy == "tariff", , drop = FALSE]
+  target_registry <- target_registry[
+    target_registry$policy == "tariff" &
+      target_registry$promotion_handler != "tariff_reuse", , drop = FALSE
+  ]
 
   for (i in seq_len(nrow(target_registry))) {
     target_entry <- target_registry[i, , drop = FALSE]
@@ -317,7 +322,10 @@ test_that("quota promotion uses its exact corresponding implementation", {
 
 test_that("promotion copies baseline state without recalibration or a price solve", {
   target_registry <- trade::supportedModels()
-  target_registry <- target_registry[target_registry$policy == "tariff", , drop = FALSE]
+  target_registry <- target_registry[
+    target_registry$policy == "tariff" &
+      target_registry$promotion_handler != "tariff_reuse", , drop = FALSE
+  ]
   keys <- .promotion_key(target_registry)
   sources <- lapply(keys, function(key) {
     suppressWarnings(suppressMessages(.promotion_source_fit(key)))

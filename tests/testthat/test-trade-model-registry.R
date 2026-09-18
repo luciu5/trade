@@ -19,9 +19,19 @@ test_that("registry contains only complete implemented trade models", {
   expect_true(nrow(registry) >= 10)
   expect_true(all(nzchar(registry$id)))
   expect_equal(length(unique(registry$id)), nrow(registry))
-  expect_true(all(registry$calibrate))
   expect_true(all(registry$simulate))
+  expect_true(all(registry$promote))
   expect_true(all(registry$tariff | registry$quota))
+
+  reuse <- registry[registry$promotion_handler == "tariff_reuse", , drop = FALSE]
+  expect_true(nrow(reuse) >= 1L)
+  expect_true(all(!reuse$calibrate & !reuse$specify & reuse$simulate &
+                  reuse$promote & reuse$tariff))
+  expect_setequal(reuse$id, c(
+    "ces::cournot", "logit::bertrand::alm", "ces::bertrand::alm",
+    "ces::cournot::alm", "logit::stackelberg", "ces::stackelberg",
+    "logit::core_fringe", "ces::core_fringe"
+  ))
 
   expect_true(any(registry$demand == "logit" & registry$conduct == "bertrand" &
     registry$policy == "tariff"))
@@ -86,8 +96,11 @@ test_that("registered trade counterfactual capabilities have behavioral anchors"
 
 test_that("unsupported combinations fail clearly", {
   expect_error(model_spec("ces", "auction2nd"), "unsupported trade model")
-  expect_error(model_spec("logit", "stackelberg"), "unsupported conduct")
-    expect_error(model_spec("not-a-demand", "bertrand"), "unsupported demand")
+  expect_equal(model_spec("logit", "stackelberg")$id,
+               "logit::stackelberg")
+  expect_equal(model_spec("ces", "core_fringe")$id,
+               "ces::core_fringe")
+  expect_error(model_spec("not-a-demand", "bertrand"), "unsupported demand")
 })
 
 test_that("trade transition registry records only supported supplied paths", {

@@ -1,15 +1,15 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.8.8
-Date: 2026-09-16
+Version: 0.8.9
+Date: 2026-09-18
 Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
                   role = c("aut", "cre"))
                   )
 Author: Charles Taragin [aut, cre]
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
-Imports: antitrust (>= 0.99.40), methods, stats
+Imports: antitrust (>= 0.99.40), coordination (>= 0.0.0.9004), methods, stats
 Suggests: MASS, BB, competitiontoolbox, rmarkdown, bookdown, knitr, testthat
 Config/testthat/edition: 3
 VignetteBuilder: knitr
@@ -32,6 +32,7 @@ Collate:
     'BLPTrade.R'
     'TradeModelRegistry.R'
     'TradePromotion.R'
+    'TariffGameFit.R'
     'TradeModelTranslations.R'
     'summary-methods.R'
     'auction2nd_tariff.R'

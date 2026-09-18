@@ -700,6 +700,12 @@ update.TradeFit <- function(object, ..., evaluate = TRUE) {
   if (!is(object, "TradeFit")) {
     stop("'object' must be a TradeFit returned by calibrate()")
   }
+  if (methods::is(object, "TariffGameFit")) {
+    .trade_game_error(
+      "trade_tariff_unsupported_lifecycle",
+      "update() is unsupported for TariffGameFit; promote or simulate from its immutable source fit"
+    )
+  }
   calibration_args <- object@diagnostics$calibration_args
   if (!is.list(calibration_args) || is.null(names(calibration_args))) {
     if (identical(object@diagnostics$route, "promote")) {

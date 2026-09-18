@@ -63,6 +63,18 @@ NULL
          variant = "standard", policy = "tariff", class = "TariffMonComCES",
          legacy_calibrator = "monopolistic_competition_tariff", calibrate = TRUE,
          specify = TRUE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "ces::cournot", demand = "ces", conduct = "cournot",
+         variant = "standard", policy = "tariff", class = "CESCournot",
+         legacy_calibrator = "ces.cournot", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "logit::bertrand::alm", demand = "logit", conduct = "bertrand",
+         variant = "alm", policy = "tariff", class = "LogitALM",
+         legacy_calibrator = "logit.alm", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "ces::bertrand::alm", demand = "ces", conduct = "bertrand",
+         variant = "alm", policy = "tariff", class = "CESALM",
+         legacy_calibrator = "ces.alm", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
     list(id = "logit::cournot", demand = "logit", conduct = "cournot",
          variant = "standard", policy = "tariff", class = "TariffLogitCournot",
          legacy_calibrator = "logit_cournot_tariff", calibrate = TRUE,
@@ -70,6 +82,10 @@ NULL
     list(id = "logit::cournot::alm", demand = "logit", conduct = "cournot",
          variant = "alm", policy = "tariff", class = "TariffLogitCournotALM",
          legacy_calibrator = "logit_cournot_tariff", calibrate = TRUE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "ces::cournot::alm", demand = "ces", conduct = "cournot",
+         variant = "alm", policy = "tariff", class = "CESCournotALM",
+         legacy_calibrator = "ces.cournot.alm", calibrate = FALSE,
          specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
     list(id = "linear::cournot", demand = "linear", conduct = "cournot",
          variant = "standard", policy = "tariff", class = "TariffCournot",
@@ -94,7 +110,26 @@ NULL
     list(id = "logit::bertrand::quota", demand = "logit", conduct = "bertrand",
          variant = "standard", policy = "quota", class = "QuotaLogit",
          legacy_calibrator = "bertrand_quota", calibrate = TRUE,
-         specify = FALSE, simulate = TRUE, tariff = FALSE, quota = TRUE)
+         specify = FALSE, simulate = TRUE, tariff = FALSE, quota = TRUE),
+    ## Native coordination games are promotion-only in trade.  Their
+    ## constructors remain owned by coordination and are deliberately not
+    ## exposed through calibrate()/specify().
+    list(id = "logit::stackelberg", demand = "logit", conduct = "stackelberg",
+         variant = "standard", policy = "tariff", class = "StackelbergLogit",
+         legacy_calibrator = "stackelberg", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "ces::stackelberg", demand = "ces", conduct = "stackelberg",
+         variant = "standard", policy = "tariff", class = "StackelbergCES",
+         legacy_calibrator = "stackelberg", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "logit::core_fringe", demand = "logit", conduct = "core_fringe",
+         variant = "standard", policy = "tariff", class = "CoreFringeLogit",
+         legacy_calibrator = "core_fringe", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE),
+    list(id = "ces::core_fringe", demand = "ces", conduct = "core_fringe",
+         variant = "standard", policy = "tariff", class = "CoreFringeCES",
+         legacy_calibrator = "core_fringe", calibrate = FALSE,
+         specify = FALSE, simulate = TRUE, tariff = TRUE, quota = FALSE)
   )
 
   ## Promotion is an operation on a complete registered trade implementation.
@@ -106,6 +141,11 @@ NULL
     entry$promote <- TRUE
     entry$promotion_handler <- if (identical(entry$policy, "quota")) {
       "quota_vector"
+    } else if (!isTRUE(entry$calibrate) && !isTRUE(entry$specify)) {
+      ## These entries are deliberately promotion-only.  The tariff adapter
+      ## owns their effective-cost/physical-cost contract; no historical
+      ## tariff-vector constructor is a truthful fallback.
+      "tariff_reuse"
     } else if (identical(entry$class, "TariffCournot")) {
       "tariff_matrix"
     } else {
@@ -145,7 +185,9 @@ NULL
     moncom = "moncom", monopolisticcompetition = "moncom",
     cournot = "cournot", auction2nd = "auction2nd",
     secondscore = "auction2nd", auction = "auction2nd",
-    bargaining = "bargaining"
+    bargaining = "bargaining", stackelberg = "stackelberg",
+    stack = "stackelberg", corefringe = "core_fringe",
+    fringe = "core_fringe"
   ), "conduct")
 }
 

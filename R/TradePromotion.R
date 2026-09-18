@@ -39,6 +39,16 @@
 #' entries become \code{Inf}. A quota below one is incompatible with the
 #' copied baseline for a product with positive fitted output and is rejected.
 #' Unsupported or irrelevant policy arguments are rejected.
+#'
+#' For an ordinary output Logit/CES code{AntitrustFit}, explicitly supplying
+#' either code{cost_basis} or code{margin_basis} opts into the initial
+#' no-reestimation tariff route and returns a code{TariffGameFit}.  A nonzero
+#' code{tariffPre} requires code{cost_basis = "effective"} and
+#' code{margin_basis = "net_revenue"}; an all-zero baseline can infer those
+#' two values.  Tariffs use the consumer-price fraction convention, must be
+#' finite and less than one, and must be uniform within each active baseline
+#' firm.  Physical-cost basis is not supported in this initial route.  Calls
+#' without either contract flag retain the historical promotion behavior.
 #' @examples
 #' source_fit <- antitrust::specify(
 #'   "logit", "bertrand", prices = c(2, 2.2, 2.5),
@@ -132,6 +142,10 @@ setGeneric(
 }
 
 .trade_promotion_policy_state <- function(arguments, handler, model) {
+  if (identical(handler, "tariff_reuse")) {
+    stop("this promotion-only model requires the tariff reuse contract: supply " ,
+         "cost_basis = 'effective' and margin_basis = 'net_revenue'")
+  }
   allowed <- switch(handler,
     tariff_vector = "tariffPre",
     tariff_matrix = "tariffPre",
@@ -441,7 +455,17 @@ setGeneric(
 setMethod(
   "as_trade_fit", "AntitrustFit",
   function(object, policy = "tariff", ...) {
-    .trade_promote_antitrust_fit(object, policy = policy, arguments = list(...))
+    arguments <- list(...)
+    ## Supplying either basis flag is an explicit opt-in to the posterior
+    ## reuse contract.  Calls that predate that contract retain the legacy
+    ## Tariff* adapter and its historical cost interpretation.
+    if (exists(".trade_game_contract_requested", mode = "function") &&
+        .trade_game_contract_requested(arguments)) {
+      return(.trade_game_promote_antitrust_fit(
+        object, policy = policy, arguments = arguments
+      ))
+    }
+    .trade_promote_antitrust_fit(object, policy = policy, arguments = arguments)
   }
 )
 

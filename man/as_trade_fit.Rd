@@ -21,8 +21,12 @@ or \code{"quota"}.}
 
 \item{...}{The baseline policy state. Tariff models accept \code{tariffPre},
 defaulting to zero; the Logit quota model accepts \code{quotaPre},
-defaulting to \code{Inf} (unconstrained). The post-policy state is
-initialized to the same value.}
+defaulting to \code{Inf} (unconstrained). For an ordinary output Logit/CES
+fit, supplying either \code{cost_basis} or \code{margin_basis} opts into the
+no-reestimation \code{TariffGameFit} route. A nonzero \code{tariffPre}
+requires \code{cost_basis = "effective"} and
+\code{margin_basis = "net_revenue"}; all-zero baseline tariffs infer these
+bases.}
 }
 \value{
 A \code{TradeFit} containing the copied source model and policy state.
@@ -52,6 +56,13 @@ Quotas are non-negative multiples of fitted baseline output. Missing quota
 entries become \code{Inf}. A quota below one is incompatible with the
 copied baseline for a product with positive fitted output and is rejected.
 Unsupported or irrelevant policy arguments are rejected.
+
+The explicit ordinary-fit tariff route uses the consumer-price fraction
+convention, requires finite tariff fractions below one, and requires a
+firm-uniform tariff within each active baseline firm. Physical-cost basis is
+not supported initially. Calls without either basis flag retain the historical
+promotion behavior. Native Stackelberg and Core-Fringe coordination fits use
+the same \code{TariffGameFit} state wrapper through their dedicated methods.
 }
 \examples{
 source_fit <- antitrust::specify(
