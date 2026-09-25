@@ -15,9 +15,8 @@
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceStart For aids, a vector of length k whose elements are initial
-#'  guesses for the price solve. When omitted, valid pre-merger `prices` are
-#'  used; a random positive fallback is retained only when those prices are
-#'  unavailable. For ces and logit, the default is prices.
+#'  guesses for log price changes, defaulting to zero. For ces and logit,
+#'  the default is prices.
 #' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
 #' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link[stats]{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
@@ -106,10 +105,9 @@ tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 owner <- .owner_to_matrix(owner, nprods,
                           "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
-ownerPost <- .apply_tariff_to_owner(owner, tariffPost)
-ownerPre <- .apply_tariff_to_owner(owner, tariffPre)
+ownerPre <- ownerPost <- owner
 
-mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
+mcDelta <- rep(0, nprods) # Physical costs are fixed; retention supplies the wedge.
 
 shares_revenue <- shares_quantity <- quantities/sum(quantities)
 
@@ -123,14 +121,8 @@ if(demand == "aids"){
 
   if(missing(parmStart)) parmStart <- rep(NA_real_,2)
 
-  if(missing(priceStart)) {
-    if (!missing(prices) && is.numeric(prices) && length(prices) == nprods &&
-        all(is.finite(prices)) && all(prices > 0)) {
-      priceStart <- prices
-    } else {
-      priceStart <- stats::runif(nprods)
-    }
-  }
+  ## AIDS solves in log price changes, not price levels.
+  if(missing(priceStart)) priceStart <- rep(0, nprods)
 
   if(missing(diversions)){
     diversions <- tcrossprod(1/(1-shares_revenue),shares_revenue)
@@ -239,6 +231,7 @@ result@ownerPre  <- ownerToMatrix(result,TRUE)
 result@ownerPost <- ownerToMatrix(result,FALSE)
 
 ## Calculate Demand Slope Coefficients
+result <- .set_tariff_retention(result)
 result <- calcSlopes(result)
 
 ## Solve Non-Linear System for Price Changes (AIDS only)

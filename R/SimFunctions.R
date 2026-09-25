@@ -164,13 +164,12 @@ NULL
   tariffPre <- .normalize_tariff(tariffPre, nprods, "tariffPre")
   tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
-  mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
+  mcDelta <- rep(0, nprods) # Physical costs are fixed; retention supplies the wedge.
 
   owner <- .owner_to_matrix(owner, nprods,
                             "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
-  ownerPreTariff <- .apply_tariff_to_owner(owner, tariffPre)
-  ownerPostTariff <- .apply_tariff_to_owner(owner, tariffPost)
+  ownerPreTariff <- ownerPostTariff <- owner
 
   if(missing(priceStart)){priceStart <- prices}
 
@@ -401,18 +400,19 @@ NULL
 
 
   result@slopes=demand.param
+  result <- .set_tariff_retention(result)
 
 
 
 
   ## Calculate marginal cost
   result@mcPre     <-  calcMC(result,TRUE)
-  result@mcPost    <-  calcMC(result,FALSE)
 
 
 
   if(supply=="auction2nd"){result@mcDelta <- result@mcPre*mcDelta}
   else{result@mcDelta <- mcDelta}
+  result@mcPost <- calcMC(result, FALSE)
 
 
   ## Solve Non-Linear System for Price Changes

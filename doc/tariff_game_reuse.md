@@ -1,7 +1,7 @@
-# Reusing a fitted game for firm-uniform tariffs
+# Reusing a fitted game for tariffs
 
 This is an output-market extension of existing fitted structural games. It
-adds no demand/conduct equation and performs no inference or recalibration.
+preserves demand and conduct and performs no inference or recalibration.
 Supported games are ordinary Logit/CES Bertrand, Cournot and MonCom and native
 coordination Logit/CES core-fringe and noncooperative Stackelberg games.
 
@@ -10,8 +10,8 @@ coordination Logit/CES core-fringe and noncooperative Stackelberg games.
 Consumer prices include the policy wedge. trade's product tariff parameter is
 \(\tau_j<1\), a fraction of consumer price, not a producer-value ad valorem rate
 \(t_j\). The conversion is \(\tau=t/(1+t)\). Retention is \(r=1-\tau>0\).
-For each active firm, retention must be constant across its owned products and
-independent of its actions. Then
+For firm-uniform retention, the exact cost-only shortcut applies. Retention
+must be independent of actions. If it is constant within each firm, then
 
 \[
 \pi_f^\tau(z)=\sum_{j\in f}(r_fp_j(z)-c_j)q_j(z)
@@ -55,8 +55,12 @@ c_j^{post}=c_j^{pre}(1+d_j),\qquad
 These calculations use immutable original costs on every scenario, including
 repeated simulations. An omitted cost shock retains the current scenario
 shock; explicit zero restores original physical costs. Repeating an unchanged
-scenario, including an existing cost shock, returns stored equilibrium state. A merger may combine firms with distinct pre tariffs,
-but the active merged firm must have uniform post retention. Caller-provided
+scenario, including an existing cost shock, returns stored equilibrium state.
+A merger may combine firms with distinct pre tariffs. Mixed post retention is
+handled by the retained-revenue equilibrium equations, not by cost adjustment
+alone (see `tariff_game_math.md`). Native second-score auctions are the
+exception: their active bidding portfolios must have uniform retention.
+Caller-provided
 post leader/core identities determine role changes. Inactive products have
 zero quantity and zero monetary accounts.
 
@@ -78,9 +82,10 @@ silently conditioning reported policy distributions on accepted costs.
 
 Demand parameters, outside price, size/budget and realized quality are held
 fixed across a draw's pre/post scenarios. Entry, endogenous quality, capacity,
-quota, income feedback, input markets, auction/bargaining and within-firm
-heterogeneous retention are outside this initial extension. Unsupported cases
-fail explicitly. No optimizer tolerance or underlying economic equation changes.
+quota, income feedback and input markets are outside this fitted-game route.
+The explicit route also supports standard Logit second-score auctions with
+firm-uniform retention. Ordinary trade adapters separately support Logit/BLP
+bargaining and auctions. Unsupported cases fail explicitly.
 
 ## Lifecycle and public methods
 
@@ -101,9 +106,14 @@ trade::tariff_accounts(scenario)
 trade::tariff_welfare(scenario)
 ```
 
-Promotion copies baseline state and makes zero equilibrium solves. An unchanged
+Promotion copies baseline state and makes zero equilibrium solves. Baseline
+retention must match the source retention up to positive firm-wide factors;
+mixed baseline tariffs cannot simply be attached to a differently fitted game.
+Use `revenueRetentionPre` when calibrating/specifying such a source, or simulate
+the change from the original baseline. An unchanged
 policy likewise returns stored equilibrium state. Changed policy is delegated
-only through public antitrust/coordination simulators using transformed costs.
+only through public antitrust/coordination simulators using transformed costs
+and explicit product-level revenue retention.
 New registry entries are promotion/simulation-only, not new calibration APIs.
 The source fit and posterior draw provenance remain unchanged.
 

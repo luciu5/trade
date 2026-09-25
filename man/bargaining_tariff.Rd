@@ -91,6 +91,8 @@ recover the slopes and intercepts of a Logit or CES demand
 system. These parameters are then used to simulate the price
 effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 Nash Bargaining game.
+Tariffs affect seller revenue through retention rates \eqn{1-\tau}; the
+ownership matrices continue to represent the firms' actual ownership shares.
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,

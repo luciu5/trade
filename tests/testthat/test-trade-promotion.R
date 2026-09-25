@@ -137,6 +137,32 @@
   }
 }
 
+test_that("selective tariffs leave domestic firms responsive in every direct promotion family", {
+  registry <- trade::supportedModels()
+  registry <- registry[registry$policy == "tariff" &
+    registry$promotion_handler != "tariff_reuse", , drop = FALSE]
+  for (i in seq_len(nrow(registry))) {
+    entry <- registry[i, , drop = FALSE]
+    key <- .promotion_key(entry)
+    source <- suppressWarnings(.promotion_source_fit(key))
+    fit <- suppressWarnings(trade::as_trade_fit(source))
+    tau <- .promotion_policy_zero(source, entry)
+    tau[length(tau)] <- .3
+    result <- suppressWarnings(trade::simulate(fit, tariffPost = tau))
+    expect_true(all(is.finite(result@pricePost)), info = key)
+    expect_equal(unname(result@ownerPost), unname(source@model@ownerPre), info = key)
+    if (methods::is(result, "TariffCournot")) {
+      expect_true(abs(result@quantityPost[1] - result@quantityPre[1]) > 1e-7, info = key)
+    } else {
+      pre <- antitrust::calcShares(fit@model, TRUE, revenue = FALSE)
+      post <- antitrust::calcShares(result, FALSE, revenue = FALSE)
+      expect_true(abs(post[1] - pre[1]) > 1e-7, info = key)
+      expect_equal(as.numeric(result@mcPost) * (1 - tau),
+                   as.numeric(fit@model@mcPre), tolerance = 1e-7, info = key)
+    }
+  }
+})
+
 
 test_that("promotion eligibility is the exact live registry overlap", {
   source <- antitrust::supportedModels()
@@ -380,7 +406,7 @@ test_that("promotion copies baseline state without recalibration or a price solv
 
 test_that("tariff baseline state is retained and policy shocks are relative", {
   source <- .promotion_basic_fit("logit", "bertrand")
-  tariff_pre <- c(.10, 0, .20)
+  tariff_pre <- c(.10, .10, .20)
   tariff_post <- c(.25, .05, .30)
   promoted <- suppressWarnings(suppressMessages(
     trade::as_trade_fit(source, policy = "tariff", tariffPre = tariff_pre)
@@ -434,8 +460,8 @@ test_that("nonzero policy states work for each specialized tariff wrapper", {
   )
   for (key in keys) {
     source <- suppressWarnings(suppressMessages(.promotion_source_fit(key)))
-    pre <- c(.05, 0, .10)
-    post <- c(.20, .05, .25)
+    pre <- c(.05, .05, .10)
+    post <- c(.20, .20, .25)
     promoted <- suppressWarnings(suppressMessages(
       trade::as_trade_fit(source, policy = "tariff", tariffPre = pre)
     ))
@@ -475,8 +501,11 @@ test_that("plant-by-product tariff states are relative for Cournot promotion", {
       trade::as_trade_fit(source, policy = "tariff", tariffPre = tariff_pre)
     ))
 
-    expect_equal(promoted@model@mcfunPre, source@model@mcfunPre,
-                 info = paste(demand, "cost closures"))
+    expected_mc <- vapply(seq_len(nrow(source@model@quantityPre)), function(i) {
+      source@model@mcfunPre[[i]](source@model@quantityPre[i, ])
+    }, numeric(1)) * as.numeric(1 - tariff_pre)
+    expect_equal(as.numeric(trade::calcMC(promoted@model, TRUE)),
+                 as.numeric(expected_mc), info = paste(demand, "physical costs"))
     unchanged <- suppressWarnings(suppressMessages(
       trade::simulate(promoted, tariffPost = tariff_pre)
     ))
@@ -486,8 +515,8 @@ test_that("plant-by-product tariff states are relative for Cournot promotion", {
     expect_equal(unname(unchanged@pricePost),
                  unname(source@model@pricePre), tolerance = 1e-6,
                  info = paste(demand, "no-change price"))
-    expect_equal(unname(trade::calcMC(unchanged, TRUE)),
-                 unname(antitrust::calcMC(source@model, TRUE)),
+    expect_equal(as.numeric(trade::calcMC(unchanged, TRUE)),
+                 as.numeric(expected_mc),
                  tolerance = 1e-6, info = paste(demand, "no-change mc"))
 
     shocked <- suppressWarnings(suppressMessages(
@@ -495,8 +524,8 @@ test_that("plant-by-product tariff states are relative for Cournot promotion", {
     ))
     expect_true(any(abs(shocked@quantityPost - source@model@quantityPre) > 1e-8),
                 info = paste(demand, "shock quantity"))
-    expect_equal(promoted@model@mcfunPre, source@model@mcfunPre,
-                 info = paste(demand, "cost closures after shock"))
+    expect_equal(as.numeric(trade::calcMC(promoted@model, TRUE)),
+                 as.numeric(expected_mc), info = paste(demand, "immutable physical costs"))
   }
 })
 

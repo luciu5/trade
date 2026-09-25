@@ -283,18 +283,13 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   if (quota) {
     value[is.na(value)] <- Inf
   } else {
-    value[is.na(value)] <- 0
-    if (any(value >= 1, na.rm = TRUE)) stop("'", name, "' must be less than 1")
+    value <- .normalize_tariff(value, n, name)
   }
   value
 }
 
 .trade_normalize_policy_matrix <- function(value, dims, name) {
-  if (!isTRUE(all.equal(dim(value), dims))) {
-    stop("'", name, "' must have the same dimensions as the fitted tariff matrix")
-  }
-  value[is.na(value)] <- 0
-  value
+  .normalize_tariff_matrix(value, dims, name)
 }
 
 .trade_raw_owner <- function(fit, model) {
@@ -303,22 +298,10 @@ specify <- function(demand, conduct = NULL, prices, parameters,
 }
 
 .trade_policy_owner <- function(fit, model) {
-  promotion <- attr(model, "trade_promotion", exact = TRUE)
-  if (!is.null(promotion) && identical(fit@spec$policy, "tariff") &&
-      (.trade_scaled_tariff_owner(model) ||
-       (identical(fit@spec$demand, "blp") &&
-        !identical(fit@spec$conduct, "auction2nd")))) {
-    ## The source ownership already defines the fitted baseline FOCs.
-    ## Undo the supplied baseline wedge only for trade's internal policy
-    ## translation, so applying the same tariff recovers it exactly.
-    return(model@ownerPre / matrix(1 - model@tariffPre,
-                                   nrow = length(model@tariffPre),
-                                   ncol = length(model@tariffPre)))
-  }
   .trade_raw_owner(fit, model)
 }
 
-.trade_scaled_tariff_owner <- function(model) {
+.trade_uses_ownership_matrix <- function(model) {
   is(model, "TariffLogit") || is(model, "TariffCES") ||
     is(model, "TariffAIDS") || is(model, "TariffLogitCournotModels") ||
     is(model, "TariffBargainingLogit") || is(model, "TariffBargainingCES")
@@ -328,65 +311,30 @@ specify <- function(demand, conduct = NULL, prices, parameters,
                                       bargpowerPost, isMax, arguments) {
   model <- fit@model
   n <- length(model@shares)
+  if (is(model, "TariffAIDS") && is.null(priceStart)) priceStart <- rep(0, n)
   tariffPre <- model@tariffPre
   tariffPost <- .trade_normalize_policy_vector(tariffPost, n, "tariffPost")
 
   model@tariffPost <- tariffPost
-  if (.trade_scaled_tariff_owner(model)) {
+  model@subset <- subset
+  if (.trade_uses_ownership_matrix(model)) {
     owner <- .owner_to_matrix(.trade_policy_owner(fit, model), n,
                               "'owner' must be supplied as a length-k vector or k x k ownership matrix")
-    model@ownerPost <- .apply_tariff_to_owner(owner, tariffPost)
+    model@ownerPost <- owner
   }
+  model <- .set_tariff_retention(model)
 
-  delta <- .tariff_mc_delta(tariffPre, tariffPost)
-  if (!is.null(attr(model, "trade_promotion", exact = TRUE))) {
-    if (is(model, "TariffAIDS")) {
-      model@subset <- subset
-      if (!is.null(priceStart)) model@priceStart <- priceStart
-      model@priceDelta <- do.call(
-        calcPriceDelta,
-        c(list(object = model, isMax = isMax, subset = subset), arguments)
-      )
-    }
-    ## Promoted fits retain antitrust's persistent structural cost state.
-    ## Express a tariff wedge using that state's cost-shock convention.
-    state <- attr(model, "antitrust_cost_state", exact = TRUE)
-    model@mcDelta <- if (identical(state$mode, "additive")) {
-      model@mcPre * delta
-    } else delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
-  } else if (is(model, "Tariff2ndLogit")) {
-    # Auction2ndLogit interprets mcDelta as an additive effective-cost level.
-    # Convert before calculating mcPost; otherwise calcPrices() would retain
-    # the stale mcPre + proportional-delta value.
-    model@mcDelta <- model@mcPre * delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
-  } else if (is(model, "TariffBargainingLogit") ||
-             is(model, "TariffBargainingCES")) {
-    # bargaining_tariff has the same historical two-step assignment.
-    model@mcDelta <- delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
-    model@mcDelta <- model@mcPre * delta
-  } else {
-    model@mcDelta <- delta
-    # AIDS prices are represented by a solved proportional-change vector.
-    # Re-solve that vector after applying the counterfactual tariff and
-    # ownership wedges, and before deriving post-policy marginal costs.  The
-    # legacy bertrand_tariff() constructor uses this same ordering.
-    if (is(model, "TariffAIDS")) {
-      model@subset <- subset
-      if (!is.null(priceStart)) model@priceStart <- priceStart
-      model@priceDelta <- do.call(
-        calcPriceDelta,
-        c(
-          list(object = model, isMax = isMax, subset = subset),
-          arguments
-        )
-      )
-    }
-    model@mcPost <- calcMC(model, preMerger = FALSE)
+  ## Upstream calcMC applies the retention ratio. mcDelta is a physical-cost
+  ## shock, so a tariff-only policy must not add the wedge a second time.
+  model@mcDelta <- rep(0, n)
+  if (is(model, "TariffAIDS")) {
+    if (!is.null(priceStart)) model@priceStart <- priceStart
+    model@priceDelta <- do.call(
+      calcPriceDelta,
+      c(list(object = model, isMax = isMax, subset = subset), arguments)
+    )
   }
-  model@subset <- subset
+  model@mcPost <- calcMC(model, preMerger = FALSE)
   if (!is.null(bargpowerPost) &&
       (is(model, "TariffBargainingLogit") || is(model, "TariffBargainingCES"))) {
     model@bargpowerPost <- bargpowerPost
@@ -446,6 +394,17 @@ specify <- function(demand, conduct = NULL, prices, parameters,
   }
   if (!is.null(arguments$quantityStart)) {
     model@quantityStart <- arguments$quantityStart
+  }
+  if (!is.null(attr(model, "trade_promotion", exact = TRUE)) &&
+      isTRUE(all.equal(model@tariffPost, model@tariffPre)) &&
+      identical(model@ownerPost, model@ownerPre) &&
+      identical(model@productsPost, model@productsPre) &&
+      identical(model@capacitiesPost, model@capacitiesPre) &&
+      all(model@mcDelta == 0)) {
+    model@quantityPost <- model@quantityPre
+    model@pricePost <- model@pricePre
+    model@mcPost <- calcMC(model, preMerger = FALSE)
+    return(model)
   }
   model@quantityPost <- calcQuantities(model, preMerger = FALSE)
   model@mcPost <- calcMC(model, preMerger = FALSE)

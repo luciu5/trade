@@ -4,11 +4,14 @@
 \alias{TariffCournot-methods}
 \alias{calcSlopes,TariffCournot-method}
 \alias{calcQuantities,TariffCournot-method}
+\alias{calcMC,TariffCournot-method}
 \title{Additional methods for TariffCournot Class}
 \usage{
 \S4method{calcSlopes}{TariffCournot}(object)
 
 \S4method{calcQuantities}{TariffCournot}(object, preMerger = TRUE, market = FALSE)
+
+\S4method{calcMC}{TariffCournot}(object, preMerger = TRUE)
 }
 \arguments{
 \item{object}{an instance of class \code{TariffCournot}}
@@ -22,6 +25,8 @@ plant-specific results.}
 \value{
 \code{calcSlopes} return a TariffCournot object containing estimated slopes. \code{CalcQuantities} returns
 a matrix of equilbrium quantities under either the current or new tariff.
+\code{calcMC} reports physical marginal production cost, without artificial
+capacity or nonnegativity penalties. Constraints enter the quantity solver.
 }
 \description{
 Producer Surplus methods for the \code{TariffBertrand} and \code{TariffCournot} classes

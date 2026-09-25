@@ -35,7 +35,7 @@ cournot_tariff(
 \item{quantities}{An n x k matrix of product quantities. All quantities must either be positive, or if the product is
 not produced by a plant, NA}
 
-\item{margins}{An n x k matrix of product margins. All margins must be either be between 0 and 1, or NA.}
+\item{margins}{An n x k matrix of product margins relative to net seller revenue. All margins must either be between 0 and 1, or NA.}
 
 \item{demand}{A length k character vector equal to "linear" if a product's demand curve is assumed to be linear or "log"
 if a product's demand curve is assumed to be log-linear.}
@@ -98,6 +98,14 @@ margin information for at least one products in each market, \code{cournot_tarif
 slopes and intercepts of either a Linear or Log-linear demand system. These parameters are then used
 to simulate the price effects of a tariff under the assumption that the firms are playing a
 homogeneous products simultaneous quantity setting game.
+
+An ad valorem tariff rate \eqn{\tau_{ik}} gives plant \eqn{i} a seller
+retention of \eqn{1-\tau_{ik}} on product \eqn{k}. Baseline physical
+marginal cost is calibrated as \eqn{p_k(1-m_{ik})(1-\tau_{ik})}. At an
+equilibrium, a producing plant's marginal revenue in its quantity-setting
+first-order condition is \eqn{(1-\tau_{ik})p_k + p'_k\sum_h o_{hi}(1-\tau_{hk})q_{hk}},
+where \eqn{o_{hi}} is the ownership share. Outputs satisfy non-negativity
+and the supplied plant capacity constraints.
 }
 \examples{
 ## Simulate the effect of a 75\% ad valorem tariff in a

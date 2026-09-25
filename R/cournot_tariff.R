@@ -6,7 +6,7 @@
 #' @param prices  A length k vector product prices.
 #' @param quantities An n x k matrix of product quantities. All quantities must either be positive, or if the product is
 #' not produced by a plant, NA
-#' @param margins An n x k matrix of product margins. All margins must be either be between 0 and 1, or NA.
+#' @param margins An n x k matrix of product margins relative to net seller revenue. All margins must either be between 0 and 1, or NA.
 #' @param demand A length k character vector equal to "linear" if a product's demand curve is assumed to be linear or "log"
 #' if a product's demand curve is assumed to be log-linear.
 #' @param cost A length k character vector equal to "linear" if a plant's marginal cost curve is assumed to be linear or
@@ -45,6 +45,14 @@
 #' slopes and intercepts of either a Linear or Log-linear demand system. These parameters are then used
 #' to simulate the price effects of a tariff under the assumption that the firms are playing a
 #' homogeneous products simultaneous quantity setting game.
+#'
+#' An ad valorem tariff rate \eqn{\tau_{ik}} gives plant \eqn{i} a seller
+#' retention of \eqn{1-\tau_{ik}} on product \eqn{k}. Baseline physical
+#' marginal cost is calibrated as \eqn{p_k(1-m_{ik})(1-\tau_{ik})}. At an
+#' equilibrium, a producing plant's marginal revenue in its quantity-setting
+#' first-order condition is \eqn{(1-\tau_{ik})p_k + p'_k\sum_h o_{hi}(1-\tau_{hk})q_{hk}},
+#' where \eqn{o_{hi}} is the ownership share. Outputs satisfy non-negativity
+#' and the supplied plant capacity constraints.
 #'
 #'
 #'
@@ -119,8 +127,8 @@ cournot_tariff <- function(
 
   nprods <- length(prices)
 
-  tariffPre[is.na(tariffPre)] <- 0
-  tariffPost[is.na(tariffPost)] <- 0
+  tariffPre <- .normalize_tariff_matrix(tariffPre, dim(quantities), "tariffPre")
+  tariffPost <- .normalize_tariff_matrix(tariffPost, dim(quantities), "tariffPost")
 
   mcDelta <- rep(0, nrow(quantities))
 

@@ -63,6 +63,11 @@ for prices. When omitted, valid pre-merger `prices` are used.}
 Simulate the effect of tariffs when firms play a second score procurement auction game and consumer demand is Logit.
 }
 \details{
+Native one-offer-per-firm bidding and product-choice rules are preserved.
+Tariffs must be uniform within each firm's active product portfolio.
+Mixed-tariff portfolios are rejected pending a separate bidding-equilibrium
+extension; tariffs may differ across firms.
+
 Let k denote the number of products produced by all firms.
 Using price, and quantity, information for all products
 in each market, as well as margin information for at least

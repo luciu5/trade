@@ -52,7 +52,7 @@ test_that("uniform tariffs can differ across firms and recover physical costs", 
   expect_error(
     trade::as_trade_fit(.tariff_game_fixture(), tariffPre = c(.1, .2, .2),
                         cost_basis = "effective", margin_basis = "net_revenue"),
-    class = "trade_tariff_heterogeneous"
+    class = "trade_tariff_incompatible_baseline"
   )
 })
 

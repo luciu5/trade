@@ -48,9 +48,8 @@ bertrand_tariff(
 \item{priceOutside}{price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.}
 
 \item{priceStart}{For aids, a vector of length k whose elements are initial
-guesses for the price solve. When omitted, valid pre-merger `prices` are
-used; a random positive fallback is retained only when those prices are
-unavailable. For ces and logit, the default is prices.}
+guesses for log price changes, defaulting to zero. For ces and logit,
+the default is prices.}
 
 \item{isMax}{If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.}
 

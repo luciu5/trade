@@ -99,6 +99,42 @@ test_that("multiproduct followers obey the same tariff cost transformation", {
   }
 })
 
+test_that("untaxed products respond across all fourteen fitted output games", {
+  for (demand in c("logit", "ces")) for (family in c("B", "C", "MC", "BF", "CF", "BS", "CS")) {
+    source <- .tariff_matrix_source(demand, family)
+    fit <- suppressWarnings(trade::as_trade_fit(source, tariffPre = 0,
+      cost_basis = "effective", margin_basis = "net_revenue"))
+    before <- trade::tariff_accounts(fit, TRUE)
+    result <- suppressWarnings(trade::simulate(fit, tariffPost = c(0, .1, .3, .4)))
+    after <- trade::tariff_accounts(result, FALSE)
+    info <- paste(demand, family)
+    expect_equal(after$tau[1], 0, info = info)
+    expect_true(abs(after$q[1] - before$q[1]) > 1e-7, info = info)
+    expect_equal(after$physical_cost, before$physical_cost, tolerance = 1e-10, info = info)
+    expect_equal(as.numeric(antitrust::calcMC(result@model, FALSE)),
+                 after$effective_cost, tolerance = 1e-8, info = info)
+  }
+})
+
+test_that("promotion-only ALM variants retain untaxed domestic responses", {
+  for (demand in c("logit", "ces")) for (conduct in c("bertrand", "cournot")) {
+    if (demand == "logit" && conduct == "cournot") next # Direct adapter tested separately.
+    source <- suppressWarnings(antitrust::calibrate(demand, conduct, variant = "alm",
+      prices = c(2, 2.2, 2.4, 2.6), shares = c(.4, .3, .2, .1),
+      margins = rep(.3, 4), ownerPre = c("A", "A", "B", "C"),
+      mktElast = -2, insideSize = 100))
+    fit <- suppressWarnings(trade::as_trade_fit(source,
+      cost_basis = "effective", margin_basis = "net_revenue"))
+    result <- suppressWarnings(trade::simulate(fit, tariffPost = c(0, 0, .2, .3)))
+    before <- trade::tariff_accounts(fit, TRUE)
+    after <- trade::tariff_accounts(result, FALSE)
+    expect_true(abs(after$q[1] - before$q[1]) > 1e-7,
+                info = paste(demand, conduct, "ALM"))
+    expect_equal(after$physical_cost, before$physical_cost, tolerance = 1e-10)
+    expect_equal(as.numeric(antitrust::getRetention(result@model, FALSE)), c(1, 1, .8, .7))
+  }
+})
+
 test_that("repeated policies and scenario changes never compound tariff-adjusted costs", {
   source <- .tariff_matrix_source("logit", "BS")
   promoted <- trade::as_trade_fit(source, tariffPre = .1,
@@ -140,15 +176,18 @@ test_that("tariff declarations cannot override contradictory source cost provena
     class = "trade_tariff_unsupported_model")
 })
 
-test_that("heterogeneous merged-firm tariffs are rejected and draw attributes persist", {
+test_that("heterogeneous merged-firm tariffs are solved and draw attributes persist", {
   source <- .tariff_matrix_source("ces", "CS")
   attr(source, "bayes_policy_draw") <- list(draw_index = 2L, k = 2L,
     quality = c(.1, -.1, 0), plan_fingerprint = "fixture")
   promoted <- trade::as_trade_fit(source, tariffPre = c(.1, .1, .2, .05),
     cost_basis = "effective", margin_basis = "net_revenue")
   expect_identical(attr(promoted, "bayes_policy_draw"), attr(source, "bayes_policy_draw"))
-  expect_error(trade::simulate(promoted, ownerPost = c("A", "A", "A", "C"),
-    leadersPost = "A"), class = "trade_tariff_heterogeneous")
+  mixed <- trade::simulate(promoted, ownerPost = c("A", "A", "A", "C"),
+    leadersPost = "A")
+  expect_true(all(is.finite(mixed@model@pricePost)))
+  expect_equal(as.numeric(antitrust::getRetention(mixed@model, FALSE)),
+               1 - c(.1, .1, .2, .05))
   result <- trade::simulate(promoted, tariffPost = .15,
     ownerPost = c("A", "A", "A", "C"), leadersPost = "A")
   expect_identical(attr(result, "bayes_policy_draw"), attr(source, "bayes_policy_draw"))
@@ -240,5 +279,5 @@ test_that("uniformity is judged on retention even near a full tariff", {
   expect_error(trade::as_trade_fit(source,
     tariffPre = c(1 - 1e-12, 1 - 1e-11, .1, .1),
     cost_basis = "effective", margin_basis = "net_revenue"),
-    class = "trade_tariff_heterogeneous")
+    class = "trade_tariff_incompatible_baseline")
 })

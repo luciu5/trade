@@ -1,4 +1,4 @@
-test_that("AIDS uses available pre-merger prices as the default start", {
+test_that("AIDS starts at zero log price changes", {
   prices <- c(10, 12, 15)
   fit <- suppressWarnings(
     bertrand_tariff(
@@ -11,5 +11,5 @@ test_that("AIDS uses available pre-merger prices as the default start", {
     )
   )
 
-  expect_equal(fit@priceStart, prices)
+  expect_equal(fit@priceStart, rep(0, length(prices)))
 })

@@ -126,20 +126,23 @@ test_that("CES bargaining tariff preserves revenue accounting and tariff wedges"
   revenue_shares <- x$prices * x$quantities /
     sum(x$prices * x$quantities)
   owner_matrix <- trade:::.owner_to_matrix(x$owner, length(x$prices), "owner")
-  expected_owner_post <- owner_matrix *
-    matrix(1 - x$tariff, nrow = length(x$tariff), ncol = length(x$tariff))
-  expected_mc_delta <- tariff@mcPre *
-    (x$tariff - 0) / (1 - x$tariff)
+  expected_retention_pre <- rep(1, length(x$tariff))
+  expected_retention_post <- 1 - x$tariff
+  expected_mc_delta <- rep(0, length(x$tariff))
 
   expect_equal(unname(tariff@shares), unname(revenue_shares), tolerance = 1e-12)
   expect_equal(tariff@ownerPre, owner_matrix, tolerance = 1e-12)
-  expect_equal(tariff@ownerPost, expected_owner_post, tolerance = 1e-12)
+  expect_equal(tariff@ownerPost, owner_matrix, tolerance = 1e-12)
+  expect_equal(antitrust::getRetention(tariff, preMerger = TRUE),
+               expected_retention_pre, tolerance = 1e-12)
+  expect_equal(antitrust::getRetention(tariff, preMerger = FALSE),
+               expected_retention_post, tolerance = 1e-12)
   expect_equal(tariff@mcDelta, expected_mc_delta, tolerance = 1e-12)
   expect_equal(unname(tariff@pricePre), unname(x$prices), tolerance = 1e-7)
   expect_equal(
     unname(tariff@pricePost),
-    c(.0441000051356314, .0328000074633931, .0409000303612154,
-      .0396000293962325, .0387863677340622, .0498414298186677),
+    c(.0441002011266757, .0328002922935032, .0409011890981254,
+      .0396011513028306, .0429995435692827, .0552204898815052),
     tolerance = 1e-7
   )
 
@@ -449,15 +452,10 @@ test_that("trade re-exports antitrust diagnostics used by tariff workflows", {
   expect_true(is.numeric(CV(result)))
 })
 
-test_that("internal owner and tariff helpers preserve row-wise conduct scaling", {
+test_that("ownership and tariff normalization are distinct", {
   owner <- trade:::.owner_to_matrix(c("A", "A", "B"), 3, "bad owner")
   tariff <- c(0, .25, .5)
-  scaled <- trade:::.apply_tariff_to_owner(owner, tariff)
-
   expect_equal(unname(owner), matrix(c(1,1,0,1,1,0,0,0,1), nrow = 3))
-  expect_equal(scaled[1, ], owner[1, ])
-  expect_equal(scaled[2, ], owner[2, ] * .75)
-  expect_equal(scaled[3, ], owner[3, ] * .5)
   expect_equal(trade:::.tariff_mc_delta(rep(0, 3), tariff), tariff/(1 - tariff))
   expect_equal(trade:::.normalize_tariff(c(NA, .1), 2, "tariff"), c(0, .1))
   expect_error(trade:::.normalize_tariff(c(0, 1), 2, "tariff"), "less than 1")

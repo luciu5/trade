@@ -43,6 +43,8 @@
 #' system. These parameters are then used to simulate the price
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 #' Nash Bargaining game.
+#' Tariffs affect seller revenue through retention rates \eqn{1-\tau}; the
+#' ownership matrices continue to represent the firms' actual ownership shares.
 #'
 #' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game and \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
@@ -85,10 +87,11 @@ bargaining_tariff <- function(
   owner <- .owner_to_matrix(owner, nprods,
                             "'owner' must be supplied as a length-k vector or k x k ownership matrix")
 
-  ownerPost <- .apply_tariff_to_owner(owner, tariffPost)
-  ownerPre <- .apply_tariff_to_owner(owner, tariffPre)
+  ownerPre <- ownerPost <- owner
 
-  mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
+  ## Tariff retention is handled separately by the bargaining cost method.
+  ## mcDelta is reserved for an additional physical cost shock.
+  mcDelta <- rep(0, nprods)
 
   shares_revenue <- shares_quantity <- shares
 
@@ -162,11 +165,15 @@ bargaining_tariff <- function(
 
   result@ownerPre <- ownerToMatrix(result, TRUE)
   result@ownerPost <- ownerToMatrix(result, FALSE)
+  result <- antitrust::setRetention(
+    result,
+    retentionPre = 1 - tariffPre,
+    retentionPost = 1 - tariffPost
+  )
 
   result <- calcSlopes(result)
 
   result@mcPre <- calcMC(result, TRUE)
-  result@mcDelta <- result@mcPre * mcDelta
   result@mcPost <- calcMC(result, FALSE)
 
   result@pricePre <- calcPrices(result, preMerger = TRUE)

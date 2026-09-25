@@ -31,8 +31,8 @@
 #' Tariffs use a product vector except for Linear and LogLin Cournot models,
 #' which require a plant-by-product matrix matching the fitted quantities.
 #' A numeric scalar expands to the required dimensions. Product tariffs must
-#' be finite and less than one; matrix tariffs must be finite and greater than
-#' minus one, following the target models' tariff conventions. Missing tariff
+#' be finite and less than one, including matrix tariffs. Finite negative tariffs
+#' represent subsidies. Missing tariff
 #' entries become zero.
 #'
 #' Quotas are non-negative multiples of fitted baseline output. Missing quota
@@ -47,7 +47,8 @@
 #' code{tariffPre} requires code{cost_basis = "effective"} and
 #' code{margin_basis = "net_revenue"}; an all-zero baseline can infer those
 #' two values.  Tariffs use the consumer-price fraction convention, must be
-#' finite and less than one, and must be uniform within each active baseline
+#' finite and less than one. Relative to saved source retention, baseline
+#' retention may change only by a constant within each active strategic
 #' firm.  Physical-cost basis is not supported in this initial route.  Calls
 #' without either contract flag retain the historical promotion behavior.
 #' @examples
@@ -186,10 +187,7 @@ setGeneric(
     if (!is.numeric(value)) {
       stop("'tariffPre' must be a finite numeric tariff matrix")
     }
-    value[is.na(value)] <- 0
-    if (any(!is.finite(value)) || any(value <= -1)) {
-      stop("'tariffPre' must be greater than -1 and finite for this Cournot tariff matrix")
-    }
+    value <- .normalize_tariff_matrix(value, dims, "tariffPre")
     return(list(name = allowed, pre = value, post = value,
                 dimensions = dims, quantities = model@quantities))
   }
@@ -224,13 +222,7 @@ setGeneric(
       stop("'quotaPre' must be non-negative, with Inf representing no quota")
     }
   } else {
-    if (!is.numeric(value)) {
-      stop("'tariffPre' must be a numeric length-k vector")
-    }
-    value[is.na(value)] <- 0
-    if (any(!is.finite(value)) || any(value >= 1)) {
-      stop("'tariffPre' must be finite and less than 1")
-    }
+    value <- .normalize_tariff(value, n, "tariffPre")
   }
   list(name = allowed, pre = value, post = value,
        dimensions = n, quantities = NULL)
@@ -355,6 +347,21 @@ setGeneric(
   target_model <- do.call(methods::new, c(list(Class = target_class), values))
   target_model <- .trade_promotion_copy_attributes(source_for_copy,
                                                     target_model)
+  if (policy_state$name == "tariffPre") {
+    if (methods::is(target_model, "TariffCournot")) {
+      target_model <- .trade_promoted_cournot_costs(target_model)
+    } else {
+      if (!identical(target$conduct, "moncom")) {
+        .trade_check_baseline_retention(source_for_copy, 1 - policy_state$pre)
+      }
+      target_model <- .set_tariff_retention(target_model)
+      ## Promotion reinterprets the fitted effective baseline, without changing
+      ## any fitted choices or costs. Rebase its physical-cost bookkeeping.
+      target_model@mcPre <- source_model@mcPre
+      target_model@mcPost <- source_model@mcPre
+      target_model <- antitrust::initialize_cost_state(target_model)
+    }
+  }
   quantities <- policy_state$quantities
   if (is.null(quantities) && identical(policy_state$name, "quotaPre")) {
     quantities <- .trade_promotion_quantities(object, source_for_copy)
@@ -372,9 +379,49 @@ setGeneric(
     quantities = quantities,
     source_ownerPre = .trade_promotion_slot(source_for_copy, "ownerPre")
   )
+  if (methods::is(target_model, "TariffCournot")) marker$cost_basis <- "physical"
   attr(target_model, "trade_promotion") <- marker
   methods::validObject(target_model)
   target_model
+}
+
+## A firm-uniform baseline tariff rescales effective source costs into
+## physical costs without changing any fitted choices. Apply the same
+## conversion to MC and VC; otherwise equilibrium and profit accounts disagree.
+.trade_promoted_cournot_costs <- function(model) {
+  retention <- 1 - model@tariffPre
+  n <- nrow(retention)
+  owner <- .owner_to_matrix(model@ownerPre, n, "baseline plant ownership is invalid")
+  active <- model@productsPre
+  scale <- numeric(n)
+  for (i in seq_len(n)) {
+    own <- which(owner[i, ] != 0)
+    values <- retention[own, , drop = FALSE][active[own, , drop = FALSE]]
+    if (!length(values)) values <- 1
+    if (max(abs(log(values) - log(values[1L]))) > 1e-10) {
+      .trade_game_error("trade_tariff_incompatible_baseline",
+        paste("baseline Cournot tariffs must be uniform across each source firm's",
+              "active plants and products; calibrate a tariff baseline explicitly"))
+    }
+    scale[i] <- values[1L]
+  }
+  rescale <- function(fun, factor) {
+    if (factor == 1) return(fun)
+    force(fun); force(factor)
+    function(q, ...) factor * fun(q, ...)
+  }
+  for (field in c("mcfunPre", "vcfunPre")) {
+    functions <- methods::slot(model, field)
+    converted <- Map(rescale, functions, scale)
+    names(converted) <- names(functions)
+    methods::slot(model, field) <- converted
+    methods::slot(model, sub("Pre$", "Post", field)) <- converted
+  }
+  ## Cournot's structural primitives are cost functions. Keep empty legacy
+  ## cost slots empty; no demand, cost-recovery, or equilibrium API is called.
+  model@mcPre <- model@mcPre * scale
+  model@mcPost <- model@mcPre
+  model
 }
 
 .trade_promotion_observed <- function(object, model, policy_state) {
@@ -409,6 +456,10 @@ setGeneric(
   policy_state <- .trade_promotion_policy_state(arguments,
                                                  entry$promotion_handler,
                                                  object@model)
+  if (identical(target$conduct, "auction2nd")) {
+    .trade_game_uniform_tariff(policy_state$pre,
+      .trade_game_owner(object@model), "auction baseline")
+  }
   model <- .trade_promotion_model(object, target, policy_state)
   observed <- .trade_promotion_observed(object, model, policy_state)
 

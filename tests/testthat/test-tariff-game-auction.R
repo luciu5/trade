@@ -190,7 +190,8 @@ test_that("auction CV equals the established native oracle", {
   alpha <- model@slopes$alpha
   a <- -alpha
   eta_pre <- model@slopes$meanval
-  eta_post <- eta_pre + alpha * (model@mcDelta - model@priceOutside)
+  eta_post <- eta_pre + alpha *
+    (model@mcPost - model@mcPre - model@priceOutside)
   v_pre <- 1 + sum(exp(eta_pre))
   v_post <- 1 + sum(exp(eta_post))
   markup_pre <- antitrust::calcMargins(model, preMerger = TRUE,

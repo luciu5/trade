@@ -1,5 +1,6 @@
 % TariffGameFit documentation
 \name{TariffGameFit}
+\alias{TariffGameFit}
 \alias{TariffGameFit-class}
 \alias{simulate,TariffGameFit-method}
 \alias{simulate_steps,TariffGameFit-method}
@@ -10,11 +11,12 @@
 \alias{calcQuantities,TariffGameFit-method}
 \alias{calcMargins,TariffGameFit-method}
 \alias{calcMC,TariffGameFit-method}
+\alias{calcSlopes,TariffGameFit-method}
 \alias{calcRevenues,TariffGameFit-method}
 \alias{calcProducerSurplus,TariffGameFit-method}
 \alias{CV,TariffGameFit-method}
 \alias{summary,TariffGameFit-method}
-\title{A fitted firm-uniform tariff reuse wrapper}
+\title{A fitted tariff reuse wrapper}
 \description{
 \code{TariffGameFit} preserves a fitted output-market game and records its
 consumer-price tariff fractions, effective costs, recovered physical costs,
@@ -64,7 +66,9 @@ those posterior draw identities when reporting simulation failures.
 Post-policy effective costs are derived as
 \code{cPre * (1 + mcDelta) / (1 - tariffPost)}. Scenarios always start from
 the original fitted baseline, so repeated simulations do not compound tariff
-adjustments. Ownership tariffs must be uniform within each active firm.
+adjustments. Actual ownership and revenue retention are kept separate.
+Mixed post tariffs are supported except within native second-score bidding
+portfolios. Baseline retention must be compatible with the fitted source.
 Multi-step paths, quota policies, and re-estimation are unsupported in this
 initial route. \code{calcMC()} reports physical costs, while
 \code{calcMargins(level = TRUE)} reports physical net unit profit and

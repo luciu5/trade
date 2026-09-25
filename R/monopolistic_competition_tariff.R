@@ -104,7 +104,7 @@ tariffPost <- .normalize_tariff(tariffPost, nprods, "tariffPost")
 
 owner <-  diag(nprods)
 
-mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
+mcDelta <- rep(0, nprods) # Physical costs are fixed; retention supplies the wedge.
 
 if(demand == "logit"){ shares <-  quantities/mktSize}
 else {shares <- prices*quantities/mktSize}
@@ -166,6 +166,7 @@ result@ownerPre  <- owner
 result@ownerPost <- owner
 
 ## Calculate Demand Slope Coefficients
+result <- .set_tariff_retention(result)
 result <- calcSlopes(result)
 
 ## Calculate marginal cost

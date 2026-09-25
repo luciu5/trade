@@ -2,6 +2,10 @@
 % Please edit documentation in R/TradePromotion.R
 \name{as_trade_fit}
 \alias{as_trade_fit}
+\alias{as_trade_fit,CoreFringeCES-method}
+\alias{as_trade_fit,CoreFringeLogit-method}
+\alias{as_trade_fit,StackelbergCES-method}
+\alias{as_trade_fit,StackelbergLogit-method}
 \alias{as_trade_fit,AntitrustFit-method}
 \alias{as_trade_fit,StructuralFit-method}
 \title{Promote a fitted antitrust model into a trade model}
@@ -49,8 +53,8 @@ subsequent policy change.
 Tariffs use a product vector except for Linear and LogLin Cournot models,
 which require a plant-by-product matrix matching the fitted quantities.
 A numeric scalar expands to the required dimensions. Product tariffs must
-be finite and less than one; matrix tariffs must be finite and greater than
-minus one, following the target models' tariff conventions. Missing tariff
+be finite and less than one, including matrix tariffs. Finite negative tariffs
+represent subsidies. Missing tariff
 entries become zero.
 
 Quotas are non-negative multiples of fitted baseline output. Missing quota
@@ -60,7 +64,9 @@ Unsupported or irrelevant policy arguments are rejected.
 
 The explicit ordinary-fit tariff route uses the consumer-price fraction
 convention, requires finite tariff fractions below one, and requires a
-firm-uniform tariff within each active baseline firm. Physical-cost basis is
+baseline retention compatible with the source retention up to firm-wide
+positive factors. Mixed post-policy retention is supported except in native
+second-score bidding portfolios, which must remain firm-uniform. Physical-cost basis is
 not supported initially. Calls without either basis flag retain the historical
 promotion behavior. Native Stackelberg and Core-Fringe coordination fits use
 the same \code{TariffGameFit} state wrapper through their dedicated methods.

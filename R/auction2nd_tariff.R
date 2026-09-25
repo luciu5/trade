@@ -32,6 +32,11 @@
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 #' 2nd score auction.
 #'
+#' Native one-offer-per-firm bidding and product-choice rules are preserved.
+#' Tariffs must be uniform within each firm's active product portfolio.
+#' Mixed-tariff portfolios are rejected pending a separate bidding-equilibrium
+#' extension; tariffs may differ across firms.
+#'
 #' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game and \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
 #' @return \code{auction2nd_tariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
@@ -103,7 +108,7 @@ owner <- .owner_to_matrix(owner, nprods,
 ownerPre <- ownerPost <- owner
 
 
-mcDelta <- .tariff_mc_delta(tariffPre, tariffPost)
+mcDelta <- rep(0, nprods) # Physical costs are fixed; retention supplies the wedge.
 
 shares_revenue <- shares_quantity <- quantities/sum(quantities)
 
@@ -209,6 +214,7 @@ result@ownerPre  <- ownerToMatrix(result,TRUE)
 result@ownerPost <- ownerToMatrix(result,FALSE)
 
 ## Calculate Demand Slope Coefficients
+result <- .set_tariff_retention(result)
 result <- calcSlopes(result)
 
 ## Calculate marginal cost

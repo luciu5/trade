@@ -1,4 +1,4 @@
-# Firm-uniform consumer-price tariff reuse for fitted output games.
+# Consumer-price tariff reuse for fitted output games.
 #
 # This adapter is deliberately separate from the historical Tariff* classes.
 # A TariffGameFit retains the fitted effective-cost game and keeps production
@@ -253,7 +253,8 @@ setClass(
       .trade_game_error(
         "trade_tariff_heterogeneous",
         paste0("the ", when, " tariff is heterogeneous within firm '", firm,
-               "'; the initial tariff reuse route requires firm-uniform retention")
+               "'; native second-score auctions require firm-uniform retention; ",
+               "mixed-tariff bidding portfolios require a separate equilibrium extension")
       )
     }
   }
@@ -506,7 +507,21 @@ setClass(
   n <- .trade_game_n(model)
   labels <- .trade_game_labels(model, n)
   tau <- .trade_game_normalize_tariff(arguments$tariffPre, n, labels)
-  .trade_game_uniform_tariff(tau, .trade_game_owner(model, TRUE), "baseline")
+  if (methods::is(model, "Auction2ndLogit") ||
+      methods::is(model, "Auction2ndBLP")) {
+    .trade_game_uniform_tariff(tau, .trade_game_owner(model), "auction baseline")
+  }
+  baseline_owner <- model@ownerPre
+  if (methods::is(model, "MonComLogit") || methods::is(model, "MonComCES")) {
+    baseline_owner <- diag(n)
+  }
+  if (.trade_game_is_core(model)) {
+    fringe <- !model@firmOwnerPre %in% model@corePre
+    baseline_owner[fringe, ] <- 0
+    baseline_owner[, fringe] <- 0
+    diag(baseline_owner) <- 1
+  }
+  .trade_check_baseline_retention(model, 1 - tau, baseline_owner)
   .trade_game_parse_contract(arguments, tau, native = native)
   source_diagnostics <- if (native) NULL else object@diagnostics
   if (any(abs(tau) > 1e-14)) {
@@ -524,10 +539,20 @@ setClass(
   }
   kappa <- .trade_game_source_costs(model)
   source_model <- .trade_game_baseline_model(model)
+  source_model <- antitrust::setRetention(source_model,
+                                          retentionPre = 1 - tau,
+                                          retentionPost = 1 - tau)
+  if (!native) {
+    source_model@mcPre <- source_model@mcPost <- kappa
+    source_model <- antitrust::initialize_cost_state(source_model)
+  }
   spec <- if (native) .trade_game_spec_native(model) else .trade_game_spec_ordinary(object)
   source_fit <- if (native) NULL else object
+  if (!is.null(source_fit)) source_fit@model <- source_model
   state <- .trade_game_state(model, tau, kappa, source_model, source_fit, spec)
-  wrapped_model <- .trade_game_copy_attributes(model, source_model)
+  wrapped_model <- source_model
+  wrapped_model <- antitrust::setRetention(wrapped_model,
+    retentionPre = 1 - tau, retentionPost = 1 - tau)
   .trade_game_new_fit(if (native) model else object, wrapped_model, state, spec,
                       route = "tariff_reuse_promote", source_fit = source_fit)
 }
@@ -562,7 +587,7 @@ setClass(
 }
 
 .trade_game_simulate_native <- function(state, model, owner, leaders, core,
-                                        delta, subset, priceStart) {
+                                        delta, subset, priceStart, retention) {
   source <- state$source_model
   if (!is.null(priceStart) && .trade_game_has(source, "priceStart")) {
     if (length(priceStart) != length(state$labels) ||
@@ -575,30 +600,34 @@ setClass(
   if (methods::is(source, "StackelbergLogit") || methods::is(source, "StackelbergCES")) {
     coordination::stackelberg_simulate(
       source, ownerPost = owner, leadersPost = leaders,
-      mcDelta = as.numeric(delta), subset = subset
+      mcDelta = as.numeric(delta), subset = subset,
+      revenueRetentionPost = as.numeric(retention)
     )
   } else {
     coordination::core_fringe_simulate(
       source, ownerPost = owner, corePost = core,
-      mcDelta = as.numeric(delta), subset = subset
+      mcDelta = as.numeric(delta), subset = subset,
+      revenueRetentionPost = as.numeric(retention)
     )
   }
 }
 
-.trade_game_simulate_ordinary <- function(state, owner, delta, subset, priceStart) {
+.trade_game_simulate_ordinary <- function(state, owner, delta, subset, priceStart,
+                                          retention) {
   if (is.null(state$source_fit)) {
     .trade_game_error("trade_tariff_invalid_source", "ordinary tariff reuse is missing its original source fit")
   }
   ## antitrust owns cost-state interpretation and all ordinary equilibrium
   ## equations.  Passing the immutable source fit prevents cumulative tariff
   ## ratios from entering a repeated scenario.  Auction2ndLogit is the one
-  ## registered ordinary model whose mcDelta is an additive effective-cost
-  ## level; the tariff state stores delta as a proportional effective change.
+  ## registered ordinary model whose mcDelta is an additive physical-cost
+  ## level. Retention itself supplies the effective-cost tariff adjustment.
   cost_delta <- as.numeric(delta)
   if (methods::is(state$source_model, "Auction2ndLogit")) {
-    cost_delta <- as.numeric(state$kappaPre) * cost_delta
+    cost_delta <- as.numeric(state$cPre) * cost_delta
   }
-  args <- list(state$source_fit, owner, mcDelta = cost_delta, subset = subset)
+  args <- list(state$source_fit, owner, mcDelta = cost_delta, subset = subset,
+               revenueRetentionPost = as.numeric(retention))
   if (!is.null(priceStart)) args$priceStart <- priceStart
   result <- try(do.call(antitrust::simulate, args), silent = TRUE)
   if (inherits(result, "try-error")) {
@@ -659,10 +688,12 @@ setClass(
     if (is.null(mcDelta)) state$mcDeltaPhysical else mcDelta,
     n, state$labels
   )
-  ## Inactive products do not participate in ownership blocks.  Their stored
-  ## policy values may differ without creating a strategic within-firm tariff
-  ## heterogeneity in the active market.
-  .trade_game_uniform_tariff(tau[subset], owner[subset], "post-policy")
+  ## The native second-score mechanism has no dominant portfolio-selection
+  ## rule under different retentions within one bidder. Other games use
+  ## product-level retained-profit equations in the upstream simulators.
+  if (identical(object@spec$conduct, "auction2nd")) {
+    .trade_game_uniform_tariff(tau[subset], owner[subset], "auction post-policy")
+  }
 
   native_fit <- .trade_game_native_fit(object)
   is_stack <- .trade_game_is_stack(object)
@@ -733,15 +764,18 @@ setClass(
     object@model
   } else if (native_fit) {
     .trade_game_simulate_native(state, object@model, owner, leaders, core,
-                                delta_effective, subset, priceStart)
+                                delta_effective, subset, priceStart, rpost)
   } else {
-    .trade_game_simulate_ordinary(state, owner, delta_effective, subset, priceStart)
+    .trade_game_simulate_ordinary(state, owner, delta_physical, subset, priceStart,
+                                  rpost)
   }
   ## Public simulators may reconstruct a new model and drop package-neutral
   ## provenance attributes.  Carry the immutable source model's attributes
   ## forward when available; wrapper attributes are copied separately below.
   if (!unchanged) {
     result_model <- .trade_game_copy_attributes(state$source_model, result_model)
+    result_model <- antitrust::setRetention(result_model,
+      retentionPre = state$retentionPre, retentionPost = rpost)
   }
 
   result_state <- state

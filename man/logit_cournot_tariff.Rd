@@ -123,8 +123,9 @@ Cournot quantity game and demand is Logit.
 This function extends \code{\link[antitrust]{logit.cournot}} and
 \code{\link[antitrust]{logit.cournot.alm}} with the same ad valorem tariff
 treatment used by the other differentiated-product tariff simulations in
-this package. The tariff scales the conduct matrix by
-\code{1 - tariff} and changes marginal cost by
+this package. Ownership is preserved. Product revenue retention
+\code{1 - tariff} enters each firm's quantity first-order conditions,
+and effective marginal cost changes proportionally by
 \code{(tariffPost - tariffPre) / (1 - tariffPost)}.
 
 Unlike \code{\link{cournot_tariff}}, which models homogeneous-product

@@ -25,6 +25,8 @@ NULL
   values$tariffPre <- as.numeric(tariffPre)
   values$tariffPost <- as.numeric(tariffPre)
   result <- do.call(methods::new, c(list(Class = .trade_blp_class(spec$conduct)), values))
+  result <- .trade_promotion_copy_attributes(model, result)
+  result <- .set_tariff_retention(result)
   methods::validObject(result)
   result
 }
@@ -40,11 +42,7 @@ NULL
 }
 
 .trade_blp_owner_for_tariff <- function(owner, tariff, conduct) {
-  ## This follows the existing trade constructors: auction ownership is not
-  ## tariff-scaled, while Bertrand, Cournot, and bargaining use the tariff
-  ## adjusted ownership system.
-  if (identical(conduct, "auction2nd")) owner else
-    .apply_tariff_to_owner(owner, tariff)
+  owner
 }
 
 .trade_blp_options <- c(
@@ -83,7 +81,8 @@ NULL
   fit@diagnostics$trade <- list(
     tariffPre = tariffPre,
     ownershipInput = stored$owner,
-    tariffAdjustedOwnership = model@ownerPre
+    ownership = model@ownerPre,
+    revenueRetentionPre = antitrust::getRetention(model, TRUE)
   )
   fit@diagnostics$calibration_args <- provenance$calibration_args
   fit@diagnostics$specification_args <- provenance$specification_args
@@ -128,7 +127,8 @@ NULL
     list(
       demand = "blp", conduct = spec$conduct,
       prices = prices, shares = shares, margins = margins,
-      ownerPre = owner_pre, s0 = arguments$s0
+      ownerPre = owner_pre, s0 = arguments$s0,
+      revenueRetentionPre = 1 - tariffPre
     ),
     .trade_blp_antitrust_options(arguments)
   )
@@ -168,7 +168,7 @@ NULL
     list(
       demand = "blp", conduct = spec$conduct, prices = prices,
       parameters = blp_parameters, ownerPre = owner_pre, shares = shares,
-      margins = arguments$margins
+      margins = arguments$margins, revenueRetentionPre = 1 - tariffPre
     ),
     .trade_blp_antitrust_options(arguments, include_s0 = TRUE)
   )
@@ -189,32 +189,17 @@ NULL
   n <- length(model@shares)
   tariffPost <- .normalize_tariff(tariffPost, n, "tariffPost")
   model@tariffPost <- tariffPost
+  model@subset <- subset
   owner <- .trade_policy_owner(fit, model)
   owner <- .owner_to_matrix(owner, n,
                             "fitted trade BLP ownership is not valid")
   model@ownerPost <- .trade_blp_owner_for_tariff(
     owner, tariffPost, fit@spec$conduct
   )
-  delta <- .tariff_mc_delta(model@tariffPre, tariffPost)
-
-  ## Auction and bargaining inherit the historical level-change calcMC method;
-  ## retain trade's two-step convention. Other BLP conduct paths use the
-  ## proportional Bertrand-style cost-change method.
-  if (!is.null(attr(model, "trade_promotion", exact = TRUE))) {
-    state <- attr(model, "antitrust_cost_state", exact = TRUE)
-    model@mcDelta <- if (identical(state$mode, "additive")) {
-      model@mcPre * delta
-    } else delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
-  } else if (fit@spec$conduct %in% c("auction2nd", "bargaining")) {
-    model@mcDelta <- delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
-    model@mcDelta <- model@mcPre * delta
-  } else {
-    model@mcDelta <- delta
-    model@mcPost <- calcMC(model, preMerger = FALSE)
-  }
-  model@subset <- subset
+  model <- .set_tariff_retention(model)
+  ## Physical costs stay fixed; calcMC applies the retention ratio once.
+  model@mcDelta <- rep(0, n)
+  model@mcPost <- calcMC(model, preMerger = FALSE)
   if (!is.null(bargpowerPost) && fit@spec$conduct == "bargaining") {
     model@bargpowerPost <- bargpowerPost
   }

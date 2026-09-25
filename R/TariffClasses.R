@@ -25,6 +25,11 @@ NULL
     stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
   }
 
+  if (any(!is.finite(c(object@tariffPre, object@tariffPost))) ||
+      any(c(object@tariffPre, object@tariffPost) >= 1)) {
+    stop("tariffs must be finite and less than 1")
+  }
+
   TRUE
 }
 
@@ -46,6 +51,9 @@ setClass("TariffCournot", contains = "Cournot",
               any(is.na(object@tariffPost)) ){
              stop("'tariffPre' and 'tariffPost' elements should be 0 rather than NA")
            }
+           .normalize_tariff_matrix(object@tariffPre, dim(object@quantities), "tariffPre")
+           .normalize_tariff_matrix(object@tariffPost, dim(object@quantities), "tariffPost")
+           TRUE
          })
 
 

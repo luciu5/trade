@@ -17,7 +17,7 @@ The primary method accepts an `AntitrustFit`. A `StructuralFit` for which
 there is no registered promotion route raises an informative error. The
 generic lives in `trade`; `antitrust` has no dependency on `trade`.
 
-This interface requires `antitrust >= 0.99.40`. Its ALM class validation
+This interface requires `antitrust >= 0.99.41` and `coordination >= 0.0.0.9005`. Its ALM class validation
 distinguishes fitted demand state from calibration inputs, so the trade
 wrappers can retain a known outside share without replacing the source
 normalization with a calibration marker.
@@ -68,9 +68,14 @@ class is the policy-aware wrapper constructed by promotion.
 | CES | bargaining | standard | tariff | `BargainingCES` | `TariffBargainingCES` |
 | Logit | Bertrand | standard | quota | `Logit` | `QuotaLogit` |
 
-The table is descriptive of the live registries, rather than a second
-promotion table maintained by hand. For example, antitrust's nested demand,
-capacity, PCAIDS, CES-Cournot, and Stackelberg entries are not promoted where
+The table lists the direct policy wrappers. Four additional antitrust routes
+use `TariffGameFit`: standard CES Cournot, Logit Bertrand ALM, CES Bertrand ALM,
+and CES Cournot ALM. They require the explicit effective-cost/net-revenue
+contract. Four native coordination routes also use `TariffGameFit`: Logit/CES
+Stackelberg and Logit/CES core/fringe, each supporting its native Bertrand and
+Cournot choices. This gives 24 tariff registry entries in total.
+
+Antitrust's nested demand, capacity, and PCAIDS entries are not promoted where
 the requested trade policy has no exact registered counterpart. The AIDS
 tariff row is eligible because `trade` implements that model even though its
 ordinary `specify()` route is unavailable.
@@ -123,10 +128,20 @@ that requires that shape. The default is zero policy state with the shape
 inferred from the target model (a vector or, where required, a matrix). The
 baseline state is initialized with `tariffPost <- tariffPre`; this assignment
 records the state and does not solve anything. For a promoted fit with a nonzero
-`tariffPre`, the source fitted costs and ownership remain in place. During a
-later simulation, trade applies the post-versus-pre policy change using its
-relative tariff wedge, preserving the source baseline when post and pre are
-the same.
+`tariffPre`, actual ownership is unchanged. Product retention `1-tariffPre`
+must match the source's saved retention up to a constant within each strategic
+firm; otherwise promotion raises `trade_tariff_incompatible_baseline`. Supply
+`revenueRetentionPre` when fitting a mixed-retention baseline, or simulate the
+tariff change from the existing fit. Differentiated models retain effective
+costs; homogeneous Cournot converts both marginal and variable cost functions
+to physical cost units without solving. Later simulations apply the relative
+cost wedge and the retained-revenue equilibrium equations together.
+
+Mixed post-policy tariffs are supported for strategic pricing/quantity games,
+including native Stackelberg and core/fringe. Logit and BLP second-score
+auctions explicitly reject mixed retention within an active firm's portfolio:
+their native bidding and product-choice rules are preserved pending a separate
+bidding-equilibrium extension. Exited products do not constrain the portfolio.
 
 For quotas, `quotaPre` is a product vector for the registered `QuotaLogit`
 route and follows trade's unconstrained quota convention (`Inf` means no
@@ -146,7 +161,7 @@ slots. The trade policy slots are the only new economic state at the
 promotion boundary. If an inherited ALM wrapper requires `parmsStart` and
 the source has no such slot, promotion supplies the fitted price coefficient
 and zero as unused optimizer controls. These controls do not replace fitted
-parameters or outside-share normalization. Policy-adjusted costs, ownership wedges, quota
+parameters or outside-share normalization. Policy-adjusted costs, retention, quota
 capacities, and equilibrium prices or quantities are recomputed only when
 `simulate()` is called for a changed post-policy state.
 

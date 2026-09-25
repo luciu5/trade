@@ -238,7 +238,7 @@ test_that("migrated sim paths remain numerically compatible", {
       kappa_pre <- as.numeric(new@mcPre)
       kappa_post <- kappa_pre * (1 + effective_delta)
       expect_equal(as.numeric(new@mcPost), kappa_post, tolerance = 1e-10)
-      expect_equal(as.numeric(new@mcDelta), kappa_post - kappa_pre,
+      expect_equal(as.numeric(new@mcDelta), rep(0, length(kappa_pre)),
                    tolerance = 1e-10)
       expect_equal(kappa_post * (1 - x$tariff),
                    kappa_pre * (1 - tariff_pre), tolerance = 1e-10)
