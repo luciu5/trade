@@ -1,16 +1,26 @@
-# trade test and CI provenance
+# trade test tiers
 
-Trade's suite is small and has no significant slow duplication, so every tier
-runs the complete package test path. The prior full-suite 419-expectation
-evidence remains the reference for this package; tier routing is applied to the
-larger antitrust dependency suite rather than removing trade coverage.
+`TRADE_TEST_TIER` selects `fast`, `extended`, or `nightly`. An unset variable
+selects `fast` for local runs. The trade workflow runs `fast` on pushes,
+`extended` on pull requests, and `nightly` on the schedule. Manual runs can
+select `extended` or `nightly`. Higher tiers include lower-tier tests.
 
-`fast` is the default on pushes and pull requests. Scheduled runs select
-`nightly`, while manual dispatch accepts `extended` or `nightly`. Each job
-records the selected tier and the resolved `git rev-parse HEAD` values for both
-repositories in the job summary and a source-provenance artifact.
+- **fast:** direct tariff/Cournot FOCs, tariff accounts, numerical oracles,
+  public lifecycle, representative promotion, sequential policy, and deterministic
+  BLP integration-state checks.
+- **extended:** exhaustive registered promotion routes and output-game policy
+  matrices, plus BLP calibration against supplied integration points and weights.
+- **nightly:** both Gauss-Hermite and Monte Carlo BLP parameter-recovery runs,
+  plus the migration-only supplied-parameter parity matrix. Revisit the parity
+  matrix once `refactor` is canonical.
 
-Push and pull-request jobs intentionally follow the mutable `refactor` branch
-by default for compatibility. A reproducible dependency run must be started
-manually with a full antitrust commit SHA in the workflow's `antitrust_ref`
-input; the resolved SHA is authoritative if the branch moves afterward.
+The prior all-tests baseline was 143 `test_that()` blocks and 113.7 seconds
+under local source loading; two BLP calibration blocks consumed 82.6 seconds.
+Tiering preserves these statistical and integration checks while making routine
+failures faster to detect. `testthat` skips tiered blocks before constructing
+fixtures or solving.
+
+The workflow records the selected tiers and resolved Git SHAs for both
+repositories in its job summary and source-provenance artifact. A reproducible
+dependency run can be started manually with a full antitrust commit SHA in the
+`antitrust_ref` input.

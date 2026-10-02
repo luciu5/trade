@@ -30,6 +30,7 @@
 }
 
 test_that("all fourteen output games agree under physical costs and tariff wedges", {
+  trade_skip_unless_tier("extended")
   for (demand in c("logit", "ces")) for (family in c("B", "C", "MC", "BF", "CF", "BS", "CS")) {
     source <- .tariff_matrix_source(demand, family)
     original <- serialize(source, NULL)
@@ -100,6 +101,7 @@ test_that("multiproduct followers obey the same tariff cost transformation", {
 })
 
 test_that("untaxed products respond across all fourteen fitted output games", {
+  trade_skip_unless_tier("extended")
   for (demand in c("logit", "ces")) for (family in c("B", "C", "MC", "BF", "CF", "BS", "CS")) {
     source <- .tariff_matrix_source(demand, family)
     fit <- suppressWarnings(trade::as_trade_fit(source, tariffPre = 0,

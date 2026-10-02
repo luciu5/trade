@@ -138,6 +138,7 @@
 }
 
 test_that("selective tariffs leave domestic firms responsive in every direct promotion family", {
+  trade_skip_unless_tier("extended")
   registry <- trade::supportedModels()
   registry <- registry[registry$policy == "tariff" &
     registry$promotion_handler != "tariff_reuse", , drop = FALSE]
@@ -231,6 +232,7 @@ test_that("as_trade_fit is an S4 generic with explicit fallback behavior", {
 
 
 test_that("every exact tariff overlap has a direct promotion route", {
+  trade_skip_unless_tier("extended")
   target_registry <- trade::supportedModels()
   target_registry <- target_registry[
     target_registry$policy == "tariff" &

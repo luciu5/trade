@@ -180,6 +180,7 @@ test_that("specify and simulate preserve the supplied-parameter sim path", {
 })
 
 test_that("migrated sim paths remain numerically compatible", {
+  trade_skip_unless_tier("nightly")
   x <- trade_fit_data()
   parameters <- list(
     logit = list(alpha = -48.0457,

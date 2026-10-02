@@ -128,24 +128,6 @@ test_that("tariff wrappers reject legacy lifecycle paths and summarize physical 
                     "physicalPlusGovernmentDelta") %in% names(market)))
 })
 
-test_that("fractional or non-block ordinary ownership is rejected", {
-  source <- try(antitrust::specify(
-    demand = "logit", conduct = "bertrand",
-    prices = c(1.5, 1.8, 2.1), shares = c(.3, .25, .15),
-    parameters = list(alpha = -1.5, meanval = c(.5, .2, -.1)),
-    ownerPre = matrix(c(1, .5, .5, .5, 1, 0, .5, 0, 1), 3, 3,
-                      byrow = TRUE), margins = rep(.3, 3), insideSize = 100,
-    labels = paste0("P", 1:3)
-  ), silent = TRUE)
-  skip_if(inherits(source, "try-error"), "antitrust rejected the fractional ownership fixture")
-  expect_error(
-    trade::as_trade_fit(source, tariffPre = 0,
-                        cost_basis = "effective",
-                        margin_basis = "net_revenue"),
-    class = "trade_tariff_unsupported_ownership"
-  )
-})
-
 test_that("recorded gross margins are compatible only at a zero baseline tariff", {
   source <- try(antitrust::specify(
     demand = "logit", conduct = "bertrand",

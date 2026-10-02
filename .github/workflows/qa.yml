@@ -30,6 +30,7 @@ jobs:
     name: R 4.6.1 dependency-stack check
     env:
       ANTITRUST_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || inputs.test_tier || 'fast' }}
+      TRADE_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || github.event_name == 'pull_request' && 'extended' || inputs.test_tier || 'fast' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +52,8 @@ jobs:
             echo "requested_antitrust_ref=${REQUESTED_ANTITRUST_REF}"
             echo "antitrust_sha=${core_sha}"
             echo "trade_sha=${trade_sha}"
-            echo "test_tier=${ANTITRUST_TEST_TIER}"
+            echo "antitrust_test_tier=${ANTITRUST_TEST_TIER}"
+            echo "trade_test_tier=${TRADE_TEST_TIER}"
           } | tee "${provenance_file}"
           {
             echo "### Source provenance"
@@ -59,7 +61,8 @@ jobs:
             echo "- requested antitrust ref: \`${REQUESTED_ANTITRUST_REF}\`"
             echo "- resolved antitrust SHA: \`${core_sha}\`"
             echo "- resolved trade SHA: \`${trade_sha}\`"
-            echo "- test tier: \`${ANTITRUST_TEST_TIER}\`"
+            echo "- antitrust test tier: \`${ANTITRUST_TEST_TIER}\`"
+            echo "- trade test tier: \`${TRADE_TEST_TIER}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
       - uses: r-lib/actions/setup-r@v2
         with:

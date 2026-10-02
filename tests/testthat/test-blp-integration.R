@@ -51,6 +51,7 @@
 }
 
 test_that("trade BLP preserves provided integration points and weights", {
+  trade_skip_unless_tier("extended")
   fixture <- .trade_blp_fixture(
     nodes = c(-1.5, -.5, .5, 1.5),
     weights = c(.10, .20, .30, .40)
@@ -106,6 +107,7 @@ test_that("trade BLP accepts the consDraws alias without partial matching", {
 })
 
 test_that("trade BLP no-demographics calibration works under GH and Monte Carlo", {
+  trade_skip_unless_tier("nightly")
   for (rule in c("gauss-hermite", "monte-carlo")) {
     if (identical(rule, "gauss-hermite")) {
       quadrature <- antitrust:::.blp_normal_nodes(15L)
