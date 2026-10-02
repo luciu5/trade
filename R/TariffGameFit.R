@@ -15,8 +15,7 @@
 #'
 #' @export
 #' @importClassesFrom antitrust StructuralFit
-#' @importClassesFrom coordination StackelbergLogit StackelbergCES
-#'   CoreFringeLogit CoreFringeCES
+#' @importClassesFrom coordination StackelbergLogit StackelbergCES CoreFringeLogit CoreFringeCES
 setClass(
   "TariffGameFit",
   contains = "TradeFit",

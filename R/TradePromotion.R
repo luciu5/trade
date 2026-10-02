@@ -41,11 +41,11 @@
 #' Unsupported or irrelevant policy arguments are rejected.
 #'
 #' For an ordinary output Logit/CES or standard output Logit second-score auction
-#' code{AntitrustFit}, explicitly supplying
-#' either code{cost_basis} or code{margin_basis} opts into the initial
-#' no-reestimation tariff route and returns a code{TariffGameFit}.  A nonzero
-#' code{tariffPre} requires code{cost_basis = "effective"} and
-#' code{margin_basis = "net_revenue"}; an all-zero baseline can infer those
+#' \code{AntitrustFit}, explicitly supplying
+#' either \code{cost_basis} or \code{margin_basis} opts into the initial
+#' no-reestimation tariff route and returns a \code{TariffGameFit}.  A nonzero
+#' \code{tariffPre} requires \code{cost_basis = "effective"} and
+#' \code{margin_basis = "net_revenue"}; an all-zero baseline can infer those
 #' two values.  Tariffs use the consumer-price fraction convention, must be
 #' finite and less than one. Relative to saved source retention, baseline
 #' retention may change only by a constant within each active strategic

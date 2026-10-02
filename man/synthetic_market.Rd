@@ -13,6 +13,12 @@ synthetic_market(
   n_products = 1L,
   dirichlet_alpha = NULL,
   outside_beta = c(2, 8),
+  shares = NULL,
+  costs = NULL,
+  cost_rule = c("common", "uniform"),
+  cost_level = 80,
+  cost_range = c(50, 100),
+  reference_margin = NULL,
   reference_price = 100,
   prices = NULL,
   outside_margin = NULL,
@@ -20,6 +26,10 @@ synthetic_market(
   tariffPre = NULL,
   quotaPre = NULL,
   seed = NULL,
+  passive_outside_share = NULL,
+  passive_outside_range = c(0.1, 0.5),
+  leadersPre = NULL,
+  stackelberg_conduct = "bertrand",
   ...
 )
 }
@@ -42,13 +52,24 @@ inside product. If omitted, all shapes equal one.}
 
 \item{outside_beta}{Positive Beta shape parameters for the reference share.}
 
-\item{reference_price}{A positive level price for the reference product.}
+\item{shares}{Optional complete all-product shares summing to one.}
 
-\item{prices}{Optional complete positive price vector ending at
-`reference_price`.}
+\item{costs}{Optional complete positive physical marginal-cost vector.}
 
-\item{outside_margin}{Optional level reference-product markup in observed
-mode. Otherwise the open numerical implementation of `U(0, 100)` is used.}
+\item{cost_rule}{`"common"` or `"uniform"` observed cost design.}
+
+\item{cost_level}{Positive common cost, default 80.}
+
+\item{cost_range}{Positive endpoints for heterogeneous uniform costs.}
+
+\item{reference_margin}{Proportional reference margin `(p_r-c_r)/p_r` in
+`(0,1)`. Its price is implied by `p_r=c_r/(1-reference_margin)`.}
+
+\item{reference_price}{Positive reference price in primitives mode only.}
+
+\item{prices}{Optional complete prices in primitives mode only.}
+
+\item{outside_margin}{Retired observed price-first argument.}
 
 \item{parameters}{Named model-specific primitives in primitives mode.}
 
@@ -58,7 +79,23 @@ mode. Otherwise the open numerical implementation of `U(0, 100)` is used.}
 
 \item{seed}{Optional explicit integer seed.}
 
-\item{...}{Additional arguments forwarded to [calibrate()] or [specify()].}
+\item{passive_outside_share}{For observed Stackelberg games, a positive
+passive outside share. `NULL` draws uniformly from
+`passive_outside_range`; supplied `shares` remain conditional on active
+products and are scaled by `1-passive_outside_share` for the native game.}
+
+\item{passive_outside_range}{Endpoints for the passive outside-share draw.}
+
+\item{leadersPre}{Optional Stackelberg leader firm IDs. By default the
+largest firm by aggregate active-product share leads when `n_firms <= 3`;
+the three largest lead when `n_firms > 3`. The reference firm is eligible.}
+
+\item{stackelberg_conduct}{Underlying Stackelberg game, `"bertrand"` or
+`"cournot"`; default `"bertrand"`.}
+
+\item{...}{Model arguments forwarded to [specify()] or, for Stackelberg,
+[coordination::stackelberg()]. Bargaining power `bargpowerPre` defaults
+to 0.5 per product and may be overridden.}
 }
 \value{
 A [TradeFit] directly accepted by [simulate()].
@@ -66,10 +103,20 @@ A [TradeFit] directly accepted by [simulate()].
 \description{
 `synthetic_market()` is the trade-native fake-market entry point. It draws
 product shares and ownership through [antitrust::fake_market()], then uses
-trade's selected policy/model implementation to calibrate or specify the
-baseline. Prices and margins are not independent random draws: the active
-reference product supplies the positive price normalization and one level
-markup, while trade recovers the remaining model state.
+trade's selected policy/model implementation to calibrate the baseline.
+Structural demand parameters can be difficult to choose directly. Observed
+mode instead begins with shares, ownership, positive physical marginal
+costs, a proportional reference margin, and policy state; it solves demand
+scale and equilibrium consumer prices. This is an intuition experiment, not
+an empirical data-generating process. For tariffs, physical cost `c` and
+effective cost `c/(1-tariffPre)` are distinguished explicitly.
+Tariff CES Bertrand and monopolistic-competition routes use revenue shares
+and identify CES curvature from the reference margin after accounting for
+the reference tariff.
+Logit and CES Stackelberg routes additionally draw or accept a passive
+outside share and solve native leader/follower equilibrium. They require
+a common tariff rate within each firm because tariff reuse stores effective
+costs `c/(1-tariffPre)`.
 }
 \details{
 The active reference product is a real product in the ownership map. The
@@ -79,4 +126,15 @@ count per firm.
 For now, a baseline must be either tariff-only or quota-only. Supplying both
 `tariffPre` and `quotaPre` is rejected explicitly because simultaneous
 pre-policies are not yet implemented by the trade model registry.
+}
+\examples{
+if (requireNamespace("coordination", quietly = TRUE)) {
+  fit <- synthetic_market(
+    supply = "stackelberg", n_firms = 2,
+    shares = c(0.2, 0.3, 0.5), costs = c(60, 70, 80),
+    reference_margin = 0.25, passive_outside_share = 0.2,
+    tariffPre = c(0, 0.1, 0)
+  )
+  fit@diagnostics$synthetic$leadersPre
+}
 }

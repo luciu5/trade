@@ -151,6 +151,20 @@ NULL
     } else {
       "tariff_vector"
     }
+    entry$observed_synthetic <- if (identical(entry$variant, "standard") &&
+        ((identical(entry$policy, "quota") &&
+          identical(entry$demand, "logit") &&
+          identical(entry$conduct, "bertrand")) ||
+         (identical(entry$policy, "tariff") &&
+          ((identical(entry$demand, "logit") &&
+            entry$conduct %in% c("bertrand", "moncom", "auction2nd",
+                                 "bargaining")) ||
+           (identical(entry$demand, "ces") &&
+            entry$conduct %in% c("bertrand", "moncom")) ||
+           (entry$demand %in% c("logit", "ces") &&
+            identical(entry$conduct, "stackelberg")))))) {
+      paste0(entry$policy, "_", entry$conduct)
+    } else "unsupported"
     entry
   })
 
@@ -268,7 +282,7 @@ supportedModels <- function() {
   entries <- .trade_registry()
   character_fields <- c(
     "id", "demand", "conduct", "variant", "policy", "class",
-    "legacy_calibrator", "promotion_handler"
+    "legacy_calibrator", "promotion_handler", "observed_synthetic"
   )
   fields <- c(character_fields, "promote", "calibrate", "specify", "simulate", "tariff", "quota")
   result <- lapply(fields, function(field) {
