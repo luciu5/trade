@@ -1,5 +1,5 @@
 name: trade QA
-run-name: ${{ github.event_name == 'workflow_dispatch' && format('certification-{0}-{1}-{2}-{3}', inputs.release_certification, inputs.antitrust_release_sha, inputs.coordination_release_sha, inputs.test_tier) || github.event_name }}
+run-name: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/') && format('release-certification-{0}', github.sha) || github.event_name == 'workflow_dispatch' && format('certification-{0}-{1}-{2}-{3}', inputs.release_certification, inputs.antitrust_release_sha, inputs.coordination_release_sha, inputs.test_tier) || github.event_name }}
 
 on:
   push:
@@ -49,8 +49,9 @@ jobs:
   check:
     name: R 4.6.1 dependency-stack check
     env:
-      ANTITRUST_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || inputs.test_tier || 'fast' }}
-      TRADE_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || github.event_name == 'pull_request' && 'extended' || inputs.test_tier || 'fast' }}
+      AUTOMATIC_RELEASE_PINS: ${{ ((github.event_name == 'push' && startsWith(github.ref_name, 'release/')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/')))) && 'true' || 'false' }}
+      ANTITRUST_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || ((github.event_name == 'push' && startsWith(github.ref_name, 'release/')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/')))) && 'nightly' || inputs.test_tier || 'fast' }}
+      TRADE_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || ((github.event_name == 'push' && startsWith(github.ref_name, 'release/')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/')))) && 'nightly' || github.event_name == 'pull_request' && 'extended' || inputs.test_tier || 'fast' }}
       RELEASE_CERTIFICATION: ${{ inputs.release_certification && 'true' || 'false' }}
       ANTITRUST_RELEASE_SHA_INPUT: ${{ inputs.antitrust_release_sha || '' }}
       COORDINATION_RELEASE_SHA_INPUT: ${{ inputs.coordination_release_sha || '' }}
@@ -154,6 +155,7 @@ jobs:
           provenance_file="${RUNNER_TEMP}/trade-source-revisions.txt"
           {
             echo "release_certification=${RELEASE_CERTIFICATION}"
+            echo "automatic_release_pins=${AUTOMATIC_RELEASE_PINS}"
             echo "requested_antitrust_ref=${ANTITRUST_REQUESTED_REF}"
             echo "requested_coordination_ref=${COORDINATION_REQUESTED_REF}"
             echo "antitrust_sha=${core_sha}"
@@ -166,6 +168,7 @@ jobs:
             echo "### Source provenance"
             echo
             echo "- release certification: \`${RELEASE_CERTIFICATION}\`"
+            echo "- automatic release pins: \`${AUTOMATIC_RELEASE_PINS}\`"
             echo "- requested antitrust ref: \`${ANTITRUST_REQUESTED_REF}\`"
             echo "- requested coordination ref: \`${COORDINATION_REQUESTED_REF}\`"
             echo "- resolved antitrust SHA: \`${core_sha}\`"
@@ -186,7 +189,7 @@ jobs:
           dependencies: '"hard"'
           install-pandoc: false
       - name: Verify DESCRIPTION Remotes for release certification
-        if: env.RELEASE_CERTIFICATION == 'true'
+        if: env.RELEASE_CERTIFICATION == 'true' || env.AUTOMATIC_RELEASE_PINS == 'true'
         shell: Rscript {0}
         run: |
           desc <- read.dcf("DESCRIPTION")[1L, ]
@@ -211,7 +214,7 @@ jobs:
       - name: Verify selected coordination exports the trade helpers
         run: |
           Rscript -e 'required <- c("stackelberg_logit_h", "stackelberg_ces_multipliers"); missing <- setdiff(required, getNamespaceExports("coordination")); if (length(missing)) stop(sprintf("coordination ref %s does not export %s; release certification must use the candidate SHA containing these helpers", Sys.getenv("COORDINATION_REQUESTED_REF"), paste(missing, collapse = ", ")), call. = FALSE)'
-          if [[ "$RELEASE_CERTIFICATION" == true ]]; then
+          if [[ "$RELEASE_CERTIFICATION" == true || "$AUTOMATIC_RELEASE_PINS" == true ]]; then
             Rscript --vanilla -e 'stopifnot(utils::packageVersion("antitrust") >= "0.99.43", utils::packageVersion("coordination") >= "0.1.0")'
           fi
       - name: Remove dependency checkouts before building trade

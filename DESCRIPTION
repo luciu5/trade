@@ -11,8 +11,8 @@ Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
 Imports: antitrust (>= 0.99.43), coordination (>= 0.1.0), methods, stats
 Suggests: MASS, BB, competitiontoolbox, rmarkdown, bookdown, knitr, testthat, numDeriv
-Remotes: luciu5/antitrust@4bafd47d099c95ff6521038fb64c3a03d17ae84e,
-    luciu5/coordination@1e7dbbf7680e4a2073c47ca73313999bf766c2e3
+Remotes: luciu5/antitrust@7634b8c58caa98396f9183fe0fd5a30763cf6f53,
+    luciu5/coordination@6e5d94be4fbeb5d5544865eed2dbb2b897c31628
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Description: A collection of tools for trade practitioners, including the ability to calibrate different consumer demand systems and simulate the effects of tariffs and quotas under different competitive regimes. These tools are derived from Anderson et al. (2001) <doi:10.1016/S0047-2727(00)00085-2> and Froeb et al. (2003) <doi:10.1016/S0304-4076(02)00166-5>.
