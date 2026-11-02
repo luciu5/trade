@@ -1,16 +1,18 @@
 Package: trade
 Type: Package
 Title: Tools for Trade Practitioners
-Version: 0.8.9.9002
-Date: 2026-09-25
+Version: 0.9.0
+Date: 2026-11-01
 Authors@R: c(person("Charles", "Taragin", email = "ctaragin+trader@gmail.com",
                   role = c("aut", "cre"))
                   )
 Author: Charles Taragin [aut, cre]
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
-Imports: antitrust (>= 0.99.41), coordination (>= 0.0.0.9005), methods, stats
+Imports: antitrust (>= 0.99.43), coordination (>= 0.1.0), methods, stats
 Suggests: MASS, BB, competitiontoolbox, rmarkdown, bookdown, knitr, testthat, numDeriv
+Remotes: luciu5/antitrust@3d11eff0b2fce2fd0e37024b2859ab9cd4dd8d53,
+    luciu5/coordination@0e389329bd7356b5fdb1d3edab9ea8b7259a8ab1
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Description: A collection of tools for trade practitioners, including the ability to calibrate different consumer demand systems and simulate the effects of tariffs and quotas under different competitive regimes. These tools are derived from Anderson et al. (2001) <doi:10.1016/S0047-2727(00)00085-2> and Froeb et al. (2003) <doi:10.1016/S0304-4076(02)00166-5>.

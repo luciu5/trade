@@ -2,7 +2,7 @@
 
 ## Current status
 
-The branch contains the registry, normalized model specification, `TradeFit`,
+This source snapshot contains the registry, normalized model specification, `TradeFit`,
 `calibrate()`, `specify()`, `simulate()`, compatibility `sim()` routing, and
 explicit `update()`/`respecify()` operations. Existing tariff and quota S4
 classes remain the result API.
@@ -28,12 +28,22 @@ parameter calls. Architecture tests compare calibrated/specified simulation
 results with the original constructors and verify repeated simulations do not
 mutate the fit. The compatibility `sim()` wrapper routes only registered
 supplied-parameter paths and preserves the legacy implementation elsewhere.
-The full test suite and package check pass against antitrust refactor
-`c8a9979`, including the quota paths. This required antitrust to preserve its
-documented `+Inf` unbounded-capacity sentinel and apply complementarity only
-to finite capacities. The remaining package-check warnings are the existing
-`antitrust::simulate`/`stats::simulate` import masking and vignette-source/
-output warnings.
+The extended test suite and local package check pass on this staged `trade`
+tree with antitrust commit `20f0923fc560295e04310aed5615c19dadf672cb` and
+coordination version `0.0.0.9006`. The package check reports `Status: OK`.
+The `--as-cran` incoming-feasibility phase could not run because the sandbox
+could not resolve CRAN; the ordinary local check completed all package,
+documentation, example, and test checks. The tests include the retained
+physical-profit Cournot conditions and the tariff-based import classification
+and weighted reporting regression.
+
+The CI development bootstrap still resolves coordination from `main` and
+records that commit SHA; this default is not release certification for the
+new helper API. After the coordinated changes are committed, pass the full
+updated coordination SHA through `coordination_ref`. CI checks the required
+exports before building trade and reports an actionable error if the selected
+source does not contain them. The antitrust baseline and the other toolbox
+dependencies remain pinned to the tested immutable commits.
 
 `update()` is tested for no-op and changed-margin recalibration. `respecify()`
 is tested for Logit Bertrand↔monopolistic-competition parameter retention,

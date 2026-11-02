@@ -17,10 +17,15 @@ The primary method accepts an `AntitrustFit`. A `StructuralFit` for which
 there is no registered promotion route raises an informative error. The
 generic lives in `trade`; `antitrust` has no dependency on `trade`.
 
-This interface requires `antitrust >= 0.99.41` and `coordination >= 0.0.0.9005`. Its ALM class validation
+This interface requires `antitrust >= 0.99.43` and `coordination >= 0.1.0`. Its ALM class validation
 distinguishes fitted demand state from calibration inputs, so the trade
 wrappers can retain a known outside share without replacing the source
 normalization with a calibration marker.
+
+Ordinary dependency-stack CI uses the moving development refs and records their
+resolved SHAs. Release certification requires explicit full SHAs for
+antitrust and coordination and verifies the coordination exports used by the
+trade integration tests.
 
 ## Eligibility is registry based
 
@@ -44,8 +49,11 @@ subset(overlap, policy == "tariff")
 subset(overlap, policy == "quota")
 ```
 
-On the current `refactor` branches, the exact normalized overlap is the
-following. The `antitrust` class is the source model class and the `trade`
+The table below records the earlier migration-baseline validation; its commit
+SHAs are provenance for that run, not current installation pins. At antitrust
+commit `20f0923fc560295e04310aed5615c19dadf672cb` and trade
+commit `2826df0fc3530c01066000725f643b060e71d136`, the normalized overlap is
+the following. The `antitrust` class is the source model class and the `trade`
 class is the policy-aware wrapper constructed by promotion.
 
 | demand | conduct | variant | policy | antitrust class | trade class |

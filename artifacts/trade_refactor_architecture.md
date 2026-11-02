@@ -1,6 +1,6 @@
-# `trade` refactor architecture
+# `trade` architecture
 
-The `refactor` branch separates model identity, baseline calibration, fitted
+The implementation separates model identity, baseline calibration, fitted
 state, and policy simulation while retaining the existing trade S4 classes and
 model-specific economics.
 

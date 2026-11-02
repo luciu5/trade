@@ -1,3 +1,5 @@
+## Migration parity B (temporary): remove after antitrust >= 0.99.42 becomes
+## the first supported released baseline (see tests/testthat/TESTING.md).
 test_that("zero-tariff flat demand agrees with antitrust", {
   prices <- c(.04, .03, .04, .04, .04, .05)
   owner <- c("A", "B", "C", "C", "D", "E")
@@ -33,6 +35,8 @@ test_that("zero-tariff flat demand agrees with antitrust", {
   }
 })
 
+## Migration parity A (permanent): policy state must survive demand
+## respecification because trade results can be simulated in stages.
 test_that("respecification keeps nonzero tariff policy state", {
   x <- list(
     prices = c(.0441, .0328, .0409, .0396, .0387, .0497),

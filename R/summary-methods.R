@@ -63,13 +63,11 @@ setMethod(
       sumlabels=paste("shares",c("Pre","Post"),sep="")
     }
 
-    mcDelta <- object@mcDelta * 100
-
     if(levels){outDelta <- outPost - outPre}
     else{outDelta <- (outPost/outPre - 1) * 100}
 
 
-    isForeign <- as.numeric(mcDelta > 0)
+    isForeign <- as.numeric(tariffPre > 0 | tariffPost > 0)
     isForeign <- factor(isForeign,levels=0:1,labels=c(" ","*"))
 
     results <- data.frame(pricePre=pricePre,pricePost=pricePost,

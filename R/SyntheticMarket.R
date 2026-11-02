@@ -281,7 +281,7 @@
         stop("the reference margin must exceed the reference tariff rate to identify a positive Stackelberg demand markup")
     }
     if (spec$demand == "logit") {
-        h <- utils::getFromNamespace(".sk_h", "coordination")(
+        h <- coordination::stackelberg_logit_h(
             shares, owner, leaders, conduct, rep(TRUE, n))
         scale <- h[ref] / ref_markup
         if (!is.finite(scale) || scale <= 0) {
@@ -291,7 +291,7 @@
         recovered <- list(alpha = -scale, leader_markup_coefficient = h,
                           curvature_status = "identified-closed-form")
     } else {
-        multiplier <- utils::getFromNamespace(".ces_multipliers", "coordination")
+        multiplier <- coordination::stackelberg_ces_multipliers
         target <- ref_markup / ref_price
         gap <- function(log_excess) {
             gamma <- 1 + exp(log_excess)
