@@ -15,7 +15,7 @@ on:
       antitrust_ref:
         description: 'Antitrust development bootstrap ref (ignored for release certification)'
         required: false
-        default: 'refactor'
+        default: 'master'
         type: string
       antitrust_release_sha:
         description: 'Full 40-character antitrust candidate SHA'
@@ -50,7 +50,7 @@ jobs:
       ANTITRUST_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || inputs.test_tier || 'fast' }}
       TRADE_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || github.event_name == 'pull_request' && 'extended' || inputs.test_tier || 'fast' }}
       RELEASE_CERTIFICATION: ${{ inputs.release_certification && 'true' || 'false' }}
-      ANTITRUST_REQUESTED_REF: ${{ inputs.release_certification && inputs.antitrust_release_sha || inputs.antitrust_ref || 'refactor' }}
+      ANTITRUST_REQUESTED_REF: ${{ inputs.release_certification && inputs.antitrust_release_sha || inputs.antitrust_ref || 'master' }}
       COORDINATION_REQUESTED_REF: ${{ inputs.release_certification && inputs.coordination_release_sha || inputs.coordination_ref || 'main' }}
     runs-on: ubuntu-latest
     steps:
@@ -75,7 +75,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luciu5/antitrust
-          ref: ${{ inputs.release_certification && inputs.antitrust_release_sha || inputs.antitrust_ref || 'refactor' }}
+          ref: ${{ inputs.release_certification && inputs.antitrust_release_sha || inputs.antitrust_ref || 'master' }}
           path: antitrust
       - name: Check out coordination dependency
         uses: actions/checkout@v4

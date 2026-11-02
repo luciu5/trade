@@ -22,10 +22,10 @@ distinguishes fitted demand state from calibration inputs, so the trade
 wrappers can retain a known outside share without replacing the source
 normalization with a calibration marker.
 
-Ordinary dependency-stack CI uses the moving development refs and records their
-resolved SHAs. Release certification requires explicit full SHAs for
-antitrust and coordination and verifies the coordination exports used by the
-trade integration tests.
+Ordinary dependency-stack CI uses antitrust `master` and coordination `main`
+and records their resolved SHAs. Release certification requires explicit full
+SHAs for antitrust and coordination and verifies the coordination exports
+used by the trade integration tests.
 
 ## Eligibility is registry based
 
