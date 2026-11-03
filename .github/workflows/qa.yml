@@ -40,16 +40,17 @@ on:
           - extended
           - nightly
 
-# Development and scheduled runs use the moving development refs and record
-# their resolved SHAs. Automatic release-branch runs instead use the exact
-# upstream SHAs in this source's DESCRIPTION Remotes. Manual release
-# certification accepts only explicit full commit SHAs for both dependencies.
+# Development runs use the moving development refs and record their resolved
+# SHAs. Automatic release-branch, master-push, master-targeted PR, and scheduled
+# runs use exact upstream SHAs from this source's DESCRIPTION
+# Remotes. Manual release certification accepts only explicit full commit SHAs
+# for both dependencies.
 
 jobs:
   check:
     name: R 4.6.1 dependency-stack check
     env:
-      AUTOMATIC_RELEASE_PINS: ${{ ((github.event_name == 'push' && startsWith(github.ref_name, 'release/')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/')))) && 'true' || 'false' }}
+      AUTOMATIC_RELEASE_PINS: ${{ (github.event_name == 'schedule' || (github.event_name == 'push' && (startsWith(github.ref_name, 'release/') || github.ref_name == 'master')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/') || github.base_ref == 'master'))) && 'true' || 'false' }}
       ANTITRUST_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || ((github.event_name == 'push' && startsWith(github.ref_name, 'release/')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/')))) && 'nightly' || inputs.test_tier || 'fast' }}
       TRADE_TEST_TIER: ${{ github.event_name == 'schedule' && 'nightly' || ((github.event_name == 'push' && startsWith(github.ref_name, 'release/')) || (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/')))) && 'nightly' || github.event_name == 'pull_request' && 'extended' || inputs.test_tier || 'fast' }}
       RELEASE_CERTIFICATION: ${{ inputs.release_certification && 'true' || 'false' }}
@@ -65,12 +66,12 @@ jobs:
         with:
           r-version: '4.6.1'
 
-      - name: Resolve exact dependency pins for automatic release-branch runs
+      - name: Resolve exact dependency pins for release/mainline/scheduled runs
         id: release-pins
         if: >-
-          (github.event_name == 'push' && startsWith(github.ref_name, 'release/')) ||
-          (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/')) ||
-          (github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/'))
+          github.event_name == 'schedule' ||
+          (github.event_name == 'push' && (startsWith(github.ref_name, 'release/') || github.ref_name == 'master')) ||
+          (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'release/') || github.base_ref == 'master'))
         shell: Rscript {0}
         run: |
           desc <- read.dcf("DESCRIPTION")[1L, ]
