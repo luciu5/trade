@@ -121,7 +121,9 @@ test_that("tariff wrappers reject legacy lifecycle paths and summarize physical 
   expect_error(respecify(fit, demand = "ces"),
                class = "trade_tariff_unsupported_lifecycle")
   path <- add_step(counterfactual(tariff = .2), tariff = .3)
-  expect_error(simulate(fit, path), class = "trade_tariff_multiple_steps")
+  result <- final_result(simulate(fit, path))
+  expect_equal(as.numeric(result@tariff_state$tariffPost), rep(.3, 3))
+  expect_equal(result@tariff_state$cPost, fit@tariff_state$cPre)
   market <- summary(fit, market = TRUE)
   expect_true(all(c("physicalProducerSurplusDelta",
                     "importingGovernmentRevenueDelta",

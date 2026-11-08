@@ -306,6 +306,7 @@ supportedModels <- function() {
     capacity = FALSE,
     bargaining = FALSE,
     leader = FALSE,
+    core = FALSE,
     products = spec$conduct == "cournot" && spec$demand != "blp",
     tariff = isTRUE(entry$tariff),
     quota = isTRUE(entry$quota),

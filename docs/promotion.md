@@ -225,3 +225,48 @@ observed prices, shares, quantities, and margins and estimates or recovers a
 trade model. Promotion takes the already fitted structural state and adds
 policy-state bookkeeping, so calling `calibrate()` on the source observations
 would defeat the purpose of this interface.
+
+
+## Sequential tariff reuse
+
+An explicit `entrant_tariff` argument also selects `TariffGameFit` for its
+implemented output Logit/CES Bertrand, Cournot and MonCom models, including
+registered ALM variants, and standard output Logit second-score auctions.
+It defaults to zero. The historical adapter selected without a tariff-reuse
+argument retains its existing capabilities.
+
+```r
+fit <- as_trade_fit(source_fit, entrant_tariff = 0.1)
+cf <- counterfactual(entry = antitrust::entrant(
+  "new", meanval = 1, cost = 0.9, priceStart = 2, tariff = 0.2))
+cf <- add_step(cf, ownership = owners_after_first_merger)
+cf <- add_step(cf, ownership = owners_after_second_merger)
+cf <- add_step(cf, tariff = final_product_tariffs)
+cf <- add_step(cf, exit = "new")
+path <- simulate(fit, cf)
+continued <- simulate(path, counterfactual(costs = c(existing_product = -0.05)))
+```
+
+Each path step starts from the preceding solved market without recalibration.
+Physical costs follow `c_next = c_current * (1 + costs)`; the consumer-price
+fraction `tau` determines retention `r = 1 - tau` and effective cost `kappa = c/r`.
+Tariff-only steps preserve physical production costs. The wrapper converts
+proportional physical shocks to the standard Logit auction's additive legacy
+cost input internally. Direct `simulate(fit, mcDelta=...)` scenarios retain
+their baseline-relative interpretation, including repeated scenarios.
+
+An entrant's cost is physical. A simultaneous tariff field takes precedence
+over the entrant's `tariff` extra, which takes precedence over the fit default.
+The default and assigned product tariffs persist through later steps and path
+resume. Full tariff/ownership vectors include inactive products to maintain
+stable indices; named ownership vectors are matched by label. Named cost
+shocks may target active products only. Path exits are cumulative and cannot
+resurrect an earlier exit. Pre-step accounts retain actual previous quantities
+and assign zero output to products that have not entered yet.
+
+Native Stackelberg and CoreFringe games also support sequential policy,
+ownership and exit paths. Specify `leader` or `core` firm IDs explicitly when
+ownership changes. Native entry, quota entry and new auction mechanisms are
+outside this route. Active products in a standard Logit auction bidder's
+portfolio must share the same tariff. Other output games permit heterogeneous
+product tariffs within a firm and solve retained physical-profit incentives.

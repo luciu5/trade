@@ -34,7 +34,9 @@ or \code{"quota"}.}
 \item{...}{The baseline policy state. Tariff models accept \code{tariffPre},
 defaulting to zero; the Logit quota model accepts \code{quotaPre},
 defaulting to \code{Inf} (unconstrained). The post-policy state is
-initialized to the same value.}
+initialized to the same value. The explicit tariff-reuse route also accepts
+\code{entrant_tariff}, a finite scalar below one (default zero), for new
+products that do not declare their own tariff.}
 }
 \value{
 A \code{TradeFit} containing the copied source model and policy state.
@@ -67,7 +69,7 @@ Unsupported or irrelevant policy arguments are rejected.
 
 For an ordinary output Logit/CES or standard output Logit second-score auction
 \code{AntitrustFit}, explicitly supplying
-either \code{cost_basis} or \code{margin_basis} opts into the initial
+\code{cost_basis}, \code{margin_basis}, or \code{entrant_tariff} opts into the
 no-reestimation tariff route and returns a \code{TariffGameFit}.  A nonzero
 \code{tariffPre} requires \code{cost_basis = "effective"} and
 \code{margin_basis = "net_revenue"}; an all-zero baseline can infer those

@@ -16,6 +16,7 @@ counterfactual(
   products = NULL,
   quality = NULL,
   entry = NULL,
+  core = NULL,
   ...
 )
 }
@@ -47,8 +48,13 @@ Logit/CES-family
   auction, bargaining, and LogitCap-descended quota); unsupported for
   AIDS and linear/loglin Cournot tariff models, which have no `meanval`.}
 
-\item{entry}{An entrant specification. Trade validates entry support when
-the counterfactual is simulated for a fitted TradeFit.}
+\item{entry}{An entrant specification. Entry is available through the
+explicit `TariffGameFit` route for its implemented ordinary output models;
+historical `TradeFit`, quota, and native coordination entry remain
+unsupported. Entrant extra `tariff` overrides the fit's `entrant_tariff`
+default, and a simultaneous `tariff` field overrides both.}
+
+\item{core}{Core-firm IDs for native CoreFringe tariff games.}
 
 \item{...}{Reserved; model specification fields are rejected.}
 }

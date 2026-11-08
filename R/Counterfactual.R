@@ -2,9 +2,9 @@
 ## infrastructure reuses antitrust's exported S4 classes and generics
 ## (`add_step()`, `final_result()`, `result_at()`) directly via
 ## `import(antitrust)`; only the trade-specific capability validation and
-## exit-subset handling live here. The neutral object may carry `entry`, but
-## trade rejects it at the TradeFit simulation boundary because an entrant's
-## tariff/quota treatment is not specified by the existing policy state.
+## exit-subset handling live here. Historical TradeFit models reject entry;
+## the explicit TariffGameFit route assigns entrant tariffs using its policy
+## default, entrant extras, or a simultaneous tariff field.
 
 #' Define a post-calibration trade-policy counterfactual
 #'
@@ -31,15 +31,19 @@
 #'   antitrust demand system (moncom, tariff Bertrand/Cournot, second-score
 #'   auction, bargaining, and LogitCap-descended quota); unsupported for
 #'   AIDS and linear/loglin Cournot tariff models, which have no `meanval`.
-#' @param entry An entrant specification. Trade validates entry support when
-#'   the counterfactual is simulated for a fitted TradeFit.
+#' @param entry An entrant specification. Entry is available through the
+#'   explicit `TariffGameFit` route for its implemented ordinary output models;
+#'   historical `TradeFit`, quota, and native coordination entry remain
+#'   unsupported. Entrant extra `tariff` overrides the fit's `entrant_tariff`
+#'   default, and a simultaneous `tariff` field overrides both.
+#' @param core Core-firm IDs for native CoreFringe tariff games.
 #' @param ... Reserved; model specification fields are rejected.
 #' @return A `Counterfactual` object with exactly one `CounterfactualStep`.
 #' @export
 counterfactual <- function(ownership = NULL, costs = NULL, exit = NULL,
                            capacity = NULL, tariff = NULL, quota = NULL,
                            bargaining = NULL, leader = NULL, products = NULL,
-                           quality = NULL, entry = NULL, ...) {
+                           quality = NULL, entry = NULL, core = NULL, ...) {
     ## Counterfactual objects and add_step() are shared neutral infrastructure
     ## owned by antitrust.  Trade policy restrictions are checked only when a
     ## TradeFit reaches simulate(), where the active policy/model is known.
@@ -47,7 +51,7 @@ counterfactual <- function(ownership = NULL, costs = NULL, exit = NULL,
         ownership = ownership, costs = costs, exit = exit,
         capacity = capacity, tariff = tariff, quota = quota,
         bargaining = bargaining, leader = leader, products = products,
-        quality = quality, entry = entry, ...
+        quality = quality, entry = entry, core = core, ...
     )
 }
 

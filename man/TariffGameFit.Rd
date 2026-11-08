@@ -40,7 +40,7 @@ the four native coordination classes
 \arguments{
 \item{object}{A \code{TariffGameFit}.}
 \item{tariffPost}{A scalar or product vector of finite consumer-price tariff
-fractions less than one.}
+fractions less than one, or a \code{Counterfactual}.}
 \item{quotaPost}{Unsupported for this initial tariff wrapper.}
 \item{ownerPost}{A post-policy product-to-firm vector.}
 \item{leadersPost}{Post-policy Stackelberg leader firm IDs. Required for a
@@ -53,9 +53,9 @@ explicit zero restores original baseline physical costs.}
 \item{subset}{A logical, product-index, or product-label active-product
 selection.}
 \item{priceStart}{Optional positive post-policy price starting values.}
-\item{last_result,steps}{Arguments for the unsupported multi-step extension
-point.}
-\item{counterfactual}{A one-step supported \code{Counterfactual}.}
+\item{last_result,steps}{The last solved wrapper and the next ordered steps
+for the sequential extension point.}
+\item{counterfactual}{A supported one-step or multi-step \code{Counterfactual}.}
 \item{...}{Additional arguments; unsupported lifecycle and policy arguments
 are rejected.}
 }
@@ -69,13 +69,22 @@ the original fitted baseline, so repeated simulations do not compound tariff
 adjustments. Actual ownership and revenue retention are kept separate.
 Mixed post tariffs are supported except within native second-score bidding
 portfolios. Baseline retention must be compatible with the fitted source.
-Multi-step paths, quota policies, and re-estimation are unsupported in this
-initial route. \code{calcMC()} reports physical costs, while
+Sequential \code{Counterfactual} paths instead advance each solved market
+before applying the next step. Physical cost shocks compound, omitted tariffs
+persist at their current absolute levels, and exits are cumulative. Paths can
+be resumed using \code{simulate(path, counterfactual(...))}. An entrant's
+physical cost is converted to effective cost exactly once. Tariff precedence
+is a simultaneous tariff field, the entrant's tariff extra, then the fit's
+\code{entrant_tariff} default. Entry is implemented only for supported ordinary
+output models, and pre-entry output is zero. Native coordination paths require
+explicit leader/core roles when ownership changes; native entry, quota policies
+and re-estimation remain unsupported. \code{calcMC()} reports physical costs, while
 \code{calcMargins(level = TRUE)} reports physical net unit profit and
 \code{calcMargins(level = FALSE)} reports a net-revenue Lerner margin.
 }
 \value{
-\code{simulate()} returns a new \code{TariffGameFit} containing the updated
+\code{simulate()} returns a \code{CounterfactualPath} for multiple steps. A
+single step returns a new \code{TariffGameFit} containing the updated
 underlying model and explicit tariff/physical-cost state. Accessor methods
 return values for that stored game.
 }

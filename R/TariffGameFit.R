@@ -11,7 +11,24 @@
 #' A `TariffGameFit` is a `TradeFit` wrapper for a fitted output-market game
 #' whose saved marginal costs are effective costs.  The wrapper records the
 #' consumer-price tariff fraction, recovered physical costs, and the immutable
-#' source fit used for subsequent scenarios.
+#' source fit used for subsequent scenarios. Direct scenario arguments retain
+#' their baseline-relative cost-shock convention. `Counterfactual` objects
+#' built with `add_step()` instead advance the solved market between steps;
+#' physical proportional shocks compound, tariffs are absolute levels, and
+#' exits persist. Multi-step results are `CounterfactualPath` objects and can
+#' be resumed with `simulate(path, counterfactual(...))`.
+#'
+#' Entry reuses antitrust's implemented concrete-model transitions. Entrant
+#' costs are physical production costs. Tariff precedence is a simultaneous
+#' `tariff` field, then `entrant(..., tariff = value)`, then the fit's
+#' `entrant_tariff` default (zero unless explicitly supplied). Existing product
+#' labels and positions remain stable. Ownership changes supply one firm ID
+#' for every current stored product, including entrants and inactive products;
+#' named vectors are matched to labels. Each entrant starts as a new firm.
+#' Pre-step entrant output is zero. Native Stackelberg and CoreFringe games
+#' support paths but require explicit `leader` or `core` IDs when ownership
+#' changes and do not support entry. Standard Logit auctions retain the
+#' restriction of uniform active retention within each bidding firm.
 #'
 #' @export
 #' @importClassesFrom antitrust StructuralFit
@@ -228,11 +245,20 @@ setClass(
   stats::setNames(as.numeric(value), labels)
 }
 
-.trade_game_normalize_owner <- function(value, default, n, name = "ownerPost") {
+.trade_game_normalize_owner <- function(value, default, n, name = "ownerPost", labels = NULL) {
   if (is.null(value)) return(as.character(default))
   if (is.matrix(value) || is.array(value) || is.list(value) || length(value) != n) {
     .trade_game_error("trade_tariff_invalid_ownership",
                       paste0("'", name, "' must be a length-k firm-ID vector"))
+  }
+  value_names <- names(value)
+  if (!is.null(value_names)) {
+    if (is.null(labels) || anyNA(value_names) || anyDuplicated(value_names) ||
+        !setequal(value_names, labels)) {
+      .trade_game_error("trade_tariff_invalid_ownership",
+                        "named ownership must name every current product exactly once")
+    }
+    value <- value[match(labels, value_names)]
   }
   value <- as.character(value)
   if (anyNA(value) || any(!nzchar(value))) {
@@ -320,7 +346,7 @@ setClass(
     .trade_game_error("trade_tariff_invalid_contract",
                       "tariff reuse arguments must be named")
   }
-  allowed <- c("tariffPre", "cost_basis", "margin_basis")
+  allowed <- c("tariffPre", "cost_basis", "margin_basis", "entrant_tariff")
   bad <- setdiff(supplied, allowed)
   if (length(bad)) {
     .trade_game_error("trade_tariff_invalid_contract",
@@ -348,7 +374,7 @@ setClass(
 }
 
 .trade_game_contract_requested <- function(arguments) {
-  any(c("cost_basis", "margin_basis") %in% names(arguments))
+  any(c("cost_basis", "margin_basis", "entrant_tariff") %in% names(arguments))
 }
 
 .trade_game_spec_native <- function(model) {
@@ -501,6 +527,7 @@ setClass(
     .trade_game_error("trade_tariff_unsupported_policy",
                       "TariffGameFit supports policy = 'tariff' only")
   }
+  entrant_tariff <- .trade_game_entrant_tariff(arguments$entrant_tariff %||% 0)
   model <- if (native) object else object@model
   .trade_game_validate_output(model)
   n <- .trade_game_n(model)
@@ -549,6 +576,7 @@ setClass(
   source_fit <- if (native) NULL else object
   if (!is.null(source_fit)) source_fit@model <- source_model
   state <- .trade_game_state(model, tau, kappa, source_model, source_fit, spec)
+  state$entrant_tariff <- entrant_tariff
   wrapped_model <- source_model
   wrapped_model <- antitrust::setRetention(wrapped_model,
     retentionPre = 1 - tau, retentionPost = 1 - tau)
@@ -566,7 +594,7 @@ setClass(
   if (!methods::is(value, "Counterfactual")) return(NULL)
   if (length(value@steps) != 1L) {
     .trade_game_error("trade_tariff_multiple_steps",
-                      "TariffGameFit initially supports exactly one counterfactual step")
+                      "internal one-step adapter requires one counterfactual step")
   }
   changes <- value@steps[[1L]]@changes
   supported <- c("ownership", "costs", "exit", "tariff", "leader", "core")
@@ -650,6 +678,23 @@ setClass(
     .trade_game_error("trade_tariff_invalid_simulation",
                       paste("unsupported simulation argument(s):", paste(names(extra), collapse = ", ")))
   }
+  if (methods::is(tariffPost, "Counterfactual")) {
+    validate_counterfactual(object, tariffPost)
+    has_entry <- any(vapply(tariffPost@steps, function(x) !is.null(x@changes$entry), logical(1)))
+    if (length(tariffPost@steps) > 1L || has_entry) {
+      supplied <- c(if (!is.null(ownerPost)) "ownerPost",
+                    if (!is.null(leadersPost)) "leadersPost",
+                    if (!is.null(corePost)) "corePost",
+                    if (!is.null(mcDelta)) "mcDelta",
+                    if (!is.null(subset)) "subset",
+                    if (!is.null(priceStart)) "priceStart")
+      if (length(supplied)) {
+        .trade_game_error("trade_tariff_invalid_simulation",
+          paste("cannot combine a Counterfactual with:", paste(supplied, collapse = ", ")))
+      }
+      return(.trade_game_path(object, tariffPost))
+    }
+  }
   cf <- .trade_game_unpack_counterfactual(tariffPost)
   if (!is.null(cf)) {
     conflicts <- c(if (!is.null(ownerPost)) "ownerPost",
@@ -672,7 +717,7 @@ setClass(
     if (is.null(tariffPost)) state$tariffPost else tariffPost,
     n, state$labels, "tariffPost"
   )
-  owner <- .trade_game_normalize_owner(ownerPost, state$ownerPost, n)
+  owner <- .trade_game_normalize_owner(ownerPost, state$ownerPost, n, labels = state$labels)
   owner_changed <- !identical(owner, state$ownerPost)
   subset <- if (is.null(subset)) state$subsetPost else subset
   if (!is.logical(subset) || length(subset) != n || anyNA(subset) || !any(subset)) {
@@ -754,7 +799,7 @@ setClass(
   }
   delta_effective <- kpost / state$kappaPre - 1
 
-  unchanged <- identical(tau, state$tariffPost) &&
+  unchanged <- !isTRUE(state$environment_changed) && identical(tau, state$tariffPost) &&
     identical(owner, state$ownerPost) && identical(subset, state$subsetPost) &&
     identical(leaders, state$leadersPost) &&
     identical(core, state$corePost) &&
@@ -791,6 +836,7 @@ setClass(
   result_state$mcDeltaPhysical <- delta_physical
   result_state$mcDeltaEffective <- delta_effective
   result_state$promotion_solves <- 0L
+  result_state$environment_changed <- FALSE
   .trade_game_new_fit(object, result_model, result_state, object@spec,
                       route = if (unchanged) "tariff_reuse_unchanged" else "tariff_reuse_simulate",
                       source_fit = object@source_fit)
@@ -837,7 +883,7 @@ setMethod("simulate", "TariffGameFit", function(object, tariffPost = NULL,
 #' @export
 setMethod("validate_counterfactual", "TariffGameFit",
           function(object, counterfactual) {
-            .trade_game_unpack_counterfactual(counterfactual)
+            .trade_game_validate_path(object, counterfactual)
             invisible(counterfactual)
           })
 
@@ -845,10 +891,7 @@ setMethod("validate_counterfactual", "TariffGameFit",
 #' @export
 setMethod("simulate_steps", "TariffGameFit",
           function(object, last_result, steps, ...) {
-            .trade_game_error(
-              "trade_tariff_multiple_steps",
-              "TariffGameFit initially supports one policy step; multi-step paths are unsupported"
-            )
+            list(results = .trade_game_steps(last_result, steps))
           })
 
 #' @rdname trade-architecture
@@ -865,12 +908,21 @@ setMethod("respecify", "TariffGameFit", function(object, demand = NULL,
 #' @rdname antitrust-reexports
 #' @export
 setMethod("calcPrices", "TariffGameFit", function(object, preMerger = TRUE, ...) {
-  antitrust::calcPrices(object@model, preMerger = preMerger, ...)
+  if (preMerger && !is.null(object@tariff_state$baseline_prices)) {
+    return(object@tariff_state$baseline_prices)
+  }
+  .trade_game_prices(object@model, preMerger)
 })
 
 #' @rdname antitrust-reexports
 #' @export
 setMethod("calcShares", "TariffGameFit", function(object, preMerger = TRUE, ...) {
+  previous <- object@tariff_state$previous_model
+  if (preMerger && !is.null(previous)) {
+    values <- antitrust::calcShares(previous, preMerger = FALSE, ...)
+    return(stats::setNames(c(as.numeric(values), rep(0,
+      length(object@tariff_state$labels) - length(values))), object@tariff_state$labels))
+  }
   antitrust::calcShares(object@model, preMerger = preMerger, ...)
 })
 
@@ -894,6 +946,9 @@ setMethod("calcMC", "TariffGameFit", function(object, preMerger = TRUE, ...) {
 })
 
 .trade_game_account_quantities <- function(object, preMerger = TRUE) {
+  if (preMerger && !is.null(object@tariff_state$baseline_quantities)) {
+    return(object@tariff_state$baseline_quantities)
+  }
   quantities <- try(antitrust::calcQuantities(object@model,
                                                preMerger = preMerger),
                     silent = TRUE)
@@ -924,7 +979,7 @@ setMethod("calcMC", "TariffGameFit", function(object, preMerger = TRUE, ...) {
 #' @rdname antitrust-reexports
 #' @export
 setMethod("calcProducerSurplus", "TariffGameFit", function(object, preMerger = TRUE, ...) {
-  prices <- .trade_game_prices(object@model, preMerger)
+  prices <- calcPrices(object, preMerger = preMerger)
   quantities <- .trade_game_account_quantities(object, preMerger)
   costs <- if (preMerger) object@tariff_state$cPre else object@tariff_state$cPost
   tau <- if (preMerger) object@tariff_state$tariffPre else object@tariff_state$tariffPost
@@ -937,6 +992,9 @@ setMethod("calcProducerSurplus", "TariffGameFit", function(object, preMerger = T
 #' @rdname antitrust-reexports
 #' @export
 setMethod("CV", "TariffGameFit", function(object, ...) {
+  if (!is.null(object@tariff_state$previous_model)) {
+    return(antitrust::CV(object@model, subsetPre = object@tariff_state$subsetPre, ...))
+  }
   antitrust::CV(object@model, ...)
 })
 
@@ -1050,7 +1108,7 @@ tariff_accounts <- function(object, preMerger = FALSE) {
     .trade_game_error("trade_tariff_invalid_object", "object must be a TariffGameFit")
   }
   state <- object@tariff_state
-  prices <- .trade_game_prices(object@model, preMerger)
+  prices <- calcPrices(object, preMerger = preMerger)
   quantities <- .trade_game_account_quantities(object, preMerger)
   tau <- if (preMerger) state$tariffPre else state$tariffPost
   kappa <- if (preMerger) state$kappaPre else state$kappaPost

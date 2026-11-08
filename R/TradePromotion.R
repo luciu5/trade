@@ -18,7 +18,9 @@
 #' @param ... The baseline policy state. Tariff models accept \code{tariffPre},
 #'   defaulting to zero; the Logit quota model accepts \code{quotaPre},
 #'   defaulting to \code{Inf} (unconstrained). The post-policy state is
-#'   initialized to the same value.
+#'   initialized to the same value. The explicit tariff-reuse route also accepts
+#'   \code{entrant_tariff}, a finite scalar below one (default zero), for new
+#'   products that do not declare their own tariff.
 #' @return A \code{TradeFit} containing the copied source model and policy state.
 #' @details
 #' Eligibility requires the exact normalized demand, conduct, and variant in
@@ -42,7 +44,7 @@
 #'
 #' For an ordinary output Logit/CES or standard output Logit second-score auction
 #' \code{AntitrustFit}, explicitly supplying
-#' either \code{cost_basis} or \code{margin_basis} opts into the initial
+#' \code{cost_basis}, \code{margin_basis}, or \code{entrant_tariff} opts into the
 #' no-reestimation tariff route and returns a \code{TariffGameFit}.  A nonzero
 #' \code{tariffPre} requires \code{cost_basis = "effective"} and
 #' \code{margin_basis = "net_revenue"}; an all-zero baseline can infer those
@@ -508,7 +510,7 @@ setMethod(
   "as_trade_fit", "AntitrustFit",
   function(object, policy = "tariff", ...) {
     arguments <- list(...)
-    ## Supplying either basis flag is an explicit opt-in to the posterior
+    ## Supplying a basis flag or entrant_tariff is an explicit opt-in to the posterior
     ## reuse contract.  Calls that predate that contract retain the legacy
     ## Tariff* adapter and its historical cost interpretation.
     if (exists(".trade_game_contract_requested", mode = "function") &&
