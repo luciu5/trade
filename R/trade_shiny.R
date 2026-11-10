@@ -1,13 +1,26 @@
+# Feature-local dependency discovery: ordinary trade use does not load the GUI.
+.trade_toolbox_launcher <- function(
+    available = requireNamespace("competitiontoolbox", quietly = TRUE),
+    version = if (available) utils::packageVersion("competitiontoolbox") else NULL) {
+  if (!available || version < "0.9.0") {
+    stop(paste("The current GUI requires competitiontoolbox >= 0.9.0.",
+      "Install it with the public installer:",
+      'source("https://raw.githubusercontent.com/luciu5/competitiontoolbox/master/tools/install_iovrse.R");',
+      'install_iovrse(packages = "competitiontoolbox")'), call. = FALSE)
+  }
+  getExportedValue("competitiontoolbox", "ct_shiny")
+}
+
 #'A Shiny Interface to the trade Package
 #'
-#' Launch a shiny interface to simulate the effects of tariffs
+#' Launch the current competitiontoolbox interface
 #'
 
 #' @details
 #'
-#' \code{trade_shiny} launches a shiny interface for the \code{trade} package. The shiny interface provides users with the
-#' ability to calibrate model parameters and simulate tariff effects using many of the supply and demand models
-#'  included in the \code{trade} package.
+#' This deprecated launcher forwards to \code{competitiontoolbox::ct_shiny()}.
+#' Install competitiontoolbox 0.9.0 or newer using its public installer.
+#' The UI remains an optional dependency of trade.
 #'
 #' @name trade_shiny-deprecated
 #' @seealso \code{\link{trade-deprecated}}
@@ -19,11 +32,11 @@ NULL
 #' For \code{trade_shiny}, use \code{\link[competitiontoolbox]{ct_shiny}}.
 #'
 #'
+#' @param ... Arguments passed to \code{competitiontoolbox::ct_shiny()}.
 #' @export
 
 
-trade_shiny <- function() {
-  .Deprecated("ct_shiny' in the 'competitiontoolbox' package")
-  # requireNamespace("rhandsontable")
-  # shiny::runApp(system.file('trade_shiny', package='trade'))
+trade_shiny <- function(...) {
+  .Deprecated("competitiontoolbox::ct_shiny")
+  .trade_toolbox_launcher()(...)
 }

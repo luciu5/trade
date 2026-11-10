@@ -1,0 +1,16 @@
+destination: .scratch/pkgdown
+navbar:
+  structure:
+    left: [get_started, reference, articles]
+    right: [search, github]
+  components:
+    get_started:
+      text: Get started
+      href: articles/Reference.html
+articles:
+- title: Task guides
+  navbar: ~
+  contents:
+  - Reference
+  - quotas
+  - cournot-tariffs

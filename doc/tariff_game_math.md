@@ -1,4 +1,4 @@
-# Existing-posterior tariff games: mathematical contract
+# Trade policy models: mathematical reference
 
 The fitted-game extension covers constant-cost output Logit/CES games. Consumer
 prices are tariff inclusive. Product tariff tau is the fraction of consumer
@@ -187,3 +187,1233 @@ For an unchanged policy, prices/shares and all consistently computed welfare
 changes are zero even if baseline government revenue is nonzero. Preserve the
 package's established CV monetary convention rather than invent a new CES
 consumer-surplus formula or treat compensation and utility as interchangeable.
+
+
+## Calibration and legacy model background
+
+The following background is retained from the former reference vignette. It describes
+legacy calibration assumptions; the current API and retention contracts above take
+precedence. Worked policy tasks are in the Reference, quotas and cournot-tariffs
+vignettes. Disputed legacy aggregate/diversion algebra is withheld explicitly rather
+than offered as a new unverified formula. Citations use keys from
+[vignettes/tradebib.bib](../vignettes/tradebib.bib).
+
+## The Bertrand Pricing Game
+
+
+
+
+Much of `trade`'s functionality is built around the Bertrand pricing
+game.^[`trade`'s version of the Bertrand pricing game extends Werden and Froeb (1994) and Anderson, de Palma and Kreider (2001, tax incidence) to accommodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
+differentiated products with distinct, constant, marginal costs
+simultaneously set their products' prices to maximize their
+profits. In this model, prices are *strategic complements* in the sense that increasing the price of
+one product causes some customers to switch to other products, raising
+the quantities sold and therefore the profit-maximizing prices of these other
+products. Ultimately, it is the magnitude of these lost sales that, at
+the margin, dissuades firms from raising their prices further.
+
+With action-independent seller retention uniform within each firm, tariffs
+admit the effective-unit-cost representation c/(1-tau). This is not the additive
+expression c+tau. Heterogeneous retention within a multi-product portfolio must
+instead enter the retained-revenue profit weights and FOCs given at the start
+of this reference; a cost-only shortcut is not generally equivalent.
+
+Tariff incidence and revenue changes depend on the initial policy, demand curvature, ownership and the tariffed portfolio. Inspect the solved price, quantity, physical-profit and government-revenue changes rather than assuming a universal sign for every group.
+
+Entry support is route-specific: ordinary supported fitted-game sequential paths can add products; native coordination paths cannot. These models do not generally provide endogenous repositioning or nonlinear pricing.
+
+The primary `trade` function responsible for modeling tariffs in a Bertrand game is `bertrand_tariff`.
+
+### The Game
+
+
+Suppose that there are $K$ firms in a
+market, and that each of the $k \in K$ firms produces $n_k$
+products, some of which may be produced domestically and some of which may be produced abroad.^[Throughout, we abuse the notation slightly by treating variables like $K$ as both the set of firms as well as the
+  number of firms.] Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price received by the firm is  $1-t_i$ the price faced by consumers.
+
+Let  $n=\sum\limits_{k\in K}n_k$ denote the number of products sold
+by all $K$ firms. The Bertrand model assumes that firms
+simultaneously set their products' prices in order to maximize
+their profits. This model also assumes that all firms can perfectly observe each
+others' prices, quantities, costs, and product characteristics.
+
+This version of the Bertrand model  also assumes that each
+product is produced using its own distinct constant marginal cost
+technology  $c_i$, for all $i \in n$. As we will see, this
+assumption is necessary when information is limited.
+
+
+Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
+products so as to maximize profits. Mathematically, firm $k$ solves:
+
+\begin{align*}
+\max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n_k}(1-t_i)(p_i - \frac{c_i}{(1-t_i)})q_i,
+\end{align*}
+
+where  $t_i$ equals 0 if the product is not subject to a tariff.  $q_i$, the quantity sold of product $i$,  is assumed to
+be a twice differentiable function of *all* product prices.
+
+Differentiating profits with respect to each $p_i$  yields the following first order conditions (FOCs):
+
+\begin{align*}
+  \partial p_i&\equiv q_i(1-t_i) +\sum_{j=1}^{n_k}(1-t_j)( p_j - \frac{c_j}{1-t_j})\frac{\partial q_j}{\partial
+    p_i}=0& \mbox{ for all $i\in n_k$}
+\end{align*}
+
+which may be rewritten as
+
+\begin{align*}
+  \partial p_i&\equiv r_i(1-t_i) + \sum_{j=1}^{n_k} (1-t_j)r_jm_j\epsilon_{ji}=0& \mbox{ for all $i\in n_k$},
+\end{align*}
+
+where $r_i\equiv\frac{p_iq_i}{\sum\limits_{j=1}^np_jq_j}$ is
+product $i$'s revenue share, $\hat{c}_i\equiv \frac{c_i}{(1-t_i)}$ is product $i$'s *effective* marginal cost, $m_i\equiv\frac{p_i-\hat{c}_i}{p_i}$ is product
+$i$'s net seller-revenue margin, and $\epsilon_{ij}\equiv\frac{\partial q_i}{\partial
+  p_j}\frac{p_j}{q_i}$  is the elasticity of product $i$ with
+respect to the price of product $j$.
+
+The current retained-revenue matrix equations and ownership orientation are given at the start of this reference. The legacy tariff-scaled ownership matrix notation is not a universal row-scaling implementation recipe.
+
+#### Quotas
+The Bertrand model described above assumes that products are produced
+with constant marginal costs and no quotas. Here, we
+extend this model to allow for quotas.^[This section is based on the model described in Froeb, Tschantz and Crooke (2003).]
+
+Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
+products so as to maximize profits, subject to quotas $\{\overline{q}_i\}_{i=1}^{n_k}$.
+Mathematically, firm $k$ solves:
+
+\begin{align*}
+  \max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n}\omega_{ik}(p_i - c_i)q_i,\\
+  s.t.\, & q_i \le \overline{q}_i,&i=1\ldots n_k
+\end{align*}
+
+In general, either the capacity constraint for product $i$ will bind
+and the firm will
+be forced to produce less of $i$ than it would find optimal, or the capacity
+constraint will not bind, and the firm will produce the optimal
+amount implied by the FOCs. In the former, it can be shown that
+$\partial p_i\le 0$ and $q_i - \overline{q}_i=0$,
+while in the latter
+$\partial p_i=0$ and $q_i - \overline{q}_i \le 0$. Mathematically, these cases can be
+written as
+
+\begin{align}
+  \max\{\partial p_i, q_i - \overline{q}_i\}=0,&i=1\ldots n_k
+
+\end{align}
+
+
+The quota-constrained Bertrand complementarity equations suffer from an additional complication: the \verb@max@
+function introduces a kink that can make it difficult for the
+non-linear equation solver to find equilibrium
+prices. Froeb, Tschantz and Crooke (2003) suggests replacing  equation
+the complementarity condition with
+\begin{align*}
+ FOC_i +  q_i - \overline{q}_i + \sqrt{FOC_i^2 + (q_i - \overline{q}_i)^2}=0,& i=1,\ldots,n
+\end{align*}
+
+which has the same roots as equation the complementarity condition, but is
+smoother. The \verb@calcPrices@ method for all classes based on the
+capacity-constrained Bertrand Model use this smoothed system to solve
+for equilibrium prices when the constraint is binding.
+
+### Calibrating Model Demand and Cost Parameters
+
+
+For the Logit, CES, and AIDS demand specifications  allowed under this implementation of the Bertrand model,
+the calibration strategy is the same. First, we
+assume that quantities/shares and (with the exception of LA-AIDS) prices are observed for *all* products in the
+market, and that margins for *some* products
+are observed. Our decision to treat quantities, prices, and
+margins as primitives comes directly from equation
+the retained-revenue FOC.
+
+In addition to quantities, prices, some margins and capacities, we assume that
+users observe diversion ratios. Diversion ratios come in two
+forms: *quantity* diversion and *revenue* diversion. The
+*quantity* diversion from
+product $i$ to product $j$, $d^q_{ij}$, is defined as the percentage of all of $i$'s
+lost unit sales that switch to $j$ *due to a price increase in product $i$*, while the *revenue* diversion  from
+product $i$ to product $j$, $d^r_{ij}$, is  defined as the percentage of all of $i$'s
+lost revenue that switches to $j$ *due to a price increase in product $i$*. Mathematically, quantity and revenue diversion may be
+represented as
+
+\begin{align}
+
+d^q_{ij}=&-\frac{\frac{\partial q_j}{\partial p_i}}{\frac{\partial
+    \nonumber q_i}{\partial p_i}}\\ =& -\frac{\epsilon_{ji}q_j}{\epsilon_{ii}q_i}\\
+
+\end{align}
+
+Revenue diversion requires a separately stated revenue derivative and own-revenue denominator. The previous simplified revenue-diversion formula is withheld pending rederivation against the public diversion contract.
+
+Diversion conventions must distinguish quantities from revenue and specify diagonal normalization. Bounds for quantity diversion must not be applied automatically to a revenue derivative near zero own-revenue response.
+
+Although diversion ratios are not present in equation
+the retained-revenue FOC, these definitions indicate that diversion ratios may
+be helpful in recovering the matrix of own- and cross-price
+elasticities $E$. Indeed, for a number of the demand
+systems described below, diversions will be used for just this
+purpose.
+
+
+
+We further assume that all of this information
+represents the outcome of the unique current
+equilibrium for firms in the
+market playing the static Bertrand pricing game described above.
+We then substitute observed margins, shares and prices into
+equation the retained-revenue FOC, which is now solely a function of demand
+parameters, and then solve for the coefficient(s) on prices. Once the
+price coefficients have been estimated, we use observed prices and the demand equations to estimate the intercepts.
+
+Often, there are more FOCs than unknown price
+coefficients. For instance, under Logit demand, only the
+price parameter $\alpha$ and the share of the outside good $s_0$ needs to be estimated and up to $n$ FOCs with
+which to estimate it. This means that at a minimum, users need only
+supply enough margin information to complete a single product's
+FOC. If that product happens to be owned by a single-product firm,
+then only one margin is necessary. On the other hand, if the product
+happens to be owned by a multi-product firm, then at a minimum, all the margins for
+products owned by that firm must be supplied.
+
+
+The (Marshallian) demand specifications used in `trade` can be grouped into two
+categories: demand systems that are derived from a
+representative consumer's
+expenditure function and demand systems that are derived from a
+representative consumer's indirect utility function. The  LA-AIDS demand system
+fall into the former
+category, while the Logit and CES fall into
+the latter category. Below, we briefly
+discuss these demand systems as well as the assumptions
+and/or data needed to recover estimates of the demand parameters.
+
+We conclude this section with a discussion of how calibrated demand parameters and
+the FOCs can be used to calibrate product-specific constant marginal costs.
+
+
+#### Logit Demand With Unobserved Outside Share
+The Bertrand model with Logit demand and unobserved outside share may be
+implemented using the  `bertrand_tariff` function with 'demand' equal to "logit".
+
+Logit demand is based on a discrete choice model
+that assumes that each consumer is
+willing to purchase **at most** a single unit of one product from the
+set of $I$ products available in the market. When consumers choose not to purchase
+one of the products in the market, they are assumed to purchase the "outside good."
+
+This model assumes that while the quantities of the products *included* in the market can be observed with some accuracy,
+the quantity of all the products *excluded* from the market (i.e. the "outside good") is difficult to estimate reliably.  The `bertrand_tariff` function attempts to circumvent this issue by treating the share of the outside good as a nuisance parameter
+and using additional margin and/or aggregate elasticity information to estimate that
+parameter.^[The outside good is a nuisance parameter because
+  it is only needed to obtain estimates of the other demand and cost
+  parameters and is not used to solve for equilibrium prices.]
+
+The assumptions underlying
+Logit demand imply that the probability that a consumer
+purchases product $i \in I$ is given by
+
+\begin{align*}
+  s_i=& s_{i|I}s_I,&\\
+  s_{i|I}=&\frac{\exp(V_i)}{\sum\limits_{k \in I}\exp(V_k)},&\\
+  s_I=&1-s_0,&
+\end{align*}
+where  $s_{i|I}$ is product $i$'s quantity share, conditional on a product being chosen from the set of inside goods $I$, and $s_0$ is the share of the outside good. This implies that
+\begin{align*}
+  \sum\limits_{k \in I} s_{k|I}=&1,&
+\end{align*}
+We assume that $V_i$ takes on the following form
+\begin{align*}
+  V_i=&\delta_i + \alpha p_i,& \alpha\le 0.
+\end{align*}
+
+Likewise, the own, cross, and market price elasticities may be written as
+
+\begin{align*}
+  \epsilon_{ii}=&\alpha (1-s_{i|I}(1-s_0))p_i, \\
+  \epsilon_{ij}=&-\alpha s_{j|I}(1-s_0)p_j,\\
+  \epsilon=&\alpha\overline{p}s_0,
+\end{align*}
+
+where $\overline{p}$ is the *quantity* share-weighted average price of the inside goods.
+
+This version of the Logit model has $|I|+2$ parameters to estimate ($|I|$ $\delta$s,
+$\alpha$, and $s_0$) and up to $2|I|+1$ equations with which to estimate them (up to
+$|I|$ complete FOCs, $|I|$ choice probabilities and the market elasticity equation). `calcSlopes` exploits this over-identification
+by employing a minimum distance algorithm to find the
+values for $\alpha$ and $s_0$ that best satisfy all the equations for which there
+ are data, subject to the constraints that $\alpha$ is negative and $s_0$ is between 0 and 1. The $\delta$s are then recovered from the choice probabilities, while **constant** marginal costs are recovered from fitted current tariff margins and observed prices.
+
+
+
+#### CES Demand With Unobserved Outside Share
+
+The Bertrand model with Constant Elasticity of Substitution (CES) demand and unobserved outside share may be
+implemented using the  `bertrand_tariff` function with 'demand' equal to "ces."
+
+Like the Logit, CES demand is based on a discrete
+choice model. However, CES differs from the Logit model in that under CES
+consumers do not purchase a single unit of a product but instead spend
+a fixed proportion of their budget on one of the $I$ products
+available in the market or the outside option.^[Formally, each consumer chooses the
+  product $i \in I$ that yields the maximum utility $U_i=\ln(\delta_iq_i) +\alpha \ln(q_0) +
+  \epsilon_i$, subject to the budget constraint $y=p_iq_i+q_0$. Here,
+  $q_i$ is the amount of product $i$ consumed by a consumer, $\delta_i$
+  is a measure of product $i$'s quality, $q_0$ is
+  the amount of the numeraire, $y$ is consumer income, and
+  $\epsilon_i$ are random variables independently and identically
+  distributed according to the Type I Extreme Value distribution.]
+
+The assumptions underlying CES demand imply that the probability that a consumer
+purchases product $i\in I$ is given by
+
+
+\begin{align*}
+ r_i=& r_{i|I}r_I,&\\
+  r_i=& \frac{V_i}{\sum\limits_{k \in n}V_k}& \mbox{for all $i \in n$},\\
+   r_I=&1-r_0,&
+\end{align*}
+where  $r_{i|I}$ is product $i$'s *revenue* share, conditional on a product being chosen from the set of inside goods $I$, $r_0$ is the *revenue* share of the outside good, and  $V_i$ is the (average) indirect utility that a consumer receives from purchasing product $i$. We assume that $V_i$ takes on the following form
+\begin{align*}
+  V_i=&\delta_ip_i^{1-\gamma},&\gamma > 1 .
+\end{align*}
+
+The CES demand system yields the following own- and cross-price elasticities:
+\begin{align*}
+  \epsilon_{ii}=& -\gamma + (\gamma-1)r_i, \\
+  \epsilon_{ij}=& (\gamma-1)r_j,\\
+
+\end{align*}
+
+
+The old aggregate CES elasticity expression is withheld: its aggregation definition and units require rederivation before reuse. The own/cross expressions above retain their stated price-elasticity meaning.
+
+Functional form differences aside, one important difference between
+the CES and Logit demand systems is that the Logit model's choice
+probabilities are based on *quantity* shares, while the CES model's
+choice probabilities are based on *revenue* shares.
+
+Like Logit demand, CES demand has $|I|+2$ parameters to estimate ($|I|$ $\delta$s, $\gamma$, and $r_0$)
+and up to $2|I| + 1$ equations with which to estimate them (up to
+$|I|$ complete FOCs, $|I|$
+choice probabilities, and the market elasticity equation). `ces` exploits this over-identification
+by employing a minimum distance algorithm to find the
+values for $\gamma$ and $r_0$ that best satisfy all the equations for which there
+ are data, subject to the constraints that $\gamma$ is greater than 1  and $r_0$ is between 0 and 1.
+ The $\delta$s are then recovered from the choice probabilities,
+ while **constant** marginal costs are recovered from fitted current tariff margins and observed prices.
+
+
+
+
+#### LA-AIDS Demand
+The Bertrand model with the linear approximate Almost Ideal Demand System (LA-AIDS)  may be implemented
+using the `bertrand_tariff` function with 'demand' equal to "aids."
+
+The LA-AIDS without income effects assumes that the demand for each product $i
+\in n$ in the market is given by
+
+\begin{align*}
+  r_i=& \alpha_i + \sum_{j\in n}\beta_{ij} \log(p_j) \mbox{ for all $i\in n$},& \beta_{ii}<0
+\end{align*}
+which may be written in matrix notation as
+\begin{align*}
+  r=&\alpha + B\log(p),&
+\end{align*}
+
+
+where $r,p$ are vectors of product *revenue* shares and prices, $\alpha$ is a vector of product-specific demand intercepts and
+$B$ is a matrix of slopes.^[LA-AIDS differs from AIDS in that
+  LA-AIDS substitutes the AIDS price index with Stone's price
+  index. Since this version of LA-AIDS is without income effects,
+  Stone's price index is only used to derive the own- and cross-price elasticities.]
+
+The LA-AIDS model yields the following own- and cross-price elasticities:
+\begin{align*}
+  \epsilon_{ii}=&-1 + \frac{\beta_{ii}}{r_i} + r_i(1+ \epsilon),& \epsilon_{ii}<0  \\
+  \epsilon_{ij}=&\frac{\beta_{ij}}{r_i} + r_j(1+ \epsilon),& \epsilon_{ij}\ge 0
+\end{align*}
+
+where $\epsilon$ is the market elasticity of demand.
+
+The LA-AIDS model assumes that $B$ is symmetric, satisfies homogeneity of degree zero in prices, and that diversion is
+known. The LA-AIDS model, however,
+assumes that *revenue* diversion, rather than *quantity*
+diversion is observed.^[If the 'diversion' argument to `bertrand_tariff`
+  is missing, `bertrand_tariff`  assumes diversion according to revenue
+  share.] Under these two assumptions, there are $\frac{n(n+3)}{2}$ unknown
+demand parameters ($\frac{n(n-1)}{2}$ diagonal elements in $B$, $n$ diagonal elements, and $n$ intercepts) and up to $n(n+1)$ equations ($n(n-1)$ diversion equations, $n$ FOCs and  $n$ demand equations),
+in which case the system is over-identified.^[In fact, it turns out that only one element of $B$ must be estimated.To see why, note that under symmetry, $\beta_{jj}=\frac{d_{ij}}{d_{ji}}\beta_{ii}$. Hence, if $\beta_{ii}$ is known, then the preceding equation indicates that all the $\beta_{jj}$s may be recovered. From here, the definition of diversion may be used to recover all the $\beta_{ij}s$.]
+
+Unlike the Logit and CES models described above, none of the LA-AIDS model's equations are a function of the share of the
+outside good. Instead, these equations are a function of the market elasticity of demand $\epsilon$.
+Roughly speaking, $\epsilon$ controls
+the extent to which consumers substitute to products outside
+the $n$ products included in the simulation
+given a small change in market-wide product prices. Here, we assume that $\epsilon$ is a parameter whose value is not a function of product prices.^[This assumption implies that customers substitute to  products outside of the simulation in response to price increases by all products in the simulation at the same rate before and after the change in tariffs.]
+
+The `calcSlopes` method, called by the `aids`
+function to calibrate the AIDS parameters, uses a minimum distance algorithm to find the $\epsilon$  (if not supplied using the 'mktElast' argument) and a single diagonal element of $B$ that best satisfy i) all the FOCs for which there is sufficient information and ii) the diversion equations $d_{ij}=-\frac{\beta_{ji}}{\beta_{ii}}$, and iii) the market elasticity (if supplied using the 'mktElast' argument). The $\beta_{ii}$'s are recovered from the fact that $\sum_{j}d_{ij}=0$; customers must switch to a product included in the model.
+
+Another distinguishing feature of the LA-AIDS model is that it does not require any information on product
+prices in order to simulate tariff price effects. The LA-AIDS accomplishes this by
+using the supplied margin and revenue information to estimate $B$, but not $\alpha$. There are,
+however, a few drawbacks to not using pricing information.  First, while
+tariff-specific price *changes* may be calculated, pre- and post-tariff
+price *levels* cannot. Second, welfare measures like
+compensating variation cannot be calculated.  Prices are an optional
+input to `aids` and `pcaids`, and when they are supplied both
+price levels and welfare measures may be calculated.
+
+
+## The Cournot Quantity Game
+
+
+Another model included in `trade` is the Cournot quantity game.  This version of the game assumes that multi-plant firms with distinct, increasing marginal costs producing multiple products
+simultaneously set plant output for each product to maximize their
+profits.^[`trade`'s version of the Cournot quantity game extends [Anderson, de Palma and Kreider (2001, efficiency of indirect taxes)] to accommodate tariffs under Cournot quantity competition.] All firms producing a particular product are assumed to be undifferentiated. In this model, quantities are *strategic substitutes* in the sense that decreasing the quantity of
+one product causes some customers to switch to competing manufacturers, raising
+their quantities and profits. Ultimately, it is the magnitude of these lost sales that, at
+the margin, dissuades firms from reducing their output further .
+
+For the plant quantity game, an effective-cost-only reduction requires the
+relevant firm portfolio's action-independent retention to be uniform. In that
+case effective unit cost is physical unit cost divided by retention, c/(1-tau),
+not physical cost plus the tariff fraction. With different retentions among
+commonly owned plants, use the retained-revenue marginal-revenue weights
+specified above and below, rather than assuming a uniform additive cost change.
+
+
+The homogeneous plant model supports explicit changes in plant/product availability and nonnegative output corners. This is distinct from endogenous product repositioning or general entry support. The model does not provide nonlinear price discrimination.^[In particular, this version of the Bertrand
+  model does not accommodate non-linear pricing, such as is used in 2nd
+  or 3rd degree price discrimination.]
+
+
+
+## Homogeneous plant costs and retained marginal revenue
+
+The current Cournot plant model uses MC_i=sum(q_i)/k_i and VC_i=sum(q_i)^2/(2*k_i) for linear marginal cost, or constant MC_i=k_i and VC_i=k_i*sum(q_i). These parameterizations follow R/TariffCournot-methods.R; the former vignette used an inconsistent coefficient normalization. With retention r_ik=1-tau_ik, the marginal revenue for plant i, product k is r_ik*p_k + p_k' * sum_h o_hi*r_hk*q_hk, before subtracting physical marginal cost. Every commonly owned plant's retention enters the sum. A uniform-tariff special case must not be stated as the heterogeneous general case. Nonnegative outputs and plant capacities impose complementarity conditions. See the public cournot_tariff help for the implemented ownership orientation and constraints.
+
+
+## Historical source archive
+
+<details>
+<summary>Former Reference.Rmd source, including inactive drafts</summary>
+
+This verbatim source archive preserves the former derivations and inactive drafts
+for comparison. It is historical material, **not the current implementation
+contract**. In particular, the old ownership-scaling, aggregate CES elasticity,
+revenue-diversion bounds and heterogeneous plant-tariff formulas require the
+corrections or explicit withholding described above. Use the reviewed reference
+sections and current public help for analysis.
+
+````text
+---
+title: "`trade` Reference Manual"
+author: "Charles Taragin"
+date: "`r Sys.Date()`"
+output:
+  bookdown::html_document2:
+    theme: paper
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+header-includes:
+   - \usepackage{amsmath}
+bibliography: ["tradebib.bib"]
+biblio-style: "apalike"
+link-citations: true
+---
+<!--
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteIndexEntry{`trade` Reference Manual}
+%\VignetteEncoding{UTF-8}
+-->
+*Disclaimer:* The views expressed herein are entirely those of the authors and should not be purported to reflect those of the Federal Trade Commission.  The `trade` package has been released into the
+public domain without warranty of any kind, expressed or implied. We
+thank Ronald Drennan, Robert Majure, Russell Pittman, Gloria Sheu,
+Nathan Miller, Randy Chugh, Marc Remer, Alexander Raskovich, William Drake, Thomas Jeitschko, Greg Werden,  Luke Froeb, Nicholas Hill, and Conor Ryan. Address: Bureau of Economics #202, Federal Trade Commission, 600 Pennsylvania Ave. NW, Washington, DC 20530. email: <ctaragin+trader@gmail.com>
+
+# Introduction
+
+`trade` is a suite of tools that may be used in assessing the implications of tariffs.  The package contains
+functions that can calibrate the underlying parameters of a number
+of different supply and demand models as well as simulate the effects of
+tariffs in different strategic
+environments. The output generated by these tools includes interesting
+features such as predicted price increases, welfare measures and demand
+elasticities.
+
+There are four features of `trade` that make it particularly useful
+for practitioners. First, `trade` collects a number of useful models
+onto a common platform, making it easy for
+practitioners to compare and contrast the results from different
+models.
+
+Second, `trade` is open source software that runs on the **R** open source
+platform. Practically speaking, this means that practitioners not only
+have the flexibility to run this software wherever and whenever they
+wish, but they can also modify and extend the software as they see
+fit.  We hope that having this collection of tools on a common, open
+source platform will facilitate discussion and collaboration among practitioners.
+
+Third, `trade` includes a web interface built using `shiny`. While this interface does not give users access to the full array of functionality in `trade`, it is simple to use and may provide first-time users, particularly those who are unfamiliar with **R**, a gentler introduction to `trade`. The interface may be invoked using the  `ct_shiny` function in the `competitiontoolbox` package.
+
+
+
+Finally, the functions included in `trade` typically require relatively little information to generate a prediction.
+
+The limited information needed for the economic models used in `trade` comes at some
+cost. First, the output of these models is sensitive to the
+supplied inputs. For instance, when employing the Bertrand model, inaccurate margins, shares and prices can yield
+inaccurate estimates of demand and cost parameters which can in turn yield
+incorrect predictions of a tariff's effects. Calibrating model
+parameters with an array of plausible inputs will yield a range of
+outputs and illustrate the sensitivity of each model to those inputs.
+One way to
+control for inaccurate inputs is to calibrate model parameters with
+different plausible inputs to see how the model output
+changes. Users can then report a range of plausible outputs in their analysis.
+
+Moreover, none of the parameters calibrated by `trade` may be used
+in frequentist statistical hypothesis testing. In other words, while the economic
+models in `trade` may be used to generate reliable estimates of the
+effects of a new tariff regime, statistical tests cannot be used to
+determine the accuracy of these estimates. Accomplishing this requires
+additional data and is beyond the current scope of `trade`.
+
+
+This document provides an introduction to the economic theory upon
+which the `trade` package's functions are built.  Please use the
+`help` function for assistance invoking any of the functions, classes, or
+methods included in `trade`. Alternatively, please refer to the vignette and manpages of `trade`'s sister
+package `antitrust` from which much of `trade` was generated.
+
+
+
+
+
+# The Bertrand Pricing Game
+
+
+
+
+Much of `trade`'s functionality is built around the Bertrand pricing
+game.^[`trade`'s version of the Bertrand pricing game extends @Werden1994 and @Anderson2001 to accommodate tariffs under Bertrand price competition.] This version of the game assumes that firms producing multiple
+differentiated products with distinct, constant, marginal costs
+simultaneously set their products' prices to maximize their
+profits. In this model, prices are *strategic complements* in the sense that increasing the price of
+one product causes some customers to switch to other products, raising
+the quantities sold and therefore the profit-maximizing prices of these other
+products. Ultimately, it is the magnitude of these lost sales that, at
+the margin, dissuades firms from raising their prices further.
+
+Tariffs are modeled by effectively assuming that the marginal costs
+of certain products produced by
+foreign firms increase by the amount of the tariff. Because all products included in `trade` models are assumed
+to be substitutes, this marginal cost increase
+causes foreign firms to raise the price of their products, which in turn causes some customers to
+either switch to other products in the market or to forgo purchasing any product in the market entirely.
+
+The Bertrand model predicts that tariffs will harm customers and foreign firms, but benefit
+domestic firms and raise government revenues. The **magnitude** of these effects, however, will depend
+on demand specification as well as the set of inputs used.^[Specifically, the curvature of the demand curve
+greatly influences the results.]
+
+Currently, this version of the Bertrand model does not allow firms to add or
+reposition products, or allow firms to engage in some forms of price
+discrimination.
+
+The primary `trade` function responsible for modeling tariffs in a Bertrand game is `bertrand_tariff`.
+
+## The Game
+
+
+Suppose that there are $K$ firms in a
+market, and that each of the $k \in K$ firms produces $n_k$
+products, some of which may be produced domestically and some of which may be produced abroad.^[Throughout, we abuse the notation slightly by treating variables like $K$ as both the set of firms as well as the
+  number of firms.] Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price received by the firm is  $1-t_i$ the price faced by consumers.
+
+Let  $n=\sum\limits_{k\in K}n_k$ denote the number of products sold
+by all $K$ firms. The Bertrand model assumes that firms
+simultaneously set their products' prices in order to maximize
+their profits. This model also assumes that all firms can perfectly observe each
+others' prices, quantities, costs, and product characteristics.
+
+This version of the Bertrand model  also assumes that each
+product is produced using its own distinct constant marginal cost
+technology  $c_i$, for all $i \in n$. As we will see, this
+assumption is necessary when information is limited.
+
+
+Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
+products so as to maximize profits. Mathematically, firm $k$ solves:
+
+\begin{align*}
+\max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n_k}(1-t_i)(p_i - \frac{c_i}{(1-t_i)})q_i,
+\end{align*}
+
+where  $t_i$ equals 0 if the product is not subject to a tariff.  $q_i$, the quantity sold of product $i$,  is assumed to
+be a twice differentiable function of *all* product prices.
+
+Differentiating profits with respect to each $p_i$  yields the following first order conditions (FOCs):
+
+\begin{align*}
+  \partial p_i&\equiv q_i(1-t_i) +\sum_{j=1}^{n_k}(1-t_j)( p_j - \frac{c_j}{1-t_j})\frac{\partial q_j}{\partial
+    p_i}=0& \mbox{ for all $i\in n_k$}
+\end{align*}
+
+which may be rewritten as
+
+\begin{align*}
+  \partial p_i&\equiv r_i(1-t_i) + \sum_{j=1}^{n_k} (1-t_j)r_jm_j\epsilon_{ji}=0& \mbox{ for all $i\in n_k$},
+\end{align*}
+
+where $r_i\equiv\frac{p_iq_i}{\sum\limits_{j=1}^np_jq_j}$ is
+product $i$'s revenue share, $\hat{c}_i\equiv \frac{c_i}{(1-t_i)}$ is product $i$'s *effective* marginal cost, $m_i\equiv\frac{p_i-\hat{c}_i}{p_i}$ is product
+$i$'s gross margin, and $\epsilon_{ij}\equiv\frac{\partial q_i}{\partial
+  p_j}\frac{p_j}{q_i}$  is the elasticity of product $i$ with
+respect to the price of product $j$.
+
+The FOCs for all products may be stacked and then
+represented using the following matrix notation:
+\begin{align}
+  (\#eq:FOC)
+  (r\circ diag(\Omega)) + (E\circ\Omega)'(r \circ m)=0
+\end{align}
+
+<!-- rearranging yields -->
+
+<!-- \begin{align} -->
+<!--   m_{Bertrand}= -\{(E\circ\Omega)'^{-1}(r\circ diag(\Omega))\} \circ \frac{1}{r} -->
+<!-- \end{align} -->
+
+where $r$ and $m$ are $n$-length vectors of revenue shares
+and margins, $E = \left(\begin{smallmatrix}
+    \epsilon_{11}&\ldots&\epsilon_{1n}\\\vdots
+    &\ddots&\vdots\\\epsilon_{n1}&\ldots&\epsilon_{nn} \end{smallmatrix}\right)$
+is a $n \times n$ matrix of own- and cross-price elasticities, and
+$\Omega=\left(\begin{smallmatrix}
+    \omega_{11}(1-t_1)&\ldots&\omega_{1n}(1-t_1)\\\vdots
+    &\ddots&\vdots\\\omega_{n1}(1-t_n)&\ldots&\omega_{nn}(1-t_n)\end{smallmatrix}\right)$
+is an $n \times n$ matrix whose $i,j$th element equals $\omega_{ij}$,
+the share of product $j$'s profits owned by the firm setting product $i$'s
+price, multiplied by $1-t_i$, product $i$'s tariff rate.  In many cases,
+product $i$ and $j$ are wholly owned by a single firm, in which cases $\omega_{ij}$ equals 1 if $i$ and $j$ are owned by the same firm
+and 0 otherwise.
+'$diag$' returns the diagonal of a square matrix and '$\circ$' is the Hadamard (entry-wise) product operator.
+
+The solution to system \@ref(eq:FOC) yields equilibrium prices conditional on the ownership structure $\Omega$ and tariffs $t_i,\forall i\in n$. A change in tariff policy  is modeled as the solution to system  \@ref(eq:FOC) where $\Omega$ and $\hat{c}_i,\forall i\in n$ are updated to reflect the change in tariffs.
+
+### Quotas
+The Bertrand model described above assumes that products are produced
+with constant marginal costs and no quotas. Here, we
+extend this model to allow for quotas.^[This section is based on the model described in @Froeb2003.]
+
+Firm $k \in K$ chooses the prices $\{p_i\}_{i=1}^{n_k}$ of its
+products so as to maximize profits, subject to quotas $\{\overline{q}_i\}_{i=1}^{n_k}$.
+Mathematically, firm $k$ solves:
+
+\begin{align*}
+  \max_{\{p_i\}_{i=1}^{n_k}} &\sum_{i=1}^{n}\omega_{ik}(p_i - c_i)q_i,\\
+  s.t.\, & q_i \le \overline{q}_i,&i=1\ldots n_k
+\end{align*}
+
+In general, either the capacity constraint for product $i$ will bind
+and the firm will
+be forced to produce less of $i$ than it would find optimal, or the capacity
+constraint will not bind, and the firm will produce the optimal
+amount implied by the FOCs. In the former, it can be shown that
+$\partial p_i\le 0$ and $q_i - \overline{q}_i=0$,
+while in the latter
+$\partial p_i=0$ and $q_i - \overline{q}_i \le 0$. Mathematically, these cases can be
+written as
+
+\begin{align}
+  \max\{\partial p_i, q_i - \overline{q}_i\}=0,&i=1\ldots n_k
+(\#eq:FOCC)
+\end{align}
+
+
+The FOCs for the quota-constrained Bertrand game (equation
+\ref{eqn:FOCC}) suffer from an additional complication: the \verb@max@
+function introduces a kink that can make it difficult for the
+non-linear equation solver to find equilibrium
+prices. @Froeb2003 suggests replacing  equation
+\@ref(eq:FOCC) with
+\begin{align*}
+ FOC_i +  q_i - t_i + \sqrt{FOC_i^2 + (q_i - t_i)^2}=0,& i=1,\ldots,n
+\end{align*}
+
+which has the same roots as equation \@ref(eq:FOCC), but is
+smoother. The \verb@calcPrices@ method for all classes based on the
+capacity-constrained Bertrand Model use this smoothed system to solve
+for equilibrium prices when the constraint is binding.
+
+## Calibrating Model Demand and Cost Parameters
+
+
+For the Logit, CES, and AIDS demand specifications  allowed under this implementation of the Bertrand model,
+the calibration strategy is the same. First, we
+assume that quantities/shares and (with the exception of LA-AIDS) prices are observed for *all* products in the
+market, and that margins for *some* products
+are observed. Our decision to treat quantities, prices, and
+margins as primitives comes directly from equation
+\@ref(eq:FOC).
+
+In addition to quantities, prices, some margins and capacities, we assume that
+users observe diversion ratios. Diversion ratios come in two
+forms: *quantity* diversion and *revenue* diversion. The
+*quantity* diversion from
+product $i$ to product $j$, $d^q_{ij}$, is defined as the percentage of all of $i$'s
+lost unit sales that switch to $j$ *due to a price increase in product $i$*, while the *revenue* diversion  from
+product $i$ to product $j$, $d^r_{ij}$, is  defined as the percentage of all of $i$'s
+lost revenue that switches to $j$ *due to a price increase in product $i$*. Mathematically, quantity and revenue diversion may be
+represented as
+
+\begin{align}
+  (\#eq:divquant)
+d^q_{ij}=&-\frac{\frac{\partial q_j}{\partial p_i}}{\frac{\partial
+    \nonumber q_i}{\partial p_i}}\\ =& -\frac{\epsilon_{ji}q_j}{\epsilon_{ii}q_i}\\
+  (\#eq:divrev)
+d^r_{ij}=&-\frac{\frac{\partial p_jq_j}{\partial p_i}}{\frac{\partial
+    \nonumber p_iq_i}{\partial p_i}} \\ =&-\frac{\epsilon_{ji}(\epsilon_{jj}-1)r_j}{\epsilon_{jj}(\epsilon_{ii}-1)r_i}
+\end{align}
+
+Note that $d^q_{ij},d^r_{ij}$ are restricted to be between -1 and 1,
+and are positive if products $i$ and $j$ are substitutes and negative if they are complements. Additionally, conditional on customers switching from product $i$, they must switch to another product (i.e. $\sum_{j}d_{ij}\le 0$). For all the models included in `trade`, we assume that $i$ and $j$ are not complements ($d_{ij}\ge 0$) and for some demand models (i.e. AIDS) we will assume that   $\sum_{j}d_{ij} = 0$.
+
+Although diversion ratios are not present in equation
+\@ref(eq:FOC), these definitions indicate that diversion ratios may
+be helpful in recovering the matrix of own- and cross-price
+elasticities $E$. Indeed, for a number of the demand
+systems described below, diversions will be used for just this
+purpose.
+
+
+
+We further assume that all of this information
+represents the outcome of the unique current
+equilibrium for firms in the
+market playing the static Bertrand pricing game described above.
+We then substitute observed margins, shares and prices into
+equation \@ref(eq:FOC), which is now solely a function of demand
+parameters, and then solve for the coefficient(s) on prices. Once the
+price coefficients have been estimated, we use observed prices and the demand equations to estimate the intercepts.
+
+Often, there are more FOCs than unknown price
+coefficients. For instance, under Logit demand, only the
+price parameter $\alpha$ and the share of the outside good $s_0$ needs to be estimated and up to $n$ FOCs with
+which to estimate it. This means that at a minimum, users need only
+supply enough margin information to complete a single product's
+FOC. If that product happens to be owned by a single-product firm,
+then only one margin is necessary. On the other hand, if the product
+happens to be owned by a multi-product firm, then at a minimum, all the margins for
+products owned by that firm must be supplied.
+
+
+The (Marshallian) demand specifications used in `trade` can be grouped into two
+categories: demand systems that are derived from a
+representative consumer's
+expenditure function and demand systems that are derived from a
+representative consumer's indirect utility function. The  LA-AIDS demand system
+fall into the former
+category, while the Logit and CES fall into
+the latter category. Below, we briefly
+discuss these demand systems as well as the assumptions
+and/or data needed to recover estimates of the demand parameters.
+
+We conclude this section with a discussion of how calibrated demand parameters and
+the FOCs can be used to calibrate product-specific constant marginal costs.
+
+
+### Logit Demand With Unobserved Outside Share
+The Bertrand model with Logit demand and unobserved outside share may be
+implemented using the  `bertrand_tariff` function with 'demand' equal to "logit".
+
+Logit demand is based on a discrete choice model
+that assumes that each consumer is
+willing to purchase **at most** a single unit of one product from the
+set of $I$ products available in the market. When consumers choose not to purchase
+one of the products in the market, they are assumed to purchase the "outside good."
+
+This model assumes that while the quantities of the products *included* in the market can be observed with some accuracy,
+the quantity of all the products *excluded* from the market (i.e. the "outside good") is difficult to estimate reliably.  The `bertrand_tariff` function attempts to circumvent this issue by treating the share of the outside good as a nuisance parameter
+and using additional margin and/or aggregate elasticity information to estimate that
+parameter.^[The outside good is a nuisance parameter because
+  it is only needed to obtain estimates of the other demand and cost
+  parameters and is not used to solve for equilibrium prices.]
+
+The assumptions underlying
+Logit demand imply that the probability that a consumer
+purchases product $i \in I$ is given by
+
+\begin{align*}
+  s_i=& s_{i|I}s_I,&\\
+  s_{i|I}=&\frac{\exp(V_i)}{\sum\limits_{k \in I}\exp(V_k)},&\\
+  s_I=&1-s_0,&
+\end{align*}
+where  $s_{i|I}$ is product $i$'s quantity share, conditional on a product being chosen from the set of inside goods $I$, and $s_0$ is the share of the outside good. This implies that
+\begin{align*}
+  \sum\limits_{k \in I} s_{k|I}=&1,&
+\end{align*}
+We assume that $V_i$ takes on the following form
+\begin{align*}
+  V_i=&\delta_i + \alpha p_i,& \alpha\le 0.
+\end{align*}
+
+Likewise, the own, cross, and market price elasticities may be written as
+
+\begin{align*}
+  \epsilon_{ii}=&\alpha (1-s_{i|I}(1-s_0))p_i, \\
+  \epsilon_{ij}=&-\alpha s_{j|I}(1-s_0)p_j,\\
+  \epsilon=&\alpha\overline{p}s_0,
+\end{align*}
+
+where $\overline{p}$ is the *quantity* share-weighted average price of the inside goods.
+
+This version of the Logit model has $|I|+2$ parameters to estimate ($|I|$ $\delta$s,
+$\alpha$, and $s_0$) and up to $2|I|+1$ equations with which to estimate them (up to
+$|I|$ complete FOCs, $|I|$ choice probabilities and the market elasticity equation). `calcSlopes` exploits this over-identification
+by employing a minimum distance algorithm to find the
+values for $\alpha$ and $s_0$ that best satisfy all the equations for which there
+ are data, subject to the constraints that $\alpha$ is negative and $s_0$ is between 0 and 1. The $\delta$s are then recovered from the choice probabilities, while **constant** marginal costs are recovered from fitted current tariff margins and observed prices.
+
+
+
+### CES Demand With Unobserved Outside Share
+
+The Bertrand model with Constant Elasticity of Substitution (CES) demand and unobserved outside share may be
+implemented using the  `bertrand_tariff` function with 'demand' equal to "ces."
+
+Like the Logit, CES demand is based on a discrete
+choice model. However, CES differs from the Logit model in that under CES
+consumers do not purchase a single unit of a product but instead spend
+a fixed proportion of their budget on one of the $I$ products
+available in the market or the outside option.^[Formally, each consumer chooses the
+  product $i \in I$ that yields the maximum utility $U_i=\ln(\delta_iq_i) +\alpha \ln(q_0) +
+  \epsilon_i$, subject to the budget constraint $y=p_iq_i+q_0$. Here,
+  $q_i$ is the amount of product $i$ consumed by a consumer, $\delta_i$
+  is a measure of product $i$'s quality, $q_0$ is
+  the amount of the numeraire, $y$ is consumer income, and
+  $\epsilon_i$ are random variables independently and identically
+  distributed according to the Type I Extreme Value distribution.]
+
+The assumptions underlying CES demand imply that the probability that a consumer
+purchases product $i\in I$ is given by
+
+
+\begin{align*}
+ r_i=& r_{i|I}r_I,&\\
+  r_i=& \frac{V_i}{\sum\limits_{k \in n}V_k}& \mbox{for all $i \in n$},\\
+   r_I=&1-r_0,&
+\end{align*}
+where  $r_{i|I}$ is product $i$'s *revenue* share, conditional on a product being chosen from the set of inside goods $I$, $r_0$ is the *revenue* share of the outside good, and  $V_i$ is the (average) indirect utility that a consumer receives from purchasing product $i$. We assume that $V_i$ takes on the following form
+\begin{align*}
+  V_i=&\delta_ip_i^{1-\gamma},&\gamma > 1 .
+\end{align*}
+
+The CES demand system yields the following own- and cross-price elasticities:
+\begin{align*}
+  \epsilon_{ii}=& -\gamma + (\gamma-1)r_i, \\
+  \epsilon_{ij}=& (\gamma-1)r_j,\\
+   \epsilon=&(1 -\gamma)\overline{p}r_0,
+\end{align*}
+
+
+where $\overline{p}$ is the *revenue* share-weighted average price of the inside goods.
+
+Functional form differences aside, one important difference between
+the CES and Logit demand systems is that the Logit model's choice
+probabilities are based on *quantity* shares, while the CES model's
+choice probabilities are based on *revenue* shares.
+
+Like Logit demand, CES demand has $|I|+2$ parameters to estimate ($|I|$ $\delta$s, $\gamma$, and $r_0$)
+and up to $2|I| + 1$ equations with which to estimate them (up to
+$|I|$ complete FOCs, $|I|$
+choice probabilities, and the market elasticity equation). `ces` exploits this over-identification
+by employing a minimum distance algorithm to find the
+values for $\gamma$ and $r_0$ that best satisfy all the equations for which there
+ are data, subject to the constraints that $\gamma$ is greater than 1  and $r_0$ is between 0 and 1.
+ The $\delta$s are then recovered from the choice probabilities,
+ while **constant** marginal costs are recovered from fitted current tariff margins and observed prices.
+
+
+
+
+### LA-AIDS Demand
+The Bertrand model with the linear approximate Almost Ideal Demand System (LA-AIDS)  may be implemented
+using the `bertrand_tariff` function with 'demand' equal to "aids."
+
+The LA-AIDS without income effects assumes that the demand for each product $i
+\in n$ in the market is given by
+
+\begin{align*}
+  r_i=& \alpha_i + \sum_{j\in n}\beta_{ij} \log(p_j) \mbox{ for all $i\in n$},& \beta_{ii}<0
+\end{align*}
+which may be written in matrix notation as
+\begin{align*}
+  r=&\alpha + B\log(p),&
+\end{align*}
+
+
+where $r,p$ are vectors of product *revenue* shares and prices, $\alpha$ is a vector of product-specific demand intercepts and
+$B$ is a matrix of slopes.^[LA-AIDS differs from AIDS in that
+  LA-AIDS substitutes the AIDS price index with Stone's price
+  index. Since this version of LA-AIDS is without income effects,
+  Stone's price index is only used to derive the own- and cross-price elasticities.]
+
+The LA-AIDS model yields the following own- and cross-price elasticities:
+\begin{align*}
+  \epsilon_{ii}=&-1 + \frac{\beta_{ii}}{r_i} + r_i(1+ \epsilon),& \epsilon_{ii}<0  \\
+  \epsilon_{ij}=&\frac{\beta_{ij}}{r_i} + r_j(1+ \epsilon),& \epsilon_{ij}\ge 0
+\end{align*}
+
+where $\epsilon$ is the market elasticity of demand.
+
+The LA-AIDS model assumes that $B$ is symmetric, satisfies homogeneity of degree zero in prices, and that diversion is
+known. The LA-AIDS model, however,
+assumes that *revenue* diversion, rather than *quantity*
+diversion is observed.^[If the 'diversion' argument to `bertrand_tariff`
+  is missing, `bertrand_tariff`  assumes diversion according to revenue
+  share.] Under these two assumptions, there are $\frac{n(n+3)}{2}$ unknown
+demand parameters ($\frac{n(n-1)}{2}$ diagonal elements in $B$, $n$ diagonal elements, and $n$ intercepts) and up to $n(n+1)$ equations ($n(n-1)$ diversion equations, $n$ FOCs and  $n$ demand equations),
+in which case the system is over-identified.^[In fact, it turns out that only one element of $B$ must be estimated.To see why, note that under symmetry, $\beta_{jj}=\frac{d_{ij}}{d_{ji}}\beta_{ii}$. Hence, if $\beta_{ii}$ is known, then the preceding equation indicates that all the $\beta_{jj}$s may be recovered. From here, the definition of diversion may be used to recover all the $\beta_{ij}s$.]
+
+Unlike the Logit and CES models described above, none of the LA-AIDS model's equations are a function of the share of the
+outside good. Instead, these equations are a function of the market elasticity of demand $\epsilon$.
+Roughly speaking, $\epsilon$ controls
+the extent to which consumers substitute to products outside
+the $n$ products included in the simulation
+given a small change in market-wide product prices. Here, we assume that $\epsilon$ is a parameter whose value is not a function of product prices.^[This assumption implies that customers substitute to  products outside of the simulation in response to price increases by all products in the simulation at the same rate before and after the change in tariffs.]
+
+The `calcSlopes` method, called by the `aids`
+function to calibrate the AIDS parameters, uses a minimum distance algorithm to find the $\epsilon$  (if not supplied using the 'mktElast' argument) and a single diagonal element of $B$ that best satisfy i) all the FOCs for which there is sufficient information and ii) the diversion equations $d_{ij}=-\frac{\beta_{ji}}{\beta_{ii}}$, and iii) the market elasticity (if supplied using the 'mktElast' argument). The $\beta_{ii}$'s are recovered from the fact that $\sum_{j}d_{ij}=0$; customers must switch to a product included in the model.
+
+Another distinguishing feature of the LA-AIDS model is that it does not require any information on product
+prices in order to simulate tariff price effects. The LA-AIDS accomplishes this by
+using the supplied margin and revenue information to estimate $B$, but not $\alpha$. There are,
+however, a few drawbacks to not using pricing information.  First, while
+tariff-specific price *changes* may be calculated, pre- and post-tariff
+price *levels* cannot. Second, welfare measures like
+compensating variation cannot be calculated.  Prices are an optional
+input to `aids` and `pcaids`, and when they are supplied both
+price levels and welfare measures may be calculated.
+
+
+# The Cournot Quantity Game
+
+
+Another model included in `trade` is the Cournot quantity game.  This version of the game assumes that multi-plant firms with distinct, increasing marginal costs producing multiple products
+simultaneously set plant output for each product to maximize their
+profits.^[`trade`'s version of the Cournot quantity game extends [@Anderson2001a] to accommodate tariffs under Cournot quantity competition.] All firms producing a particular product are assumed to be undifferentiated. In this model, quantities are *strategic substitutes* in the sense that decreasing the quantity of
+one product causes some customers to switch to competing manufacturers, raising
+their quantities and profits. Ultimately, it is the magnitude of these lost sales that, at
+the margin, dissuades firms from reducing their output further .
+
+Similar to the Bertrand model, tariffs are modeled by effectively assuming that the marginal costs
+of certain products produced by
+foreign firms increase by the amount of the tariff. Because all plants included in `trade` models are assumed
+to be producing substitutes, this marginal cost increase
+causes foreign firms to restrict plant output, which in turn raises product price.
+
+
+Because  all firms are manufacturing an identical version of the product, this version of the Cournot model allows firms under the new tariff regime  to start or stop producing other products. This model does not allow for firms to engage  in some forms of price discrimination.^[In particular, this version of the Bertrand
+  model does not accommodate non-linear pricing, such as is used in 2nd
+  or 3rd degree price discrimination.]
+
+## Differentiated-Product Logit Cournot
+
+`trade` also includes `logit_cournot_tariff`, a differentiated-product Cournot model with Logit demand. This model is distinct from `cournot_tariff`: each product is differentiated, each product has a constant marginal cost, and firms choose product quantities while consumer substitution is governed by the Logit demand system described above. The implementation subclasses the `LogitCournot` and `LogitCournotALM` classes from `antitrust`, so the demand calibration and equilibrium conditions match those classes.
+
+Under Logit Cournot, the calibrated level margin for product $i$ is based on the Logit price coefficient $\alpha$, product shares, and the total share of products controlled by the firm setting product $i$'s quantity. With an outside good indexed by $0$, the corresponding antitrust implementation uses
+
+\begin{align*}
+  p_i - c_i = -\frac{1 + S_f / s_0}{\alpha},
+\end{align*}
+
+where $S_f$ is the quantity share of products controlled by the firm. If one inside product is used as the normalization good instead of an outside good, that product's share replaces $s_0$ in the denominator. A tariff changes the same two objects as in the differentiated-product Bertrand tariff model: the conduct matrix row for product $i$ is multiplied by $1-t_i$, and marginal cost is updated using $(t_i^{post}-t_i^{pre})/(1-t_i^{post})$. In code this corresponds to `owner * (1 - tariff)`, which scales rows of the ownership matrix by the tariff on the product whose first order condition is being evaluated.
+
+The `LogitCournot` calibration can use observed diversion ratios. The `LogitCournotALM` calibration treats the outside share as unobserved and uses additional margin and/or aggregate elasticity information to estimate it.
+
+The main inputs to `logit_cournot_tariff` are product prices, product quantities or shares, product margins, ownership, and the current and proposed tariff vectors. When quantities are supplied, `trade` converts them to quantity shares and uses total quantity as the inside market size. This is the same data layout used by the differentiated-product tariff functions, not the plant-by-product quantity matrix used by `cournot_tariff`.
+
+For example, the beer data used throughout this vignette can be simulated under differentiated-product Logit Cournot as follows:
+
+```r
+prodNames <- c("BUD", "OLD STYLE", "MILLER", "MILLER-LITE",
+               "OTHER-LITE", "OTHER-REG")
+owner <- c("BUD", "OLD STYLE", "MILLER", "MILLER",
+           "OTHER-LITE", "OTHER-REG")
+price <- c(.0441, .0328, .0409, .0396, .0387, .0497)
+quantities <- c(.066, .172, .253, .187, .099, .223) * 100
+margins <- c(.3830, .5515, .5421, .5557, .4453, .3769)
+tariff <- c(0, 0, 0, 0, .1, .1)
+
+result.logit.cournot <- logit_cournot_tariff(
+  prices = price,
+  quantities = quantities,
+  margins = margins,
+  owner = owner,
+  tariffPost = tariff,
+  labels = prodNames
+)
+
+print(result.logit.cournot)
+summary(result.logit.cournot)
+calcDiagnostics(result.logit.cournot)
+```
+
+If the outside share is not observed, users can instead use the ALM calibration by supplying an aggregate market elasticity and setting `calibration = "alm"`:
+
+```r
+result.logit.cournot.alm <- logit_cournot_tariff(
+  prices = price,
+  quantities = quantities,
+  margins = margins,
+  owner = owner,
+  mktElast = -1.5,
+  calibration = "alm",
+  tariffPost = tariff,
+  labels = prodNames
+)
+
+summary(result.logit.cournot.alm, market = TRUE)
+CV(result.logit.cournot.alm)
+elast(result.logit.cournot.alm, preMerger = TRUE)
+diversion(result.logit.cournot.alm, preMerger = TRUE)
+```
+
+The `calibration = "auto"` default uses the ALM path when `mktElast` is supplied and diversion data are missing; otherwise it uses the diversion-ratio calibration. In either case, the reported price and welfare results are tariff simulations, not ownership-change merger simulations.
+
+## The Game
+
+
+Suppose that there are $K$ firms in a
+market, each producing a subset $J_k$ of $J$ products. Further, suppose that  that each of the $k \in K$ firms manufactures its $J_k$ products at $n_k$
+plants.  Let $n = \sum_{k\in K} n_k$ denote the total number of plants producing any of the $J$ products. The Cournot model assumes that firms
+simultaneously set the amount of each product produced at each plant in order to maximize
+their profits. This model also assumes that all firms can perfectly observe each
+others' quantities, and costs, as well as the demand for each product. Further, suppose that the government imposes an *ad valorem* tariff $t_i$ on a subset of products produced at plants located abroad. Note that we assume that the tariff is calculated as a proportion of **consumer** price, so that the price received by the firm is  $1-t_i$ the price faced by consumers.
+
+Functions in `trade`'s Cournot model  also adopt the additional assumption that each firm's plant has its own  distinct marginal cost
+technology.
+
+
+
+Firm $k \in K$ chooses product output at each plant $\{q_j^r\}_{\substack{j\in j_k,\\ r\in n_k}}$ so as to maximize profits. Mathematically, firm $k$ solves:
+
+\begin{align*}
+\max_{{\{q_j^r\}}_{\substack{j\in J_k,\\ r\in n_k}}} & \sum_{\substack{j\in J_k,\\ r\in n_k}}p_jq_j^r(1-t_j^r) - \sum_{r\in n_k}c^r(q^r)
+\end{align*}
+subject to
+\begin{align*}
+  & q_j^r \ge 0,&\\
+  & q^r = \sum_{j \in J_k} q_j^r &\\
+\end{align*}
+
+where $p_j$, the price sold of product $j$,  is assumed to
+be a twice differentiable function of *all* firm quantities with $\frac{\partial p_j}{\partial q_j^r}< 0$ for all plants $r$ and products $j$. Likewise, additively separable plant variable costs $c^r$   assumed to be twice differentiable with $\frac{\partial c^r}{\partial q_j^r}> 0$ . Finally, $t_j^r$ is the tariff imposed on plant $r$ producing product $j$.
+
+Differentiating profits with respect to each $q_j^r$  yields the following first order conditions (FOCs):
+
+\begin{align}
+  \partial q_j^r&\equiv p_j + \sum_{l\in n_k}q_j^l\frac{\partial p_j}{\partial q_j^r} - \frac{\partial c^r}{\partial q_j^r}\frac{1}{1-t_j^r}=0& \mbox{ for all $j\in J_k$, $r\in n_k$}\label{eqn:cournotFOC}
+\end{align}
+
+
+## Calibrating Model Demand and Cost Parameters
+
+The Cournot model can yield different equilibrium quantity and price predictions depending on 1) the curvature of plant variable costs and 2) the curvature of demand. `trade` allows users to explore the consequences of different cost and demand assumptions.
+
+Currently, `cournot` contains two different ways to specify plant costs. First, users can set the 'cost' option equal to a $n$-length character vector whose values are either equal to "linear" for linear marginal costs ($\frac{\partial c^r}{\partial q_j^r}= 0.5\gamma_r\sum_{j\in n_r}q_j^r$) or "constant" for constant marginal costs ($\frac{\partial c^r}{\partial q_j^r}= \gamma_r$) . When the 'cost' option is employed, `cournot`'s `calcSlopes` method uses observed costs (implied by predicted margins and prices) and prices to calibrate plant-level cost parameters $\gamma_r$.
+
+Alternatively, users can specify both plant-level marginal and variable costs. Marginal costs may be specified by setting   the 'mcfunPre' argument equal to a length $n$ list of functions that each take as an input the vector of product quantities produced at a plant and then return the marginal cost associated with producing that level of output at that plant. Likewise, the 'vcfunPre' argument can be similarly used to specify plant-level variable costs. Note that when marginal costs and variable costs are specified in this manner, `cournot` makes no attempt to calibrate any parameters on the cost side.
+
+Currently, `cournot` allows users to specify that product demand is either linear ($p_j=b_j + a_j\sum_{k\in n}q_j^k$) or log-linear ($\ln(p_j)=b_j + a_j\ln(\sum_{k\in n}q_j^k)$). Users can specify product demand by setting `cournot`'s 'demand' argument equal to a $j$-length character vector equal to either "linear" for linear demand or "log" for log-linear demand.
+
+<!-- ## Simulating Merger Effects -->
+
+<!-- ### Summarizing Results -->
+
+<!-- The `summary` method may be used to summarize the results of a -->
+<!-- merger between two firms. By default, the `summary` method reports pre- and post-merger equilibrium prices and quantities for each product included in the simulation. Also reported is the compensating marginal cost reduction (CMCR) as well as the change in consumer surplus from the merger. Setting the 'market' argument equal to FALSE returns plant-level equilibrium price effects. -->
+
+<!-- ### Simulating Price Effects With Marginal Cost Efficiencies -->
+<!-- Absent efficiencies, the Cournot model with the demand systems -->
+<!-- described here will almost always produce a (possibly negligible) -->
+<!-- post-merger price increase among substitutes. These price increases, however, can be -->
+<!-- offset by merger-specific efficiencies that decrease the *incremental* -->
+<!-- costs of some of the merging firms' products.^[Costs that are -->
+<!--   not strictly increasing with a product's output (i.e. fixed or sunk -->
+<!--   costs) do not affect the price setting behavior of firms in a -->
+<!--   Bertrand pricing game. ] -->
+
+<!-- All the functions discussed above allow users to evaluate these -->
+<!-- efficiencies in two different ways. First, all of these functions -->
+<!-- contain the "mcDelta" argument, which allows users to specify the -->
+<!-- proportional change in a product's marginal costs that may result from -->
+<!-- a merger. These cost changes are factored into the -->
+<!-- post-merger price equilibrium calculation made by the -->
+<!-- `calcPrices` method. If changes in marginal costs are not expected to be proportional, -->
+<!-- then users can instead set the "mcfunPre" and "mcfunPost" arguments   -->
+<!-- equal to lists containing functions that return each plants' pre- and post-merger marginal costs^[Users will also have to specify plant-specific variable costs as well using the "vcfunPre" and "vcfunPost" arguments.].  -->
+
+<!-- Second, users can call the `cmcr` method on the output of any -->
+<!-- of the functions described above. This method computes the -->
+<!-- compensating marginal cost reduction (CMCR) on the merging parties' -->
+<!-- products. CMCR is the percentage decrease in the marginal costs of -->
+<!-- the merging parties' products necessary to prevent a post-merger price -->
+<!-- increase. See the `cmcr` help page for further details. -->
+
+<!-- ### Simulating Price Effects With Capacity Constraints -->
+
+<!-- The Cournot model allows users to impose capacity constraints that may potentially change as a result of the merger.  -->
+<!-- The "capacitiesPre" argument allows users to specify a vector of pre-merger plant-specific capacity constraints (default is *Inf*, or no constraint).  The "capacitiesPost" argument allows users to specify a vector of post-merger constraints (default is "capacitiesPre").  -->
+
+<!-- ### Excluding Products or Plants -->
+
+<!-- By default, the Cournot model calculates a merger's effects -->
+<!-- under the assumption that the acquisition does not change the set of -->
+<!-- products available to consumers or the set of plants that are in production. A merger's effects, however, may -->
+<!-- differ if the merger induces either the merging parties or another -->
+<!-- market participant to eliminate some products from their portfolio or to alter the mix of plants used in producing their products. -->
+
+<!-- To accommodate the possibility that some products or plants may be removed from -->
+<!-- the market following an acquisition, all the constructor functions -->
+<!-- described above have a "productsPre" and a "productsPost" arguments that allows users to specify -->
+<!-- an $n$ by $J$ logical matrix which equals TRUE  if a product produced at a particular plant should be -->
+<!-- included in the merger simulation and FALSE otherwise. By default, "productsPre" equals TRUE if the "quantities" is not NA, and FALSE otherwise, while "productsPost" equals "productsPre". -->
+
+<!-- ### Measuring Changes In Consumer Welfare -->
+
+<!-- The Cournot model has a `CV` method which may be used to -->
+<!-- calculate the change in consumer surplus from a merger. -->
+
+<!-- # 2nd Score Auction with Logit Demand -->
+<!-- *IN PROGRESS* -->
+<!-- Here, we describe a 2nd score procurement auction where the features of the products -- including cost -- are both horizontally and vertically differentiated. This section is largely based on @Brannman2000 and @miller2014. This auction model may be executed using `trade`'s `auction2nd.logit` function. -->
+
+<!-- ### The Game -->
+<!-- Suppose that a buyer is interested in either purchasing a single unit of a -->
+<!-- differentiated product from one of $K$ firms, each of whom manufacture  $J_k,k\in K$ variants of the product, -->
+<!-- or in supplying the product herself. Let $J=\bigcup_k^KJ_k$ denote the set of all products produced by any of the $K$ firms. Not only do each of the variants have different characteristics, the cost of producing these products may also differ. In particular, suppose that variant $J_k,k\in K$  uses constant marginal -->
+<!-- cost technology $c_{J_k}\ge 0$ to produce the product.^[Throughout, we abuse the notation slightly by -->
+<!--   treating variables like $K$ as both the set of firms as well as the -->
+<!--   number of firms.]   -->
+
+<!-- Let the utility that a buyer receives from product $j\in J$ with offer $p_j$ equal  to  -->
+<!-- \begin{align*} -->
+<!--   V_j(p_j)=& \overline{V}_j(p_j) + \epsilon_j &\\ -->
+<!--  \overline{V}_j(p_j) =& \delta_j + \alpha p_j,&\alpha<0,\\ -->
+<!-- \end{align*} -->
+
+<!-- where $\overline{V}_j$ represents an index of "vertical" quality differentiation that is decomposed into a non-offer component $\delta_j$ and an offer component $\alpha p_j$.  In addition, $\epsilon_j$ represents a buyer-specific idiosyncratic shock to utility (i.e. "horizontal" quality differentiation). Without loss of generality, we will assume that these  shocks are independently drawn from  the distribution $F$, with mean 0 and variance 1.^[Equivalently, $-\frac{V_j(p_j)}{\alpha}$ is a random variable with location $-\frac{\overline{V}_j(p_j)}{\alpha}$ and scale $-\frac{1}{\alpha}$.] We will also assume that at the start of the auction, $\epsilon_j$ is known to $j$'s manufacturer but is not known to  any other sellers. -->
+
+<!-- The buyer is assumed to employ a 2nd score auction to determine which product she will purchase. In this auction -->
+<!-- format, each firm submits an offer and the firm with the highest score (which may be the buyer if the buyer self-supplies)  wins the auction -->
+<!-- but pays the difference between the value of the highest scoring product and the value of the next-highest scoring product, less that seller's offer on that product. It can be shown that it is a *dominant strategy for each firm to offer the product with the highest surplus in its portfolio to the buyer at cost*.   -->
+
+<!-- Let $z_A=\max_{k\in A}{V_k(c_k)}$ denote the the maximum surplus available from any product $k\in A\subseteq J$. It can be shown that the following must hold when firm $k\in K$ wins with variant $j\in J_k$ -->
+
+
+<!-- - the probability that $j$ wins is -->
+<!-- \begin{align} -->
+<!--  s_j &\equiv 1-Pr(V_j < z_{k \not\in J_k}); -->
+<!--   (\#eq:auc21) -->
+<!-- \end{align} -->
+
+<!-- - the expected price conditional on $j$ winning is -->
+<!-- \begin{align} -->
+<!--  E[p_j|\text{$j$ wins}]= c_j + E[z_J|\text{$j$ wins}] - E[z_{k \not\in J_k}|\text{$j$ wins}];  -->
+<!--  (\#eq:auc22) -->
+<!-- \end{align} -->
+
+<!-- - subtracting $c_j$ from both sides of \@ref(eq:auc22) yields the expected profit margin conditional on $j$ winning: -->
+<!-- \begin{align} -->
+<!--  E[m_j|\text{$j$ wins}]=& E[z_J|\text{$j$ wins}] - E[z_{k \not\in J_k}|\text{$j$ wins}]  -->
+<!--  (\#eq:auc23) -->
+<!-- \end{align} -->
+
+<!-- #### Merger analysis {-} -->
+<!-- Suppose that firm $k\in K$ acquires a portfolio of products $J_r$ produced by firm $r\in K$.^[Note that $k$ could either acquire $r$'s entire product line or just a subset.]  -->
+
+<!-- **Retention of all products.** If post-merger $k$ does not discontinue any of $r$'s products, then it can be shown that it is still a dominant strategy for $k$ to only offer a buyer the highest surplus product, and that consequently, the acquisition does not affect which product will ultimately be selected *ex-ante*. Consequently,  the merger does not decrease *ex-ante* output and therefore leaves total surplus unchanged. The merger will, absent variable cost efficiencies, lead to a price increase that exactly equals the  decrease in consumer surplus. The *ex-ante* magnitude of the price increase (and corresponding decrease in consumer surplus) when $j\in J_k \cup J_r$ win the auction is: -->
+
+
+<!-- \begin{align} -->
+<!-- E[\Delta p_j|\text{j wins}] = E[m_j^{post}|\text{j wins}] - E[m_j^{pre}|\text{j wins}]. -->
+<!--  (\#eq:auc2pricedeltacond) -->
+<!-- \end{align} -->
+
+<!-- The expected change in consumer surplus-- which, absent efficiencies  also equals the weighted average price effect-- may be calculated by taking the share-weighted average of equation \@ref(eq:auc2pricedeltacond): -->
+
+<!-- \begin{align} -->
+<!-- E[\Delta p] = \sum\limits_{j\in J_k\cup J_r}s_jE[\Delta p_j|\text{$j$ wins}] -->
+<!-- (\#eq:auc2pricedelta) -->
+<!-- \end{align} -->
+
+<!-- where $s_j$ is given by \@ref(eq:auc22) -->
+
+
+<!-- ### Calibrating Model Demand and Cost Parameters -->
+<!-- For this model, we will assume that users observe firm shares, -->
+<!-- prices, and *some* margin information. From the user's perspective, the unknowns are the buyers'  distribution of valuations ($F$), the constant marginal costs ($c_j$) and the components of a buyer's mean valuation (i.e. the $\delta_j$s and $\alpha$). -->
+
+<!-- In order to calibrate this model with the limited information available, we will need to assume a functional form for $F$. Currently, `antitrust` assumes that $F$ follows a [Gumbel](http://en.wikipedia.org/wiki/Gumbel\_distribution) distribution. Under this distributional assumption,  -->
+
+<!-- - the probability that $j$ wins is -->
+<!-- \begin{align} -->
+<!--  s_j = \frac{\exp(\overline{V}_j(c_j))}{\sum\limits_{k \in J}\exp(\overline{V}_k(c_k))} -->
+<!--  (\#eq:auc24) -->
+<!-- \end{align} -->
+
+<!-- - the expected value of the maximum for products in $A \subseteq J$ is -->
+<!-- \begin{align} -->
+<!--  E[z_A]=-\alpha^{-1}\log\sum\limits_{j\in A}\exp(\overline{V}_j(c_j)) -->
+<!--  (\#eq:auc25) -->
+<!-- \end{align} -->
+
+<!-- First, note that for product $h\ne j$, equation \@ref(eq:auc24) indicates -->
+<!-- \begin{align} -->
+<!--  \log s_j - \log s_k &= \overline{V}_j(c_j) - \overline{V}_h(c_h)\\ -->
+<!--                      &= \delta_j-\delta_h - \alpha(c_j -c_h)  -->
+<!--                      (\#eq:auc26) -->
+<!-- \end{align} -->
+
+<!-- Equation \@ref(eq:auc24) implies that at least one of the $V_j$s is not separately identified. Therefore, one product must be selected as the *numeraire* so that all the other valuations are *relative* to the normalized product.^[Specifically, suppose $k$ is the *numeriare* product, and that $V_k=\delta_k +\alpha p_k$. When supplied 'shares' sum to 1, the first product is by default set to be the numeraire product. This may be changed with the 'normIndex' option.]   -->
+
+<!-- Next, substituting equation \@ref(eq:auc25) into equation \@ref(eq:auc23) yields the following closed form expression for margins: -->
+
+<!-- \begin{align} -->
+<!--  E[m_j|V_j(c_j) > z_{k \not\in J_k}]= -\frac{1}{\alpha\sum\limits_{r\in J_k}s_r}\log\left(\frac{1}{1-\sum\limits_{r\in J_k}s_r}\right)  -->
+<!--  (\#eq:auc27) -->
+<!-- \end{align} -->
+
+<!-- Equations \@ref(eq:auc26) and \@ref(eq:auc27) form the basis of the calibration strategy. All the model parameters may be calibrated with just a single margin and market shares. Product prices only need to to be supplied for products whose marginal costs are assumed to change post-merger (i.e. products for which 'mcDelta' is not equal to 0).  -->
+
+<!-- For example, suppose that the margin for product $j\in J_k$ is known. Equation \@ref(eq:auc27) implies that $\alpha$ may be recovered using only $j$'s margin as well as the sum of the shares for all of firm $j$'s products. This estimate of $\alpha$, in conjunction with equation \@ref(eq:auc27) may then be used to estimate margins for all the other products in the market. Absent post-merger cost changes, these margin estimates, along with equation \@ref(eq:auc26), may then be used to estimate each products' non-offer mean valuations ($\delta$s).  -->
+
+<!-- When post-merger cost changes are included in the model, it becomes necessary to estimate marginal costs, *but only for the products whose costs are changing due to the merger*.^[This occurs because in a 2nd score auction, it is a dominant strategy to bid costs. Consequently, if product $j$'s costs do not change, then $V_j$ is the same for product $j$ both pre- and post-merger. This is in contrast to the Nash-Bertrand pricing game described in section \@ref(nblogit), where a firm's pricing strategy for product $j$ depends on the pricing behavior of all other products, making it necessary to use pricing information to decompose $V_j$  into its price and non-price components.] This is accomplished by including price information for these products. Products whose costs are not assumed to change do not require pricing data (i.e. 'prices' may be NA for products where 'mcDelta' is 0).  -->
+
+<!-- In some instances, there may be more than one margin available. In these cases a minimum distance algorithm  is used to find the value of $\alpha$ that best satisfies all the margin equations \@ref(eq:auc27) for which there is data.  -->
+
+<!-- ### Simulating Merger Effects -->
+<!-- #### Summarizing Results {-} -->
+<!-- The `summary` method for `Auction2ndLogit` is similar to the method described in section \@ref(nbsummary). The main difference is that by default, this method reports changes in levels rather than percentages and output in quantity shares rather than in revenue shares. These alterations were made because prices are not a pre-requisite for this model, but when prices are not supplied, only level changes are identified. Regardless, these defaults can be changed by appropriately setting the method's 'revenue' and 'levels' arguments. -->
+
+<!-- #### Simulating Price Effects With Efficiencies {-} -->
+<!-- `auction2nd.logit`'s 'mcDelta' argument may be used to specify the anticipated proportional change in marginal costs that will likely occur from a merger. See `auction2nd.logit`'s help page for further details. -->
+
+
+`r if (knitr::is_html_output()) '# References {-}'`
+
+````
+
+</details>

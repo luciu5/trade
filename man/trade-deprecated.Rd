@@ -5,8 +5,9 @@
 \alias{trade_shiny}
 \title{Deprecated functions in package \pkg{trade}}
 \usage{
-trade_shiny()
+trade_shiny(...)
 }
+\arguments{\item{...}{Arguments passed to \code{competitiontoolbox::ct_shiny()}.}}
 \description{
 The functions listed below are deprecated and will be defunct in
   the near future. When possible, alternative functions with similar

@@ -1,0 +1,153 @@
+---
+title: "Tariffs when firms choose quantities"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tariffs when firms choose quantities}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Quantity competition has two different data layouts in trade: differentiated
+products with Logit demand, and plants producing homogeneous products. This guide
+uses **trade 0.9.0** with compatible antitrust/coordination dependencies and
+illustrative deterministic data. Prices are currency per unit and outputs are
+units. See the [tariff starter](Reference.html) ([source](https://github.com/luciu5/trade/blob/master/vignettes/Reference.Rmd)) for net-revenue margins and CV signs.
+
+## Differentiated Logit products
+
+Each product has its own demand and price. Firms choose their portfolio's
+quantities. The Miller portfolio below contains two products.
+
+```{r logit-cournot}
+library(trade)
+products <- c("BUD", "OLD STYLE", "MILLER", "MILLER-LITE",
+              "OTHER-LITE", "OTHER-REG")
+owner <- c("BUD", "OLD STYLE", "MILLER", "MILLER", "OTHER-LITE", "OTHER-REG")
+price <- c(.0441, .0328, .0409, .0396, .0387, .0497)
+quantities <- c(.066, .172, .253, .187, .099, .223) * 100
+margins <- c(.3830, .5515, .5421, .5557, .4453, .3769)
+tariff <- c(0, 0, 0, 0, .1, .1)
+fit <- logit_cournot_tariff(prices = price, quantities = quantities,
+  margins = margins, owner = owner, tariffPost = tariff, labels = products)
+product_results <- data.frame(product = products,
+  price_pre = antitrust::calcPrices(fit, TRUE),
+  price_post = antitrust::calcPrices(fit, FALSE),
+  q_pre = antitrust::calcQuantities(fit, TRUE),
+  q_post = antitrust::calcQuantities(fit, FALSE))
+knitr::kable(product_results, digits = 4)
+```
+
+Compare OTHER-LITE's quantity and price before/after with Miller's portfolio.
+These columns are levels. The tariff `.1` is 10% of consumer price, equivalent
+to a producer-value statutory rate `.1/.9`; it is not a statutory 10% rate.
+With quantities converted to shares summing to one, the default standard route
+uses an inside normalization product; it does not observe a positive outside
+share just because quantities were supplied.
+
+```{r logit-diagnostics}
+calcDiagnostics(fit)
+fitted_margin <- antitrust::calcMargins(fit, preMerger = TRUE)
+margin_fit <- data.frame(product = products, observed_margin = margins,
+  fitted_margin = as.numeric(fitted_margin),
+  relative_discrepancy_pct = 100 * (1 - margins / as.numeric(fitted_margin)))
+knitr::kable(margin_fit, digits = 4)
+```
+
+The diagnostic convention is `100 * (1 - observed/fitted)`, a relative
+calibration discrepancy, not a percentage-point margin difference. BUD's
+observed margin is `r sprintf("%.4f", margins[1])`, while its fitted margin is
+`r sprintf("%.5f", fitted_margin[1])`; the reported discrepancy is approximately
+`r sprintf("%.2f", margin_fit$relative_discrepancy_pct[1])`%, not a negative
+margin of that magnitude. These illustrative observations fit this Cournot
+specification **poorly on margins**, even though prices and quantities reproduce
+the baseline closely. Treat this as a calibration warning before drawing
+empirical conclusions. Diagnostics are not confidence intervals for the tariff
+effect.
+
+## An unobserved outside share
+
+The ALM alternative uses additional aggregate elasticity information to estimate
+the outside share. This is a different calibration assumption, not a change of
+units or a mere solver setting.
+
+```{r alm-cournot}
+alm <- logit_cournot_tariff(prices = price, quantities = quantities,
+  margins = margins, owner = owner, mktElast = -1.5,
+  calibration = "alm", tariffPost = tariff, labels = products)
+knitr::kable(data.frame(product = products,
+  standard_price = antitrust::calcPrices(fit, FALSE),
+  alm_price = antitrust::calcPrices(alm, FALSE)), digits = 4)
+```
+
+The supplied market elasticity is negative. Differences between the two columns
+reflect different calibrated demand assumptions; they are not statistical
+uncertainty bands.
+
+## Plants producing one homogeneous product
+
+All plants below sell the same product at a common price. A quantity matrix has
+one row per plant and one column per product. We construct baseline observations
+from linear inverse demand and quadratic plant costs, then impose a statutory
+25% tariff on plant 1 using the consumer-price fraction `.20`.
+
+```{r plant-cournot}
+n <- 5
+capacity_parameter <- c(.4, .45, .5, .55, .6)
+intercept <- 10
+slope <- -.25
+foc <- matrix(slope, n, n)
+diag(foc) <- 2 * slope - 1 / capacity_parameter
+q0 <- as.numeric(solve(foc, rep(-intercept, n)))
+p0 <- intercept + slope * sum(q0)
+mc0 <- q0 / capacity_parameter
+margin0 <- 1 - mc0 / p0
+plant_tariff <- matrix(c(.25 / 1.25, rep(0, n - 1)), ncol = 1)
+plant <- cournot_tariff(prices = p0, quantities = matrix(q0, ncol = 1),
+  margins = matrix(margin0, ncol = 1), owner = diag(n),
+  tariffPre = matrix(0, n, 1), tariffPost = plant_tariff)
+plant_q_pre <- antitrust::calcQuantities(plant, TRUE)
+plant_q_post <- antitrust::calcQuantities(plant, FALSE)
+knitr::kable(data.frame(plant = seq_len(n), q_pre = as.numeric(plant_q_pre),
+  q_post = as.numeric(plant_q_post)), digits = 3)
+c(price_pre = antitrust::calcPrices(plant, TRUE),
+  price_post = antitrust::calcPrices(plant, FALSE))
+```
+
+`capacity_parameter` controls the curvature of cost (`MC=q/capacity_parameter`);
+it is not a hard capacity limit. Actual plant capacity constraints use the
+constructor's `capacitiesPre`/`capacitiesPost` arguments. Compare the foreign
+plant's response with the other four plants while remembering the product price
+is common to all plants.
+
+```{r plant-baseline-check, include=FALSE}
+stopifnot(max(abs(as.numeric(plant_q_pre) - q0)) < 1e-3,
+          all(is.finite(plant_q_post)), all(plant_q_post >= 0))
+```
+
+## Ownership and solver limits
+
+| Model | Input layout | Relevant constraint |
+|---|---|---|
+| `logit_cournot_tariff()` | Product vectors | Valid interior solution for active differentiated products |
+| `cournot_tariff()` | Plant × product matrices | Nonnegative output and plant capacity complementarity |
+
+For commonly owned plants, marginal revenue includes the retained revenue from
+all owned output affected by a quantity change. Unequal tariffs within that
+portfolio require the corresponding product/plant retention weights. Ownership
+itself remains the actual ownership matrix. Do not add the policy wedge a second
+time as a physical cost shock or copy a universal ownership-row scaling recipe.
+
+The homogeneous solver can handle output corners; differentiated mixed-retention
+support does not imply automatic selection of zero-output products. Exit must be
+specified through the supported route. Compare demand/cost specifications and
+input sensitivity when applying either model; a solved toy example does not
+establish the assumptions for an empirical market.
+
+See `?logit_cournot_tariff`, `?cournot_tariff`, `trade::supportedModels()` and the
+[mathematical reference](https://github.com/luciu5/trade/blob/master/doc/tariff_game_math.md).
+The reference separates retained-revenue equations from effective-cost shortcuts
+and preserves the longer demand and calibration background.

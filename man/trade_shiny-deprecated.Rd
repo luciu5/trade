@@ -4,12 +4,12 @@
 \alias{trade_shiny-deprecated}
 \title{A Shiny Interface to the trade Package}
 \description{
-Launch a shiny interface to simulate the effects of tariffs
+Launch the current competitiontoolbox interface
 }
 \details{
-\code{trade_shiny} launches a shiny interface for the \code{trade} package. The shiny interface provides users with the
-ability to calibrate model parameters and simulate tariff effects using many of the supply and demand models
- included in the \code{trade} package.
+This deprecated launcher forwards to \code{competitiontoolbox::ct_shiny()}.
+Install competitiontoolbox 0.9.0 or newer using its public installer.
+The UI remains an optional dependency of trade.
 }
 \seealso{
 \code{\link{trade-deprecated}}

@@ -10,7 +10,7 @@ Author: Charles Taragin [aut, cre]
 Maintainer: Charles Taragin <ctaragin+trader@gmail.com>
 URL: https://github.com/luciu5/trade
 Imports: antitrust (>= 0.99.43), coordination (>= 0.1.0), methods, stats
-Suggests: MASS, BB, competitiontoolbox, rmarkdown, bookdown, knitr, testthat, numDeriv
+Suggests: MASS, BB, competitiontoolbox, rmarkdown, knitr, testthat, numDeriv
 Remotes: luciu5/antitrust@a941cf145353c1941e906e173d82b05bc199a6bb,
     luciu5/coordination@fbb5343042a5b1564927fbe9839e3696e0c5d651
 Config/testthat/edition: 3

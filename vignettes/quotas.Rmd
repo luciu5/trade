@@ -1,0 +1,156 @@
+---
+title: "A binding import quota"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{A binding import quota}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+A quota limits output rather than collecting tariff revenue. Here we compare
+an 80%-of-baseline ceiling with an unconstrained scenario in a differentiated
+Logit Bertrand market. Use **trade 0.9.0** and its compatible antitrust dependency.
+Prices and quantities below are illustrative common units; the beer labels and
+inputs follow the existing package example based on Epstein and Rubinfeld (2004).
+
+## Fit the constrained scenario
+
+`quotaPost = .8` means a ceiling at 80% of the supplied baseline quantity, a
+20% reduction in permitted output. `Inf` means no ceiling. Miller owns two
+products; ownership must describe the whole portfolio.
+
+```{r quota-scenario}
+library(trade)
+products <- c("BUD", "OLD STYLE", "MILLER", "MILLER-LITE",
+              "OTHER-LITE", "OTHER-REG")
+owner <- c("BUD", "OLD STYLE", "MILLER", "MILLER", "OTHER-LITE", "OTHER-REG")
+price <- c(.0441, .0328, .0409, .0396, .0387, .0497)
+quantities <- c(.066, .172, .253, .187, .099, .223) * 100
+margins <- c(.3830, .5515, .5421, .5557, .4453, .3769)
+quota <- c(Inf, Inf, Inf, Inf, .8, .8)
+tight <- bertrand_quota(prices = price, quantities = quantities,
+  margins = margins, owner = owner, quotaPost = quota, labels = products)
+q_post <- antitrust::calcQuantities(tight, preMerger = FALSE)
+p_post <- antitrust::calcPrices(tight, preMerger = FALSE)
+ceiling <- quota * quantities
+slack <- ceiling - q_post
+tolerance <- 1e-6 * pmax(1, quantities)
+results <- data.frame(product = products, baseline_q = quantities,
+  ceiling = ceiling, post_q = q_post, slack = slack,
+  binding = is.finite(ceiling) & abs(slack) <= tolerance,
+  price_change_pct = 100 * (p_post / price - 1))
+knitr::kable(results, digits = 3)
+```
+
+A finite ceiling binds when the post quantity reaches it within the stated
+numerical tolerance. The slack column is in quantity units; `Inf` indicates an
+unconstrained product. Price changes are percentages relative to supplied
+baseline prices. Inspect the two OTHER products against their ceilings and
+compare their price responses with Miller's two unconstrained products.
+
+```{r quota-feasibility, include=FALSE}
+stopifnot(all(slack >= -tolerance), any(results$binding),
+          all(is.finite(q_post)), all(q_post >= 0))
+```
+
+## What is one more unit of ceiling worth?
+
+Quantity slack is not the shadow value. The shadow is the firm's marginal profit
+from one additional unit of its own ceiling, holding competitor prices fixed,
+in currency per output unit. It is also different from the full equilibrium
+response to relaxing all ceilings. This route has no public quota-shadow accessor.
+
+For this example only, each constrained OTHER firm owns **one product**, has
+constant marginal cost c, and faces differentiable Logit demand q(p) with
+q'(p)<0. Inverting its own demand while competitor prices stay fixed gives
+
+\[
+\lambda=\frac{d[(p-c)q]}{dq}=p-c+\frac{q}{q'(p)}.
+\]
+
+At a binding upper ceiling this is its local profit value of relaxation. With
+Logit slope alpha and market size M, q'(p)=alpha*q*(1-q/M). The calculation below
+uses the primitive demand and physical cost slots; constrained margin or
+elasticity methods need not report these unrestricted derivatives.
+
+```{r quota-shadow}
+primitive_q <- function(p) {
+  weights <- exp(tight@slopes$meanval +
+                   tight@slopes$alpha * (p - tight@priceOutside))
+  outside <- if (is.na(tight@normIndex)) 1 else 0
+  tight@mktSize * weights / (outside + sum(weights))
+}
+q_primitive <- as.numeric(primitive_q(p_post))
+constrained <- 5:6
+own_derivative <- tight@slopes$alpha * q_primitive *
+  (1 - q_primitive / tight@mktSize)
+shadow <- p_post[constrained] - tight@mcPost[constrained] +
+  q_primitive[constrained] / own_derivative[constrained]
+knitr::kable(data.frame(product = products[constrained],
+  shadow_currency_per_unit = as.numeric(shadow)), digits = 6)
+```
+
+Both displayed shadows are positive even though quantity slack is approximately
+zero. They measure local profit per added unit of the respective ceiling, not
+an importing-government receipt. This single-product formula is not a recipe
+for a multi-product constrained portfolio: its other products' profit effects
+and constraint multipliers would also matter.
+
+```{r shadow-check, include=FALSE}
+stopifnot(max(abs(q_primitive - q_post)) < 1e-8, all(shadow > 0))
+for (j in constrained) {
+  step <- 1e-7
+  up <- down <- p_post
+  up[j] <- up[j] + step; down[j] <- down[j] - step
+  dq <- (primitive_q(up)[j] - primitive_q(down)[j]) / (2 * step)
+  dprofit <- ((up[j] - tight@mcPost[j]) * primitive_q(up)[j] -
+             (down[j] - tight@mcPost[j]) * primitive_q(down)[j]) / (2 * step)
+  stopifnot(abs(dprofit / dq - shadow[match(j, constrained)]) < 1e-8)
+}
+```
+
+## Compare with a loose ceiling
+
+The next constructor uses exactly the same observations and ownership. Each
+constructor calibrates and solves its own scenario; this comparison does not
+claim to reuse a fitted game without calibration.
+
+```{r loose-quota}
+loose <- bertrand_quota(prices = price, quantities = quantities,
+  margins = margins, owner = owner, quotaPost = rep(Inf, 6), labels = products)
+comparison <- data.frame(product = products,
+  unconstrained_q = antitrust::calcQuantities(loose, preMerger = FALSE),
+  constrained_q = q_post,
+  unconstrained_price = antitrust::calcPrices(loose, preMerger = FALSE),
+  constrained_price = p_post)
+knitr::kable(comparison[5:6, ], digits = 4)
+```
+
+Read a constrained quantity together with its price. An output ceiling can
+raise a seller's price and redirect sales to competitors. Its scarcity rents
+are not automatically importing-government tariff revenue; this calculation
+specifies a quantity constraint, not a quota-license auction or rent allocation.
+
+## Scope and numerical interpretation
+
+This public quota constructor supports Logit Bertrand. The quota vector is a
+multiple of baseline **product quantities**, whereas homogeneous Cournot plant
+capacities have a different data layout. `antitrust::calcQuantities()` returns
+market-size-scaled quantity shares, so it avoids manually treating shares as
+units. Calibration and equilibrium approximation can affect reproduction of
+observations; inspect `calcDiagnostics(tight)` before interpreting empirical
+results. The small hidden feasibility check above detects an economically
+material ceiling violation; it is not proof that an equilibrium is globally
+unique.
+
+Do not pass a quota to the fitted tariff wrapper: `TariffGameFit` explicitly
+rejects it. For supported lifecycle routes and exact arguments use
+`?bertrand_quota` and `?as_trade_fit`. The
+[mathematical reference](https://github.com/luciu5/trade/blob/master/doc/tariff_game_math.md)
+contains complementarity background. Continue with the
+[tariff accounting guide](Reference.html) ([source](https://github.com/luciu5/trade/blob/master/vignettes/Reference.Rmd)) or
+[quantity-setting policy models](cournot-tariffs.html) ([source](https://github.com/luciu5/trade/blob/master/vignettes/cournot-tariffs.Rmd)).

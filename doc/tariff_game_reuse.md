@@ -81,8 +81,11 @@ proof. Retain failed posterior draw identities and failure rates rather than
 silently conditioning reported policy distributions on accepted costs.
 
 Demand parameters, outside price, size/budget and realized quality are held
-fixed across a draw's pre/post scenarios. Entry, endogenous quality, capacity,
-quota, income feedback and input markets are outside this fitted-game route.
+fixed across a draw's pre/post scenarios. Ordinary supported games also allow
+entry and exit through sequential counterfactual paths. Native Stackelberg and
+core-fringe games support paths but not entry, and require explicit leader/core
+IDs when ownership changes. Endogenous quality, capacity, quota, income feedback
+and input markets are outside this fitted-game route.
 The explicit route also supports standard Logit second-score auctions with
 firm-uniform retention. Ordinary trade adapters separately support Logit/BLP
 bargaining and auctions. Unsupported cases fail explicitly.
@@ -96,14 +99,24 @@ supplied; historical ordinary promotion calls retain their old tariff adapter.
 At nonzero baseline tariff, both bases must be explicitly declared:
 
 ```r
-policy_fit <- trade::as_trade_fit(
-  fitted_game, tariffPre = tau_pre,
-  cost_basis = "effective", margin_basis = "net_revenue"
+library(trade)
+
+# Demand and costs are already fitted/specified; promotion does not refit them.
+source_fit <- antitrust::specify(
+  "logit", "bertrand", variant = "standard",
+  prices = c(2, 2.2, 2.4, 2.6), ownerPre = c("A", "A", "B", "C"),
+  insideSize = 100, labels = c("a", "b", "c", "d"),
+  parameters = list(alpha = -1.5, meanval = c(3, 2.5, 2, 1.5))
 )
-scenario <- trade::simulate(policy_fit, tariffPost = tau_post,
-                            mcDelta = .10)
-trade::tariff_accounts(scenario)
-trade::tariff_welfare(scenario)
+policy_fit <- as_trade_fit(source_fit, tariffPre = 0,
+  cost_basis = "effective", margin_basis = "net_revenue")
+# tau is a fraction of consumer price: statutory25% corresponds to tau=.20.
+scenario <- simulate(policy_fit, tariffPost = c(.20, .20, 0, 0))
+accounts <- tariff_accounts(scenario)
+accounts[, c("product", "price", "q", "producer_profit", "government_revenue")]
+stopifnot(max(abs(accounts$producer_profit + accounts$government_revenue -
+  (accounts$price - accounts$physical_cost) * accounts$q)) < 1e-8)
+tariff_welfare(scenario)
 ```
 
 Promotion copies baseline state and makes zero equilibrium solves. Baseline
